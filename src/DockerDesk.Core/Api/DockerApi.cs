@@ -37,7 +37,7 @@ public sealed class DockerApiException(
 ///
 /// Shelling out to <c>docker.exe</c> is the alternative and it is worse in ways that show up on the
 /// first refresh — a process per call, text output that changes between versions, and no way to read
-/// a streaming endpoint without owning a child's stdout. <see cref="StreamAsync"/> exists because of
+/// a streaming endpoint without owning a child's stdout. <see cref="StreamAsync(string, CancellationToken)"/> exists because of
 /// that last one.
 /// </remarks>
 public sealed class DockerApi : IDisposable
@@ -176,7 +176,7 @@ public sealed class DockerApi : IDisposable
     /// Open a container's log and keep it open.
     /// </summary>
     /// <remarks>
-    /// The same streaming shape as <c>/events</c>, so it goes through <see cref="StreamAsync"/>.
+    /// The same streaming shape as <c>/events</c>, so it goes through <see cref="StreamAsync(string, CancellationToken)"/>.
     /// <paramref name="tail"/> is what makes opening a window on a container that has been running
     /// for a week finish at all: without it the daemon replays the entire log first.
     /// </remarks>
@@ -243,6 +243,92 @@ public sealed class DockerApi : IDisposable
             cancellation);
     }
 
+    /// <summary>
+    /// Run one command inside a running container and hand back what it exited with.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is attached, so this is for commands whose answer is their exit code — asking a
+    /// container whether it has a shell before opening a terminal on it. Attaching stdout would
+    /// mean reading a hijacked stream, and a probe does not need to read anything.
+    ///
+    /// A command whose binary is not there is a refusal from <c>start</c>, not a non-zero exit, so
+    /// a caller testing for a program has to treat <see cref="DockerApiException"/> as an answer.
+    /// </remarks>
+    /// <param name="id">The container's id.</param>
+    /// <param name="command">The command and its arguments.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The exit code, or -1 when the daemon reported none.</returns>
+    public async Task<int> RunInContainerAsync(
+        string id, IReadOnlyList<string> command, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentNullException.ThrowIfNull(command);
+
+        var created = await PostJsonAsync<ExecCreated>(
+            $"containers/{Uri.EscapeDataString(id)}/exec",
+            new { AttachStdout = false, AttachStderr = false, Tty = false, Cmd = command },
+            cancellation).ConfigureAwait(false);
+
+        // Detach false, so the response body ends when the process does. Nothing is attached, so
+        // the body is empty and reaching its end is the whole wait — no polling, no timer.
+        await using (var running = await StreamAsync(
+            HttpMethod.Post,
+            $"exec/{Uri.EscapeDataString(created.Id)}/start",
+            JsonBody(new { Detach = false, Tty = false }),
+            cancellation).ConfigureAwait(false))
+        {
+            await running.CopyToAsync(Stream.Null, cancellation).ConfigureAwait(false);
+        }
+
+        var status = await GetAsync<ExecStatus>(
+            $"exec/{Uri.EscapeDataString(created.Id)}/json", cancellation).ConfigureAwait(false);
+
+        return status.ExitCode ?? -1;
+    }
+
+    private static HttpContent JsonBody(object body) =>
+        System.Net.Http.Json.JsonContent.Create(body, options: Json);
+
+    private async Task<T> PostJsonAsync<T>(
+        string path, object body, CancellationToken cancellation)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, Path(path))
+        {
+            Content = JsonBody(body),
+        };
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellation).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            (exception is HttpRequestException or IOException or TimeoutException
+             || (exception is TaskCanceledException && !cancellation.IsCancellationRequested)))
+        {
+            throw new DockerApiException(
+                $"the engine did not answer {Path(path)}: {exception.Message}");
+        }
+
+        using (response)
+        {
+            await ThrowIfRefusedAsync(response, path, cancellation).ConfigureAwait(false);
+            try
+            {
+                return await response.Content
+                    .ReadFromJsonAsync<T>(Json, cancellation).ConfigureAwait(false)
+                    ?? throw new DockerApiException($"{Path(path)} returned null");
+            }
+            catch (JsonException exception)
+            {
+                throw new DockerApiException(
+                    $"{Path(path)} returned something that is not the JSON expected: "
+                    + exception.Message,
+                    response.StatusCode);
+            }
+        }
+    }
+
     private Task ActOnAsync(
         HttpMethod method, string id, string verb, CancellationToken cancellation)
     {
@@ -292,10 +378,14 @@ public sealed class DockerApi : IDisposable
     /// <param name="path">The endpoint, without a leading slash or version.</param>
     /// <param name="cancellation">Cancellation. Closing it is how the stream ends.</param>
     /// <returns>The response body.</returns>
-    public async Task<Stream> StreamAsync(string path, CancellationToken cancellation = default)
+    public Task<Stream> StreamAsync(string path, CancellationToken cancellation = default) =>
+        StreamAsync(HttpMethod.Get, path, body: null, cancellation);
+
+    private async Task<Stream> StreamAsync(
+        HttpMethod method, string path, HttpContent? body, CancellationToken cancellation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var request = new HttpRequestMessage(HttpMethod.Get, Path(path));
+        var request = new HttpRequestMessage(method, Path(path)) { Content = body };
         HttpResponseMessage response;
         try
         {

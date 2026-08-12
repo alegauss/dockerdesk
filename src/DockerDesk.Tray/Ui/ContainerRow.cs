@@ -92,6 +92,33 @@ public sealed record ContainerRow(
     /// <summary>Whether the row offers Remove. Anything not already busy can be removed.</summary>
     public bool CanRemove => !IsPending;
 
+    /// <summary>
+    /// Whether a shell can be opened: running, and nothing else in flight.
+    /// </summary>
+    /// <remarks>
+    /// Running and not merely live. <c>docker exec</c> against a paused container is accepted and
+    /// then hangs until somebody unpauses it, with no window and no error — which is worse than a
+    /// button that is visibly off.
+    /// </remarks>
+    public bool CanShell => !IsPending && IsRunning;
+
+    /// <summary>
+    /// Why the Shell button is off, or what it does when it is on.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the other four, this one is shown disabled rather than hidden, so it owes an
+    /// explanation: a disabled control that says why is a limitation, and one that does not is a
+    /// bug the user is left to guess at.
+    /// </remarks>
+    public string ShellReason => this switch
+    {
+        { IsPending: true } => "Wait for the action already running on this container.",
+        { IsRunning: true } => "Open a shell in this container.",
+        { State: "paused" } => "This container is paused. Unpause it before opening a shell.",
+        { State: "restarting" } => "This container is restarting. Wait for it to come up.",
+        _ => "This container is not running. Start it before opening a shell.",
+    };
+
     /// <summary>Project one summary.</summary>
     /// <param name="container">What the API returned.</param>
     /// <returns>The row.</returns>

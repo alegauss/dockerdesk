@@ -345,6 +345,72 @@ public sealed class DockerApiTests
         Assert.Contains($"{Id}/stop", thrown.Message, StringComparison.Ordinal);
     }
 
+    // ---- running one command inside a container ------------------------------------------------
+
+    [Fact]
+    public async Task A_command_run_in_a_container_comes_back_as_its_exit_code()
+    {
+        await using var daemon = new FakeDockerDaemon()
+            .Json(Path($"containers/{Id}/exec"), """{"Id":"e5f6a7b8"}""")
+            .Raw(Path("exec/e5f6a7b8/start"), NoBody("200 OK"))
+            .Json(Path("exec/e5f6a7b8/json"), """{"Running":false,"ExitCode":0}""");
+        using var api = new DockerApi(daemon.PipeName);
+
+        Assert.Equal(0, await api.RunInContainerAsync(Id, ["/bin/sh", "-c", "exit 0"]));
+
+        Assert.Contains(daemon.Requested, line =>
+            line.StartsWith($"POST /{DockerApi.ApiVersion}/containers/{Id}/exec ",
+                StringComparison.Ordinal));
+        Assert.Contains(daemon.Requested, line =>
+            line.StartsWith($"POST /{DockerApi.ApiVersion}/exec/e5f6a7b8/start ",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_non_zero_exit_is_returned_rather_than_thrown()
+    {
+        // A shell that ran and failed is an answer about the container, not a failed call.
+        await using var daemon = new FakeDockerDaemon()
+            .Json(Path($"containers/{Id}/exec"), """{"Id":"e5f6a7b8"}""")
+            .Raw(Path("exec/e5f6a7b8/start"), NoBody("200 OK"))
+            .Json(Path("exec/e5f6a7b8/json"), """{"Running":false,"ExitCode":126}""");
+        using var api = new DockerApi(daemon.PipeName);
+
+        Assert.Equal(126, await api.RunInContainerAsync(Id, ["/bin/bash", "-c", "exit 0"]));
+    }
+
+    [Fact]
+    public async Task A_daemon_reporting_no_exit_code_at_all_is_not_read_as_success()
+    {
+        // ExitCode is null while an exec is still going, and null read as 0 would say "this shell
+        // works" about a probe that never finished.
+        await using var daemon = new FakeDockerDaemon()
+            .Json(Path($"containers/{Id}/exec"), """{"Id":"e5f6a7b8"}""")
+            .Raw(Path("exec/e5f6a7b8/start"), NoBody("200 OK"))
+            .Json(Path("exec/e5f6a7b8/json"), """{"Running":true}""");
+        using var api = new DockerApi(daemon.PipeName);
+
+        Assert.NotEqual(0, await api.RunInContainerAsync(Id, ["/bin/sh", "-c", "exit 0"]));
+    }
+
+    [Fact]
+    public async Task A_binary_that_is_not_in_the_image_is_a_refusal_from_start()
+    {
+        // This is what "no /bin/bash" actually looks like: exec create succeeds and start refuses.
+        await using var daemon = new FakeDockerDaemon()
+            .Json(Path($"containers/{Id}/exec"), """{"Id":"e5f6a7b8"}""")
+            .Fails(
+                Path("exec/e5f6a7b8/start"), "500 Internal Server Error",
+                "OCI runtime exec failed: exec failed: unable to start container process: "
+                + "exec: \"/bin/bash\": stat /bin/bash: no such file or directory");
+        using var api = new DockerApi(daemon.PipeName);
+
+        var thrown = await Assert.ThrowsAsync<DockerApiException>(
+            () => api.RunInContainerAsync(Id, ["/bin/bash", "-c", "exit 0"]));
+
+        Assert.Contains("no such file or directory", thrown.Detail!, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Several_calls_in_a_row_work_on_one_client()
     {

@@ -184,28 +184,6 @@ incident waiting for its second turn, and it has already had one.
 
 ## Block D — Container operations (what a user came to do)
 
-### §DD10 A shell in a container: launch the terminal the user already has
-
-Reading a log answers what happened; a shell answers why. Inspecting a config file the
-image baked in, running a client against the database in the container, checking what
-the process actually sees for an environment variable — none of that is reachable from a
-list and all of it is one command away.
-
-The cheap implementation is the right one: launch Windows Terminal — falling back to the
-console host where it is absent — running `docker exec -it <id> <shell>`. The
-alternative is a terminal emulator inside the window, which means attaching to the exec
-stream, handling resize, and interpreting ANSI escape sequences. That is a large amount
-of code to reimplement a program the user already has, and it competes for effort with
-the engine work that is this project's actual reason to exist.
-
-Which shell is a guess with a fallback: `bash`, then `sh`. A distroless or scratch image
-has neither, and the answer there is to say so rather than to open a window that
-immediately closes.
-
-The container must be running. On a stopped one the action is offered but disabled, with
-the reason on the tooltip, because a disabled control that explains itself is the
-difference between a limitation and a bug.
-
 ## Block E — Images, volumes and networks
 
 ### §DD11 Images: sorted by size, with dangling and in-use named
@@ -315,3 +293,33 @@ image, which is exactly the failure a local build cannot see.
 What CI cannot do is verify the engine install: a hosted runner has no nested
 virtualization, so that path stays a manual check against the release candidate, and
 saying so here is better than a green tick that means less than it appears to.
+
+## Block G — The agent surface (an agent operates this, and pays in tokens)
+
+### §DD23 The measurement is the first deliverable, not a footnote
+
+The constitution this block implements is `docs/specs/DD23-agent-first-dockerdesk.md`,
+and every figure in its §3 is an estimate: 30–60k tokens and 15–30 calls for a canonical
+diagnosis, against a target of 2–5k and five calls. An estimate is what a design is
+argued from. It is not what a build can refuse.
+
+So this lands first, and it lands as two artefacts. A benchmark drives the canonical
+task — bring a stack up, find why one service is not answering — twice: once through
+`docker` the way an agent reaches it today, once through whatever surface exists, and it
+reports the ratio in calls and in estimated tokens. A budget file holds a ceiling per
+response shape, read by that test, so a build that made the surface more expensive fails
+instead of mentioning it.
+
+Raising a ceiling stays allowed. It is a deliberate, reviewable act, and the commit that
+raises one says what the tokens bought. What the file prevents is the raise nobody
+argued for.
+
+Two things it must not become. It is not a performance suite: wall-clock is a different
+question with a different answer, and mixing them means neither number is trusted. And
+it must not measure only a well-formed script — a benchmark over calls that are all
+correct cannot see the argument an agent gets wrong, and an unknown flag accepted in
+silence is the expensive case: a refusal costs one round trip, while a silently dropped
+argument costs a wrong outcome nobody notices.
+
+## Block H — Agent guardrails, proof and distribution
+

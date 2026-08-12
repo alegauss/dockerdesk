@@ -56,6 +56,28 @@ public sealed record PortBinding
         : $"{PrivatePort}/{Type}";
 }
 
+/// <summary>What the daemon answers when an exec is created.</summary>
+public sealed record ExecCreated
+{
+    /// <summary>The exec's id, which is what start and inspect are addressed to.</summary>
+    [JsonPropertyName("Id")]
+    public string Id { get; init; } = "";
+}
+
+/// <summary>How an exec finished.</summary>
+public sealed record ExecStatus
+{
+    /// <summary>Whether it is still going.</summary>
+    [JsonPropertyName("Running")]
+    public bool Running { get; init; }
+
+    /// <summary>
+    /// What it exited with, or <see langword="null"/> while it is still running.
+    /// </summary>
+    [JsonPropertyName("ExitCode")]
+    public int? ExitCode { get; init; }
+}
+
 /// <summary>The part of a container's configuration this tool reads.</summary>
 public sealed record ContainerConfig
 {

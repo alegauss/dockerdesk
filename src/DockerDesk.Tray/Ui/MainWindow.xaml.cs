@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using DockerDesk.Core.Api;
@@ -129,6 +130,65 @@ internal partial class MainWindow : Window
         _logs[row.Id] = window;
         window.Closed += (_, _) => _logs.Remove(row.Id);
         window.Show();
+    }
+
+    /// <summary>
+    /// Ask the container which shell it has, then hand the terminal the user already has a
+    /// <c>docker exec</c> against it.
+    /// </summary>
+    /// <remarks>
+    /// The probe is why the row goes pending first: two round trips to the daemon before any window
+    /// appears, and a click that looks like it did nothing for that long is a click people press
+    /// again. An image with no shell says so on the row rather than opening a terminal that closes.
+    /// </remarks>
+    private async void OpenShell(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ContainerRow row })
+        {
+            return;
+        }
+
+        _activity.Began(row.Id, ContainerVerb.Shell);
+        Redress();
+        try
+        {
+            var shell = await ContainerShell
+                .FindAsync((command, token) => _api.RunInContainerAsync(row.Id, command, token))
+                .ConfigureAwait(true);
+
+            if (shell is null)
+            {
+                _activity.Failed(row.Id, ContainerShell.NoShellMessage(row.Name));
+                return;
+            }
+
+            var launch = ContainerShell.LaunchFor(
+                Terminals.Choose(File.Exists), new EnginePaths().DockerCli, row.Id, shell);
+
+            var start = new ProcessStartInfo(launch.FileName) { UseShellExecute = false };
+            foreach (var argument in launch.Arguments)
+            {
+                start.ArgumentList.Add(argument);
+            }
+
+            Process.Start(start)?.Dispose();
+            _activity.Settled(row.Id);
+        }
+        catch (DockerApiException failure)
+        {
+            _activity.Failed(row.Id, failure.Detail ?? failure.Message);
+        }
+        catch (Exception failure) when (failure is System.ComponentModel.Win32Exception
+            or InvalidOperationException or IOException)
+        {
+            // The terminal is not where it was expected, or Windows refused to start it. The row is
+            // where the click was, so the row is where this goes.
+            _activity.Failed(row.Id, $"the terminal would not start: {failure.Message}");
+        }
+        finally
+        {
+            Redress();
+        }
     }
 
     private void StartContainer(object sender, RoutedEventArgs e) =>

@@ -18,8 +18,6 @@
 
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD10** (deps: DD7 ✅) **There is no way into a running container: no shell, so anything the log does not say is unreachable** — Launching Windows Terminal with docker exec costs a process, where a terminal inside the window costs a full ANSI emulator this project has no reason to write. → §DD10
-
 ## Block E — Images, volumes and networks
 
 - 📋 **DD11** (deps: DD7 ✅) **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Reclaiming disk is a judgement over a list, which is what a GUI is better at than three CLI commands and a mental join. → §DD11
@@ -30,6 +28,12 @@
 - 📋 **DD13** (deps: —) **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — The licence is the reason to try this at all, so Apache-2.0 belongs where the choice is made and upstream attribution is a compliance requirement, not a courtesy. → §DD13
 - 📋 **DD14** (deps: DD2 ✅, DD13) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
 - 📋 **DD15** (deps: DD14) **Every release is built on one developer's machine, so the first download finds what that machine hid** — A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge. → §DD15
+
+## Block G — The agent surface (an agent operates this, and pays in tokens)
+
+- 📋 **DD23** (deps: DD14, DD15) **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote. → §DD23
+
+## Block H — Agent guardrails, proof and distribution
 
 ## Non-goals
 

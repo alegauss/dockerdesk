@@ -7,8 +7,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:ClassModifier="internal"
         Title="DockerDesk"
-        Width="900" Height="560"
-        MinWidth="720" MinHeight="360"
+        Width="1040" Height="560"
+        MinWidth="880" MinHeight="360"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">
@@ -92,7 +92,7 @@
                 <ColumnDefinition Width="0.7*" />
                 <ColumnDefinition Width="1.1*" />
                 <ColumnDefinition Width="1.2*" />
-                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="320" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="NAME" Style="{StaticResource Header}" />
             <TextBlock Grid.Column="1" Text="IMAGE" Style="{StaticResource Header}" />
@@ -115,12 +115,16 @@
                   <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.3*" />
-                            <ColumnDefinition Width="1.4*" />
-                            <ColumnDefinition Width="0.7*" />
+                            <!-- Character for character the same as HeaderRow's, and a test asserts
+                                 it: a header whose columns have drifted from the rows under it puts
+                                 every caption over the wrong cell, and nothing but looking at the
+                                 window says so. -->
                             <ColumnDefinition Width="1.2*" />
                             <ColumnDefinition Width="1.3*" />
-                            <ColumnDefinition Width="236" />
+                            <ColumnDefinition Width="0.7*" />
+                            <ColumnDefinition Width="1.1*" />
+                            <ColumnDefinition Width="1.2*" />
+                            <ColumnDefinition Width="320" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -181,6 +185,13 @@
                                  reading it changes nothing that could be in flight. -->
                             <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
                                     Style="{StaticResource RowAction}" />
+                            <!-- The one button that is disabled rather than hidden, because
+                                 "you cannot do this yet" and "this does not exist" are different
+                                 answers and only the tooltip can tell them apart. -->
+                            <Button Content="Shell" Tag="{Binding}" Click="OpenShell"
+                                    Style="{StaticResource RowAction}"
+                                    IsEnabled="{Binding CanShell}"
+                                    ToolTip="{Binding ShellReason}" />
                             <Button Content="Start" Tag="{Binding}" Click="StartContainer"
                                     Style="{StaticResource RowAction}"
                                     Visibility="{Binding CanStart, Converter={StaticResource Shown}}" />

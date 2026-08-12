@@ -16,6 +16,12 @@ public enum ContainerVerb
 
     /// <summary>Delete it.</summary>
     Remove,
+
+    /// <summary>
+    /// Open a shell in it. Not one of the four endpoints — the wait is the probe that asks the
+    /// image which shell it has, and the row owes an account of it like any other.
+    /// </summary>
+    Shell,
 }
 
 /// <summary>
@@ -38,6 +44,7 @@ public static class ContainerAction
         ContainerVerb.Stop => "Stopping…",
         ContainerVerb.Restart => "Restarting…",
         ContainerVerb.Remove => "Removing…",
+        ContainerVerb.Shell => "Opening…",
         _ => "Working…",
     };
 

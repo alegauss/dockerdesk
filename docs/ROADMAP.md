@@ -2,8 +2,7 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD1** (deps: —) **A Windows user cannot tell why Docker will not run here: WSL2 missing, virtualization off, or a rival engine** — An installer that copies files onto a machine that cannot host an engine fails halfway, and the user reads a Docker error instead of the one fact that would fix it. → §DD1
-- 📋 **DD2** (deps: DD1) **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — The engine is the product: until upstream Moby lands in an owned WSL2 distro with the docker CLI on PATH, there is nothing for a GUI to drive. → §DD2
+- 📋 **DD2** (deps: DD1 ✅) **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — The engine is the product: until upstream Moby lands in an owned WSL2 distro with the docker CLI on PATH, there is nothing for a GUI to drive. → §DD2
 - 📋 **DD3** (deps: DD2) **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — WSL2 needs seconds to boot the distro before dockerd opens its pipe, so the state a user acts on has to be the pipe answering and never the start command returning. → §DD3
 
 ## Block B — The daemon client (talk to the engine)

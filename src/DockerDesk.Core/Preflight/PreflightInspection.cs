@@ -1,0 +1,196 @@
+namespace DockerDesk.Core.Preflight;
+
+/// <summary>
+/// Turns <see cref="IMachineFacts"/> into the report. Pure, and deliberately: the judgement is
+/// the part worth testing, and the reading is the part that cannot be faked on demand.
+/// </summary>
+public static class PreflightInspection
+{
+    /// <summary>
+    /// The oldest Windows build that ships the WSL2 kernel — version 2004, build 19041. Below it
+    /// there is no amount of configuration that gets an engine running.
+    /// </summary>
+    public const int MinimumWindowsBuild = 19041;
+
+    /// <summary>The row ids, so a caller names one without spelling a string twice.</summary>
+    public static class Rows
+    {
+        /// <summary>The Windows build row.</summary>
+        public const string WindowsBuild = "windows-build";
+
+        /// <summary>The hardware virtualization row.</summary>
+        public const string Virtualization = "virtualization";
+
+        /// <summary>The WSL2 row.</summary>
+        public const string Wsl2 = "wsl2";
+
+        /// <summary>The rival-engine row.</summary>
+        public const string RivalEngine = "rival-engine";
+    }
+
+    /// <summary>Read every row from <paramref name="facts"/>, in report order.</summary>
+    /// <param name="facts">What this machine says about itself.</param>
+    /// <returns>The report.</returns>
+    public static PreflightReport Run(IMachineFacts facts)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        return new PreflightReport([
+            CheckWindowsBuild(facts),
+            CheckVirtualization(facts),
+            CheckWsl2(facts),
+            CheckRivalEngines(facts),
+        ]);
+    }
+
+    private static PreflightCheck CheckWindowsBuild(IMachineFacts facts)
+    {
+        var version = facts.OperatingSystem;
+        var detail = $"Windows {version.Major}.{version.Minor}, build {version.Build}";
+
+        return version.Build >= MinimumWindowsBuild
+            ? new PreflightCheck
+            {
+                Id = Rows.WindowsBuild,
+                Title = "Windows build",
+                Verdict = Verdict.Pass,
+                Detail = detail,
+                Blocking = true,
+            }
+            : new PreflightCheck
+            {
+                Id = Rows.WindowsBuild,
+                Title = "Windows build",
+                Verdict = Verdict.Fail,
+                Detail = $"{detail} — WSL2 needs {MinimumWindowsBuild} or later",
+                Remedy = "Install Windows updates until the build reaches "
+                    + $"{MinimumWindowsBuild} (Windows 10 version 2004).",
+                Blocking = true,
+            };
+    }
+
+    private static PreflightCheck CheckVirtualization(IMachineFacts facts)
+    {
+        // Order matters. Windows reports the firmware bit as false once a hypervisor has claimed
+        // it, so reading the bit first calls a machine that is plainly virtualizing "disabled"
+        // and sends the user into a BIOS to switch on something already on.
+        if (facts.HypervisorPresent is true)
+        {
+            return Green(Rows.Virtualization, "Hardware virtualization",
+                "enabled — a hypervisor is already running");
+        }
+
+        return facts.VirtualizationFirmwareEnabled switch
+        {
+            true => Green(Rows.Virtualization, "Hardware virtualization",
+                "enabled in firmware"),
+
+            false => new PreflightCheck
+            {
+                Id = Rows.Virtualization,
+                Title = "Hardware virtualization",
+                Verdict = Verdict.Fail,
+                Detail = "disabled in firmware",
+                Remedy = "Reboot into UEFI/BIOS setup and enable virtualization "
+                    + "(Intel VT-x or AMD-V), then run this check again.",
+                Blocking = true,
+            },
+
+            null => new PreflightCheck
+            {
+                Id = Rows.Virtualization,
+                Title = "Hardware virtualization",
+                Verdict = Verdict.Unknown,
+                Detail = "could not be read on this machine",
+                Remedy = "Open Task Manager, Performance, CPU and read the Virtualization row. "
+                    + "If it says Enabled, this check is what is wrong and not the machine.",
+                Blocking = true,
+            },
+        };
+    }
+
+    private static PreflightCheck CheckWsl2(IMachineFacts facts)
+    {
+        var wsl = facts.Wsl;
+
+        if (!wsl.CommandPresent)
+        {
+            return new PreflightCheck
+            {
+                Id = Rows.Wsl2,
+                Title = "WSL2",
+                Verdict = Verdict.Fail,
+                Detail = "not installed — wsl.exe is not on this machine",
+                Remedy = "Run `wsl --install --no-distribution` in an administrator terminal, "
+                    + "then reboot.",
+                Blocking = true,
+            };
+        }
+
+        if (wsl.KernelVersion is null)
+        {
+            // wsl.exe present and no kernel behind it is the half-installed state a Windows
+            // feature leaves: the command answers, and there is nothing for it to boot.
+            return new PreflightCheck
+            {
+                Id = Rows.Wsl2,
+                Title = "WSL2",
+                Verdict = wsl.Unreadable is null ? Verdict.Fail : Verdict.Unknown,
+                Detail = wsl.Unreadable ?? "wsl.exe is installed, and no WSL2 kernel is",
+                Remedy = "Run `wsl --update` in an administrator terminal.",
+                Blocking = true,
+            };
+        }
+
+        if (wsl.DefaultVersion == 1)
+        {
+            // Warn, so it does not stop the install: the default decides what a *new* distro is
+            // created as, and this installer names the version it wants. Worth saying anyway,
+            // because the user's own distros are on WSL1 and that is a surprise they should meet
+            // here rather than later.
+            return new PreflightCheck
+            {
+                Id = Rows.Wsl2,
+                Title = "WSL2",
+                Verdict = Verdict.Warn,
+                Detail = $"kernel {wsl.KernelVersion} is installed, and new distros default to WSL1",
+                Remedy = "Run `wsl --set-default-version 2` to make WSL2 the default.",
+                Blocking = true,
+            };
+        }
+
+        var version = wsl.Version is null ? "" : $"WSL {wsl.Version}, ";
+        return Green(Rows.Wsl2, "WSL2", $"{version}kernel {wsl.KernelVersion}");
+    }
+
+    private static PreflightCheck CheckRivalEngines(IMachineFacts facts)
+    {
+        if (facts.RivalEngines.Count == 0)
+        {
+            return Green(Rows.RivalEngine, "Container engine",
+                "nothing else owns the docker command or the docker_engine pipe");
+        }
+
+        var found = string.Join("; ",
+            facts.RivalEngines.Select(engine => $"{engine.Name} ({engine.Evidence})"));
+
+        return new PreflightCheck
+        {
+            Id = Rows.RivalEngine,
+            Title = "Container engine",
+            Verdict = Verdict.Fail,
+            Detail = $"already installed: {found}",
+            Remedy = "Uninstall it first. Two engines competing for the docker_engine pipe "
+                + "leaves neither of them working.",
+            Blocking = true,
+        };
+    }
+
+    private static PreflightCheck Green(string id, string title, string detail) => new()
+    {
+        Id = id,
+        Title = title,
+        Verdict = Verdict.Pass,
+        Detail = detail,
+        Blocking = true,
+    };
+}

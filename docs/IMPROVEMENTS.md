@@ -2,24 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD1 Preflight: what this machine can host, before anything is copied
-
-Three facts decide whether this machine can host a container engine at all: the Windows
-build, whether hardware virtualization is enabled in firmware, and whether the WSL2
-kernel is present. A fourth decides whether it *should* — an existing Docker Desktop or
-Rancher Desktop already owns the `docker` command and the `docker_engine` named pipe,
-and two installers competing for one pipe is the failure mode that leaves a user with
-neither.
-
-So the first screen is a report, not a progress bar. Each row is a fact, a verdict, and
-the one action that changes it: enable virtualization in the BIOS, run the WSL update,
-or uninstall the rival. Nothing is copied to disk until every blocking row is green.
-
-The check runs standalone as well as at install time. A working setup breaks later — a
-Windows update resets a feature, a colleague installs Docker Desktop — and the question
-"what changed" is the same question, so it gets the same answer rather than a second
-diagnostic written for the support case.
-
 ### §DD2 The engine: upstream Moby in a WSL2 distro this tool owns
 
 The engine is upstream Moby, unmodified, installed into a WSL2 distribution this tool

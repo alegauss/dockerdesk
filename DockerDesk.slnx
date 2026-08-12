@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DockerDesk.Core/DockerDesk.Core.csproj" />
+    <Project Path="src/DockerDesk.Preflight/DockerDesk.Preflight.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DockerDesk.Preflight.Tests/DockerDesk.Preflight.Tests.csproj" />
+  </Folder>
+</Solution>

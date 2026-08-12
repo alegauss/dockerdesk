@@ -41,6 +41,58 @@ several gigabytes is the complaint that sends people looking for an alternative.
 the engine runs when asked, and the setting to make it automatic is one checkbox the
 user ticks themselves.
 
+### §DD16 The rival row asks where a vendor installs, not what owns the docker command
+
+The rival row shipped looking for `%ProgramFiles%\Docker\Docker\Docker Desktop.exe`, a
+`%LOCALAPPDATA%\Programs\Rancher Desktop` executable, and an open
+`\\.\pipe\docker_engine`. Docker Desktop now installs per user, into
+`%LOCALAPPDATA%\Programs\DockerDesktop`, and its engine is only listening while the app
+is running. So a machine with Docker Desktop installed and stopped answers no to all
+three.
+
+Measured on the development machine: `docker.exe` resolves to
+`C:\Users\alexa\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe`, `wsl -l
+-v` lists a registered `docker-desktop` distribution, and both `C:\Program Files\Docker`
+and `%LOCALAPPDATA%\Docker` exist — while the preflight prints `[ok] Container engine —
+nothing else owns the docker command or the docker_engine pipe` and exits 0.
+
+That is the one row that must never be wrongly green. Its remedy is "uninstall it
+first", and the reason is that two engines competing for one pipe leave the user with
+neither — so a false green does not merely omit a warning, it clears an install to walk
+into the exact collision the check was added to prevent.
+
+What the design already said is the fix: the fact is whether something **owns the
+`docker` command**, and the shipped probe never asked. Resolving `docker` the way the
+shell resolves it answers it in one read, independent of where any vendor chose to
+install this year, and a registered `docker-desktop` distribution is the second signal
+that survives the app being shut down. The three existing checks stay — a path and an
+open pipe are still evidence, and evidence carried into the report is what lets a user
+argue with it.
+
+### §DD17 A reachable Windows guest, and the snapshot that makes a destructive test repeatable
+
+Every check in this project has only ever run on one machine, and that machine passes.
+The preflight's red rows are reached by injected facts alone: virtualization cannot be
+switched off here, WSL cannot be unregistered here, and DD16 exists because a rival
+engine was installed on this machine the whole time and the report said otherwise. An
+install, an uninstall and an upgrade have never been executed at all.
+
+A Windows 11 guest under VMware Workstation closes all of it, and the reason is the
+snapshot rather than the guest: reverting to a clean image is what makes a destructive
+test repeatable, and an installer is only tested by being run on a machine that has
+never seen it.
+
+Two things have to be established first. A reach: `vmrun.exe` with VMware Tools gives
+`runProgramInGuest`, `copyFileToGuest` and `revertToSnapshot` over no network at all,
+which is why it beats SSH — and either way the credential lives outside this repository.
+And nested virtualization: WSL2 needs `Virtualize Intel VT-x/EPT` on, while the same
+switch off is the fault injector the virtualization row has never met.
+
+What this delivers is a checked-in script answering, from this machine, whether the
+guest is reachable, whether it can be reverted, and what its preflight says — so the
+answer is a command anybody re-runs rather than a session somebody remembers. It is
+first in the queue because every later verification depends on it.
+
 ## Block B — The daemon client (talk to the engine)
 
 ### §DD4 The Engine API client: a named pipe, HttpClient, and no dependencies

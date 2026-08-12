@@ -202,7 +202,10 @@ public sealed class EngineProvisioner
             "set -e",
             "apk add --no-cache --no-progress iptables ip6tables ca-certificates",
             "mkdir -p /usr/local/bin",
-            $"tar -xzf '{inside}' -C /usr/local/bin --strip-components=1",
+            // --no-same-owner, because tar as root otherwise restores the uid the archive was built
+            // with: measured on a real install, every binary landed owned by 1001:1001, a user this
+            // distribution does not have. Harmless today and a trap the first time one exists.
+            $"tar -xzf '{inside}' -C /usr/local/bin --strip-components=1 --no-same-owner",
             // A glob, not eight names: naming them makes `set -e` abort the whole install the day
             // upstream renames or drops one, and which binaries have to be there is already decided
             // locally by InspectEngine, before the distribution is touched.

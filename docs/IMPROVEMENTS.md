@@ -2,27 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD2 The engine: upstream Moby in a WSL2 distro this tool owns
-
-The engine is upstream Moby, unmodified, installed into a WSL2 distribution this tool
-owns and names — not into the user's Ubuntu, where an apt upgrade or a `wsl
---unregister` they ran for another reason would take the engine with it. An owned distro
-also makes the uninstall exact: one `wsl --unregister`, and the machine is as it was.
-
-Two artefacts arrive: the static `dockerd` and `containerd` binaries inside the distro,
-and the `docker` CLI on the Windows side, on PATH, talking to that engine. The CLI
-matters more than it looks — every tutorial, Dockerfile and CI script a user already has
-types `docker`, and a GUI that cannot be scripted around is a GUI people work around
-instead.
-
-The download is verified against a published checksum before anything is unpacked, and
-pinned to a version this project states rather than "latest": an engine that silently
-moves under a user is a support case nobody can reproduce.
-
-Unattended is the requirement, not a nicety. This runs from an installer where there is
-no terminal to answer a prompt in, so every step is non-interactive and every failure
-names the step it failed at.
-
 ### §DD3 Engine lifecycle: three states, and autostart as a choice
 
 An engine is a background service with three states a user cares about — stopped,

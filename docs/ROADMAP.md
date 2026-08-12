@@ -4,8 +4,7 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- ⏳ **DD2** (deps: DD1 ✅) **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — The engine is the product: until upstream Moby lands in an owned WSL2 distro with the docker CLI on PATH, there is nothing for a GUI to drive. → §DD2
-- 📋 **DD3** (deps: DD2 ⏳) **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — WSL2 needs seconds to boot the distro before dockerd opens its pipe, so the state a user acts on has to be the pipe answering and never the start command returning. → §DD3
+- 📋 **DD3** (deps: DD2 ✅) **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — WSL2 needs seconds to boot the distro before dockerd opens its pipe, so the state a user acts on has to be the pipe answering and never the start command returning. → §DD3
 - 📋 **DD16** (deps: —) **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — A false green on the one row whose remedy is uninstall the rival clears an install to walk into the docker_engine collision that row exists to prevent. → §DD16
 - 📋 **DD18** (deps: —) **On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row** — That is the most common machine this installer meets, wsl --status names the state and the fix in milliseconds, and the remedy offered updates a WSL that is not installed. → §DD18
 - 📋 **DD19** (deps: —) **Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start** — HypervisorPresent is true of every guest, so the row reads I am virtualized as I can host one, and the install fails halfway on exactly the machine the check exists to stop. → §DD19
@@ -34,7 +33,7 @@
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 - 📋 **DD13** (deps: —) **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — The licence is the reason to try this at all, so Apache-2.0 belongs where the choice is made and upstream attribution is a compliance requirement, not a courtesy. → §DD13
-- 📋 **DD14** (deps: DD2 ⏳, DD13) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
+- 📋 **DD14** (deps: DD2 ✅, DD13) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
 - 📋 **DD15** (deps: DD14) **Every release is built on one developer's machine, so the first download finds what that machine hid** — A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge. → §DD15
 
 ## Non-goals

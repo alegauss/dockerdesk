@@ -9,6 +9,8 @@
 
 ## Block B — The daemon client (talk to the engine)
 
+- ✅ **DD4** **Nothing in this project can ask the engine anything: no client for the Docker API over the Windows named pipe** — DockerApi speaks the Engine API over the named pipe with no NuGet dependency: ping, version, containers, and a stream for endpoints that never end.
+
 ## Block C — The window (claude-tray's elements)
 
 ## Block D — Container operations (what a user came to do)

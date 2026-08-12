@@ -131,27 +131,6 @@ rather than the implementation.
 
 ## Block B — The daemon client (talk to the engine)
 
-### §DD4 The Engine API client: a named pipe, HttpClient, and no dependencies
-
-The engine speaks HTTP over a Windows named pipe, `\\.\pipe\docker_engine`. That is the
-whole transport, and .NET has it in the box: `NamedPipeClientStream` plus a
-`SocketsHttpHandler` with a custom `ConnectCallback`, handed to `HttpClient`. Roughly
-forty lines, and then every endpoint is a JSON call.
-
-Shelling out to `docker.exe` and parsing its output is the alternative, and it is worse
-in a way that shows up immediately: a process launch per refresh, output formats that
-change between versions, and no way to consume a streaming endpoint without owning the
-child's stdout. The API is versioned and documented; the CLI's text output is neither.
-
-Zero third-party dependencies, deliberately, matching how the tray app this borrows its
-UI from is built. It keeps the single self-contained `.exe` small, keeps the license
-story clean for an Apache-2.0 release, and means a Docker.DotNet release cadence is
-never something this project waits on.
-
-The client is typed only where a field is read. A record per response with the four
-properties the list needs beats a generated model of an API surface this tool will use a
-tenth of.
-
 ### §DD5 The event stream: why nothing here polls
 
 `GET /events` is a long-lived response that emits one JSON object per line as containers

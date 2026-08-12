@@ -1,4 +1,5 @@
 using System.Text;
+using DockerDesk.Core.Api;
 using DockerDesk.Core.Engine;
 using DockerDesk.Core.Preflight;
 using DockerDesk.Core.Preflight.Windows;
@@ -34,6 +35,7 @@ internal static class Program
             "--acquire" => Run(acquireOnly: true),
             "--provision" => Run(acquireOnly: false),
             "--status" => Status(),
+            "--api" => ApiProbe(),
             "--run" => RunEngine(),
             "--stop" => Stop(),
             "--autostart" => AutostartMode(args.Length > 1 ? args[1] : "status"),
@@ -127,6 +129,55 @@ internal static class Program
         finally
         {
             lifecycle.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// Ask the engine everything the client can ask, through the Engine API rather than through
+    /// docker.exe. This is what proves the client against a real daemon.
+    /// </summary>
+    private static int ApiProbe()
+    {
+        using var api = new DockerApi();
+        if (!api.PingAsync().GetAwaiter().GetResult())
+        {
+            Console.Error.WriteLine(
+                @"  the engine is not answering on \\.\pipe\" + DockerApi.DefaultPipeName);
+            return Failed;
+        }
+
+        try
+        {
+            var version = api.VersionAsync().GetAwaiter().GetResult();
+            Console.WriteLine(
+                $"  engine {version.Version}, API {version.ApiVersion} "
+                + $"(oldest {version.MinApiVersion}), {version.Os}/{version.Arch}");
+            Console.WriteLine($"  this client asks for {DockerApi.ApiVersion}");
+            Console.WriteLine();
+
+            var containers = api.ContainersAsync().GetAwaiter().GetResult();
+            if (containers.Count == 0)
+            {
+                Console.WriteLine("  no containers");
+                return Ok;
+            }
+
+            foreach (var container in containers)
+            {
+                var ports = container.PublishedPorts.Count == 0
+                    ? ""
+                    : "  " + string.Join(", ", container.PublishedPorts);
+                Console.WriteLine(
+                    $"  {container.ShortId}  {container.State,-8}  {container.Image,-22}  "
+                    + $"{container.DisplayName}{ports}");
+            }
+
+            return Ok;
+        }
+        catch (DockerApiException exception)
+        {
+            Console.Error.WriteLine($"  {exception.Message}");
+            return Failed;
         }
     }
 
@@ -256,6 +307,7 @@ internal static class Program
               --run         start the engine and serve \\.\pipe\docker_engine until Ctrl+C
               --stop        stop the engine and terminate the distribution
               --status      what the engine is doing, by asking it
+              --api         version and containers, read through the Engine API
               --autostart   on | off | status  - off unless you turn it on
 
               --help        this

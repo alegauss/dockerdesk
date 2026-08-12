@@ -11,12 +11,10 @@
 
 ## Block B — The daemon client (talk to the engine)
 
-- 📋 **DD5** (deps: DD4 ✅) **A container started in a terminal never appears in the window, and the list is only as fresh as the last refresh** — The engine publishes every state change on /events, so a UI that reads it is a view of the engine rather than a periodic guess at it. → §DD5
-
 ## Block C — The window (claude-tray's elements)
 
 - 📋 **DD6** (deps: DD3 ✅, DD4 ✅) **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — The tray is where this tool lives between tasks: the icon carries the engine state at a glance and its menu holds the two verbs that change it. → §DD6
-- 📋 **DD7** (deps: DD4 ✅, DD5, DD6) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
+- 📋 **DD7** (deps: DD4 ✅, DD5 ✅, DD6) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
 
 ## Block D — Container operations (what a user came to do)
 

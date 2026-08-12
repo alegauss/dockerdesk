@@ -36,6 +36,7 @@ internal static class Program
             "--provision" => Run(acquireOnly: false),
             "--status" => Status(),
             "--api" => ApiProbe(),
+            "--watch" => Watch(),
             "--run" => RunEngine(),
             "--stop" => Stop(),
             "--autostart" => AutostartMode(args.Length > 1 ? args[1] : "status"),
@@ -181,6 +182,38 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    /// Read /events until Ctrl+C, printing each one. What proves the watcher against a real daemon,
+    /// including the part that matters most: the engine going away and coming back.
+    /// </summary>
+    private static int Watch()
+    {
+        using var stopping = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; stopping.Cancel(); };
+
+        using var api = new DockerApi();
+        var events = new EngineEvents(new DockerApiEventSource(api));
+        events.StateChanged += state => Console.WriteLine($"  [{state}]");
+        events.Received += e => Console.WriteLine(
+            $"  {e.Type,-9} {e.Action,-28} {e.ShortId,-12} {e.Name}"
+            + (e.ChangesTheContainerList ? "  (refresh)" : ""));
+        events.Start();
+
+        try
+        {
+            Task.Delay(Timeout.InfiniteTimeSpan, stopping.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // Ctrl+C is how this ends.
+        }
+
+        Console.WriteLine(
+            $"  {events.Reconnects} reconnect(s), {events.Unreadable} unreadable line(s)");
+        events.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        return Ok;
+    }
+
     private static int Stop()
     {
         // Terminating the distribution kills the daemon, and whatever `--run` is serving the pipe
@@ -308,6 +341,7 @@ internal static class Program
               --stop        stop the engine and terminate the distribution
               --status      what the engine is doing, by asking it
               --api         version and containers, read through the Engine API
+              --watch       print /events as they happen, until Ctrl+C
               --autostart   on | off | status  - off unless you turn it on
 
               --help        this

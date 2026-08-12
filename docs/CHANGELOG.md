@@ -10,6 +10,7 @@
 ## Block B — The daemon client (talk to the engine)
 
 - ✅ **DD4** **Nothing in this project can ask the engine anything: no client for the Docker API over the Windows named pipe** — DockerApi speaks the Engine API over the named pipe with no NuGet dependency: ping, version, containers, and a stream for endpoints that never end.
+- ✅ **DD5** **A container started in a terminal never appears in the window, and the list is only as fresh as the last refresh** — EngineEvents reads /events as the daemon writes it and re-opens the stream after every break, so nothing here polls.
 
 ## Block C — The window (claude-tray's elements)
 

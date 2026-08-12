@@ -131,26 +131,6 @@ rather than the implementation.
 
 ## Block B — The daemon client (talk to the engine)
 
-### §DD5 The event stream: why nothing here polls
-
-`GET /events` is a long-lived response that emits one JSON object per line as containers
-are created, started, killed and removed. Reading it is how a list stays true without a
-timer, and it is what makes a container someone started in a terminal appear in the
-window immediately — which is the behaviour that decides whether the GUI feels like a
-view of the engine or a separate opinion about it.
-
-Polling every two seconds is the alternative and it is wrong twice: it burns a request
-per tick on an idle machine, and it still shows stale state for up to two seconds at
-exactly the moment the user is watching, right after they clicked something.
-
-The stream is a supervised background task with one job: reconnect. The engine stops,
-the WSL2 distro is terminated, a laptop suspends — each breaks the connection, and none
-of them is an error the user should see. The reconnect loop backs off, and the UI's
-engine indicator is what reports the state the loop is in.
-
-Events are coalesced before they reach the UI. A `docker compose up` of eight services
-delivers dozens in under a second, and a redraw per event is a visible flicker.
-
 ## Block C — The window (claude-tray's elements)
 
 ### §DD6 The tray icon: the engine state at a glance

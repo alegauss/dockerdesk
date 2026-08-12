@@ -294,14 +294,38 @@ What CI cannot do is verify the engine install: a hosted runner has no nested
 virtualization, so that path stays a manual check against the release candidate, and
 saying so here is better than a green tick that means less than it appears to.
 
+### §DD32 Shipping the surface includes shipping how it is found
+
+A surface nobody discovers is one nobody uses, and the discovery cost is otherwise paid
+once per session forever: an agent meeting a machine reaches for `docker` because that
+is what it knows is there.
+
+So the install ships how it is found. Three artefacts, none of them large. A skill
+carrying the verb list and the one rule that matters — reach for `dockerdesk read`
+before `docker` — since a skill is loaded on demand and costs nothing on the turns it is
+not needed. An allowlist entry proposed at install time, `Bash(dockerdesk read:*)`,
+which is the line that makes DD24 pay: the split is worth nothing until a settings file
+expresses it. And a `read context --as brief` that writes a project's own file from the
+live machine, so what a session starts knowing is generated rather than hand-maintained
+and rotting.
+
+The install proposes and never writes: a tool that edits a user's agent configuration
+without asking has broken the rule that nothing here surprises the human, and the
+allowlist is exactly the file where that would be least forgivable.
+
+What this must not become is a second place where the surface is described. The skill
+names verbs and defers; every sentence explaining what a verb does lives in `--help`,
+which is one copy and is the one a caller already has. Two descriptions of one surface
+drift, and the one loaded every session is the one that drifts unnoticed.
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ### §DD23 The measurement is the first deliverable, not a footnote
 
 The constitution this block implements is `docs/specs/DD23-agent-first-dockerdesk.md`,
-and every figure in its §3 is an estimate: 30–60k tokens and 15–30 calls for a canonical
-diagnosis, against a target of 2–5k and five calls. An estimate is what a design is
-argued from. It is not what a build can refuse.
+and every figure in its accounting table is an estimate: 30–60k tokens and 15–30 calls
+for a canonical diagnosis, against a target of 2–5k and five. An estimate is what a
+design is argued from. It is not what a build can refuse.
 
 So this lands first, and it lands as two artefacts. A benchmark drives the canonical
 task — bring a stack up, find why one service is not answering — twice: once through
@@ -321,5 +345,221 @@ correct cannot see the argument an agent gets wrong, and an unknown flag accepte
 silence is the expensive case: a refusal costs one round trip, while a silently dropped
 argument costs a wrong outcome nobody notices.
 
-## Block H — Agent guardrails, proof and distribution
+### §DD24 Read and write, separated where a permission rule can see them
 
+The head this needs is a console binary beside `dockerdesk-preflight`, which already
+establishes the shape: `--json`, `--help`, and an exit code that means something. What
+is new is the split.
+
+`docker ps` and `docker rm -f -v` are one string to an allowlist. A user either grants
+the whole verb namespace — which permits deleting a volume — or approves every call by
+hand. `dockerdesk read …` beside `dockerdesk do …` makes the rule expressible in one
+line, and what that buys is not keystrokes: most of the calls in a diagnosis mutate
+nothing, and each of them currently costs the most expensive unit there is, which is a
+human round trip.
+
+`read` is a promise and not a naming convention. A verb under it that writes is a
+defect, and the guard belongs in a test rather than in review.
+
+Two constraints from the constitution land here rather than later, because retrofitting
+either is a rewrite. Addresses are names — a compose service as
+`svc:<project>/<service>`, a container as its name — since a 64-hex id changes on
+recreate and then has to be threaded across calls by hand. And every response shape
+registers a ceiling with the budget DD23 gates, so the limit exists before the first
+payload does.
+
+The surface stays a shape over the Engine API. No `build`, no `push`, no registry
+credentials: what `docker` already answers well is not re-wrapped.
+
+### §DD25 One call that replaces the session's first five
+
+The first thing any session does is ask what this machine is doing, and today that is
+`ps -a`, `compose ps`, `version`, `system df` and a read of the compose file — repeated
+three to five times as the state moves, because a table carries no cursor.
+
+One command answers it, in a line format rather than JSON, because entity JSON spends
+most of its bytes on punctuation, repeated keys and authoring metadata nothing reads:
+
+```
+engine  running  wsl:dockerdesk  api=v1.43  ctx=default(ok)
+api     up 4m    healthy   svc:shop/api    :8080→8080 listening
+worker  exited 137  ×3/2m   svc:shop/worker  OOM  limit=512m
+disk    images 14G (4.2G dangling)  volumes 2.1G (1 unused)
+cursor  c:4f21a0
+```
+
+Four properties make it work and none of them are cosmetic. **Deterministic order**, so
+it caches and a diff means something. **Name addressing**, per DD24. **A hard ceiling
+with an explicit truncation cursor**, never a silent cut — a payload that quietly drops
+a row is worse than one that refuses. And **state stated rather than probed**, so the
+caller never spends a call discovering whether a capability is there.
+
+Note what the sample already answered: `OOM limit=512m` closes the canonical task's
+question without a second call. That is the whole argument for this command, and DD23 is
+what turns it from an argument into a number. `--json` stays for callers that parse
+rather than read.
+
+### §DD26 The diagnostic join, over the verdict model the preflight already has
+
+Asking why a container is not answering costs `ps -a`, `logs`, `inspect`, `port` and
+`network inspect`, and the join across them is done in the caller's head. The expensive
+one is `inspect`: three to six hundred lines of JSON, paid in full, read for
+`State.ExitCode`, `State.OOMKilled`, `HostConfig.PortBindings` and `Mounts`.
+
+One command does the join and returns the conclusion: state and exit code, whether the
+kernel killed it and against which limit, restart count over a window, health, the
+declared ports beside whether the host port is actually listening, the mounts beside
+whether each resolves, and the last lines that went to stderr rather than the whole log.
+
+It is not a new framework. The preflight already carries exactly this vocabulary — a
+row, a verdict, and a remedy — assembled by `PreflightInspection` and rendered for a
+person or as JSON by `DockerDesk.Preflight`, with an exit code that means something.
+This is that model pointed at a container instead of at a machine, which is reuse of a
+concept the repository has already paid for.
+
+The verdict is the deliverable, not the field dump. A command that returns forty facts
+and no conclusion has moved the join rather than closed it, and the caller pays for the
+thirty-six it did not need. Where there is no conclusion to draw, saying so is also a
+conclusion, and it costs less than the fields would have.
+
+### §DD27 Logs get a cursor, a dedup and a ceiling, and then become a file
+
+Logs are the largest token sink in this domain and the one with no analogue anywhere
+else: a container that restarts eight times writes the same stack trace eight times, and
+`--tail` is the only instrument, so the caller either truncates blind or pays for all of
+it.
+
+Four arguments close it. `--since <cursor>` reads the delta, using the cursor DD25 hands
+out. `--level` filters. `--dedup` collapses an identical repeat to a count — `× 47` is
+the answer, and forty-seven copies of it is the same answer at forty-seven times the
+price. `--budget <n>` truncates **with a cursor and never in silence**, since a payload
+that quietly drops the end reads exactly like a log that ended.
+
+The fifth argument is the one that matters most and is the least obvious. `--out <path>`
+writes the log to disk instead of returning it. An agent's cheapest and most reliable
+tools are `Grep` and `Read` over a file: against a stream it pays for every line, and
+against a file it pays for the lines that match. A ten-megabyte log becomes affordable
+rather than merely truncated, and the ceiling stops being a guess about which end held
+the answer.
+
+That inversion is a law and not a trick. Where a payload is unbounded and the question
+is narrow, the file is the interface and the stream is the fallback.
+
+### §DD28 Every refusal carries the Windows fact that explains it
+
+`port is already allocated` is the refusal an agent cannot act on. The daemon knows a
+bind failed; it does not know what holds the socket, and no Docker command anywhere can
+tell it. A Windows process can, and this one is already running.
+
+So every refusal on this surface carries the fix, what is allowed, the nearest match and
+a minimal correct example — and, where Windows knows something the daemon does not, the
+fact that explains it:
+
+```json
+{ "type": "…/errors/port-allocated", "status": 409,
+  "heldBy": { "pid": 14032, "image": "node.exe", "path": "d:\\Git\\other-project" },
+  "fix": "Stop process 14032, or change the host port in docker-compose.yaml:12" }
+```
+
+`heldBy` is the argument for this product having an agent surface at all. A JSON
+re-wrapping of what `docker` already says adds nothing, since `--format json` exists.
+The joins the Engine API cannot make are the whole of the value, and they are available
+here only because this is a Windows process rather than a client.
+
+The same shape covers the two rows already on the backlog: a rival engine answering the
+pipe (DD16) and a stale context sending the CLI elsewhere (DD20) both currently surface
+as `cannot connect to the Docker daemon`, which is one sentence for three unrelated
+causes with three unrelated remedies. An error that costs a round trip to interpret is a
+defect, and one that names the wrong cause is worse than none.
+
+### §DD29 A label is the audit trail, and a scoped reclaim is the undo
+
+An agent that starts three containers and a volume to reproduce a defect has no way to
+take them back. `prune` is scoped to the machine, cannot distinguish what this session
+made from what the user made last week, and is therefore the one command nobody
+delegates — so the leftovers stay, and the next session inherits a machine with a
+history it did not write.
+
+Docker already carries the mechanism: every object takes labels. Everything created
+through `dockerdesk do` is stamped `dockerdesk.session=<id>`, and `do reclaim --session`
+removes exactly that set and nothing else. Scoped by label, cleanup is an undo, and an
+undo is safe enough to be routine in a way that a whole-machine sweep never becomes.
+
+The same label answers the other half, which is what the human sees. `read changes` can
+say what this session created without inferring it from timestamps, and a reclaim can
+print what it is about to remove before it removes it. A destructive call takes a
+confirm token computed over that list: right is the token and the list, wrong is a
+refusal naming what would go now, so a plan that went stale between the two calls
+refuses rather than deleting something that arrived in between.
+
+Volumes stay the exception the tool is loudest about. A container comes back and a
+volume does not.
+
+### §DD30 Cheap textual proof, because the agent cannot look
+
+The daemon reporting `running` and the service actually answering are different facts,
+and the gap between them is where an agent stops being able to make progress. A
+container can be up with its port bound and answer nothing: the process died inside it,
+the app bound to `127.0.0.1` rather than `0.0.0.0`, the health check has never gone
+green, the bind mount resolved to an empty directory because a Windows path did not
+survive the hop into WSL.
+
+None of that is visible from the Engine API, and all of it is currently closed by a
+human looking at a browser and reporting back — which is the most expensive cycle in the
+system and the reason two of the three in the canonical task exist at all.
+
+So the surface returns cheap textual proof instead: the host port accepts a connection
+*from Windows*, an optional request returns a status, the health check's current state
+and its last output, each mount resolved with the file count on the far side. Pass or
+fail with a reason, and an exit code.
+
+The same command is the readiness primitive, which removes the other recurring failure:
+waiting is currently a sleep loop the caller writes, and a `--wait --timeout` that
+returns when the condition holds — or fails saying which part did not — replaces polling
+with one call that costs one answer.
+
+### §DD31 A cursor over the stream the tray is already reading
+
+Everything else in these two blocks makes one session cheaper. This is the only one that
+makes the *next* session cheaper, which over a week is the larger number.
+
+`read changes --since <cursor>` returns what moved: `worker restarted ×3, exited 137`
+and nothing else. A follow-up session syncs in one small call rather than re-deriving
+the machine from DD25's pack, and the pack's own cursor is what it is given.
+
+Architecturally this is nearly free here, which is the reason it is worth doing rather
+than deferring. The tray is already a long-running process holding `/events` open — that
+is what DD7's container list is fed by — so a change feed is a cursor over a stream that
+is already running, plus a bounded ring behind it. The comparable feature in an
+agent-native CMS required building a server to hold the audit trail; here the server is
+the icon the user already started.
+
+Two constraints. The ring is bounded, so a cursor older than it must be answered with
+`too old, re-read the context` rather than with a silent partial — the failure mode of a
+delta that quietly skips is worse than no delta, because nothing downstream can detect
+it. And the feed reports what the *user* did too: a container the human stopped from the
+tray is a change, and a feed that only reports the agent's own writes is a memory of its
+intentions rather than of the machine.
+
+### §DD33 MCP is a second head, and it is not free
+
+The constitution inverts the usual order and lands every capability on the CLI first, so
+this is the task that records the condition under which that decision is revisited
+rather than the task that builds the thing.
+
+The measurement is borrowed and it is specific. In Viglet Shio, whose ten design laws
+this repository's constitution adapts, the MCP tool list is re-sent on **every turn of
+every session before any work happens**, measured at roughly 2 400 tokens across eleven
+tools, with a recorded moment of one token of headroom. Its own review concluded that
+for an agent which has a terminal, a CLI verb costs nothing per turn while a tool schema
+is a permanent tax — and that the tax is worth paying only for a client with no shell,
+which could otherwise reach nothing.
+
+Nobody operates Docker on Windows from a client with no shell. So the fixed cost
+currently buys nothing here, and it would be worse than in that case because the natural
+tool count on this surface is higher.
+
+What would change the answer is evidence of such a caller, and then this lands as a
+**second head over the same methods** — never a parallel implementation, which is how a
+surface acquires two sets of semantics. Capped at six tools, with the schema total held
+by the same budget file DD23 gates, and a raise argued in the commit that makes it.

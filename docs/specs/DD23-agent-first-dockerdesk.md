@@ -1,9 +1,10 @@
 # DD23 — DockerDesk as an agent-first tool — concept, protocol & backlog
 
-> Roadmap: [ROADMAP.md](../ROADMAP.md) Blocks **G–H** · Design: [IMPROVEMENTS.md](../IMPROVEMENTS.md) §DD23–§DD31
+> Roadmap: [ROADMAP.md](../ROADMAP.md) Block **G** (and DD32 under Block F) ·
+> Design: [IMPROVEMENTS.md](../IMPROVEMENTS.md) §DD23–§DD33
 > Status: 📋 designed, not started · deps: **DD14** (an installer) and **DD15** (a release)
 > Scope: this document is the **constitution** — who the operator is, the laws a
-> feature is judged by, the protocol, and the decomposition into Blocks G and H.
+> feature is judged by, the protocol, and the decomposition into tasks.
 > Each task gets its own rationale section in `IMPROVEMENTS.md`; this one is the
 > premise they all rest on.
 
@@ -117,7 +118,8 @@ tool schema is a permanent tax.
 Nobody operates Docker on Windows from a client with no shell. So the fixed cost buys
 nothing here, and paying it would be worse than in Shio's case because the natural tool
 count is higher. **CLI first; MCP only if a shell-less client ever matters, and then
-capped at six tools with the same budget file gating it.**
+capped at six tools with the same budget file gating it.** DD33 carries that condition
+so the decision is recorded rather than remembered.
 
 ---
 
@@ -253,20 +255,19 @@ in somebody else's environment.
 | **DD26** | `read doctor` — the diagnostic join over the preflight's verdict model (§4.3) |
 | **DD27** | Logs with a cursor, dedup and a budget (§4.5) |
 | **DD28** | Teaching errors with the Windows join (§4.4) |
-
-## 6. Block H — guardrails, proof and distribution
-
-| Task | What it is |
-|---|---|
 | **DD29** | Session labels and a scoped `do reclaim`, so cleanup is an undo and not a `prune` |
 | **DD30** | `read verify` — the perception loop (P8): the port answers, the mount resolved |
 | **DD31** | `read changes --since <cursor>` over the tray's event stream (P9) |
-| **DD32** | The Claude Code plugin: the skill, the allowlist entry, a generated project brief |
+| **DD33** | 💭 An MCP head, if and only if a shell-less caller turns out to exist (§2.1) |
 
-DD31 is nearly free architecturally and is the only mechanism that makes session N+1
-cheaper than session N. The tray is already a long-running process consuming `/events`
-for DD7; a change feed is a cursor over a stream that is already open, where Shio had to
-build a server to get the same thing.
+## 6. One task is not Block G's, and that is deliberate
+
+**DD32** — the Claude Code plugin: the skill, the allowlist entry, and a project brief
+generated from the live machine — is filed under **Block F, installer and
+distribution**, because that is what it is. A surface nobody discovers is one nobody
+uses, and the moment it is discoverable is the moment the installer runs. Filing it
+here instead would have been keeping one initiative's tasks visually together, which is
+not what a block is for.
 
 ---
 
@@ -282,9 +283,12 @@ scope balloons:
   auth. `do compose` shells out to the compose the user already has; it does not
   reimplement it.
 
-The standing non-goals still bind, and one of them is the reason this is Blocks G and H
-rather than Blocks A and B: **there is no resident background service**, so everything
-here is either the tray the user already started or a process that exits.
+The standing non-goals still bind, and one of them shapes every command here: **there is
+no resident background service**, so everything is either the tray the user already
+started or a process that exits. DD31 is the interesting case — it is nearly free
+because the tray is already holding `/events` open for DD7, and it is the only mechanism
+that makes session N+1 cheaper than session N, but it is a cursor over a stream the user
+started rather than a daemon this adds.
 
 ---
 
@@ -292,5 +296,5 @@ here is either the tray the user already started or a process that exits.
 
 DD14 (an installer) and DD15 (a release built on a machine other than one developer's).
 An agent-first CLI in a repository that ships no executable reaches nobody, and a token
-benchmark on an unreleased tool measures a private opinion. The whole of Blocks G and H
-depends on Block F, and no task here jumps that queue.
+benchmark on an unreleased tool measures a private opinion. The whole of Block G depends
+on Block F, and no task here jumps that queue.

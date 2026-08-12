@@ -28,6 +28,3 @@
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
-
-## Block H — Agent guardrails, proof and distribution
-

@@ -1,6 +1,6 @@
 ---
 name: dockerdesk-roadmap-docs
-description: How work on DockerDesk is finished and committed — the one-task-one-commit rule (`run-commit.cmd -m "<ascii title>"` the moment a DD task is validated, code + roadkeep doc sync in that single commit), batching a run of tasks under /loop, and the fact that docs/ROADMAP.md, docs/CHANGELOG.md and docs/IMPROVEMENTS.md are owned by the roadkeep CLI and never hand-edited. Use whenever starting, shipping or retiring a DD task, working through a block or a list of DD-numbers, marking something shipped, or about to commit anything in this repo. Covers roadkeep, roadkeep.toml, DD numbering, and where the commit boundary falls.
+description: How work on DockerDesk is finished and committed — the one-task-one-commit rule (`run-commit.cmd -m "<ascii title>"` the moment a DD task is validated, code + roadkeep doc sync in that single commit), batching a run of tasks under /loop, and the fact that docs/ROADMAP.md, docs/CHANGELOG.md and docs/IMPROVEMENTS.md are owned by the roadkeep CLI and never hand-edited. Use whenever starting, shipping or retiring a DD task, adding new work to the backlog (reuse an existing block; a new block is a last resort and must be generic), working through a block or a list of DD-numbers, marking something shipped, or about to commit anything in this repo. Covers roadkeep, roadkeep.toml, DD numbering, block placement, and where the commit boundary falls.
 ---
 
 # DockerDesk — finishing a task
@@ -63,3 +63,22 @@ schema *is* the schema.
 
 Non-goals are binding: check `ROADMAP.md` → "Non-goals" and `IMPROVEMENTS.md` §0
 before proposing new work.
+
+## Adding a task — reuse the block, don't grow the block list
+
+New work joins an **existing** block. The block list is the roadmap's table of
+contents, and it only stays readable if it grows far more slowly than the tasks in it.
+
+- **Before `add`, look at what the blocks already are** (`list`, or `show` the block
+  you have in mind) and place the task in the one whose theme covers it. "Related to
+  something already there" is enough — the fit does not have to be perfect.
+- **A new block is the last resort**, justified only when the work genuinely belongs
+  to none of the existing themes — not because a task feels important, not to keep a
+  feature's tasks visually together, and never one block per task.
+- **If you do create one, make it generic**: name a durable *area* of the product that
+  will plausibly hold several future tasks (like the blocks already there — an engine,
+  a surface, a distribution story), never a single feature, a single task restated, or
+  a sprint/date. If you cannot name the block without naming the one task going into
+  it, that is the signal it belongs in an existing block instead.
+- **Say which block you chose and why** before adding, so a wrong placement is cheap
+  to correct.

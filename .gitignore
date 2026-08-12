@@ -17,9 +17,11 @@
 .roadkeep/
 
 # === Test-guest credentials ===
-# `scripts/vm.ps1` reads DOCKERDESK_* from environment variables or from a file *outside* this
-# repository, so nothing here should ever hold one. This is the net for one written in here by
-# mistake — a committed credential cannot be un-published by deleting it later.
+# `dockerdesk-vm.env` in this directory holds the VM encryption password and the guest login that
+# `scripts/vm.ps1` drives the Windows test guest with. It lives here for convenience and this line
+# is the only thing keeping it out of a commit, so two limits are worth stating: `git add -f`
+# stages it anyway, and `git clean -xdf` deletes it without asking. Keep the credential in it one
+# that can be rotated cheaply, and never remove this line.
 *.env
 
 # === .NET ===

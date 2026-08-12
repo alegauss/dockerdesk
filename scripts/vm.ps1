@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Says whether the Windows test guest is reachable from this machine, and what its preflight says.
@@ -37,9 +37,17 @@
     DOCKERDESK_GUEST_USER       an account inside the guest
     DOCKERDESK_GUEST_PASSWORD   its password
 
-  Or put them as KEY=VALUE lines in a file outside this repository and point
-  DOCKERDESK_VM_ENV at it. The default location searched is d:\tmp\dockerdesk-vm.env.
-  Nothing in this repository ever holds a credential.
+  Or put them as KEY=VALUE lines in a file, searched in this order:
+
+    1. whatever DOCKERDESK_VM_ENV points at
+    2. dockerdesk-vm.env in the repository root
+    3. d:\tmp\dockerdesk-vm.env
+
+  The repository-root location is covered by the `*.env` line in .gitignore, so `git add -A`
+  and `run-commit.cmd` cannot stage it. Two things .gitignore does not do, and they are worth
+  knowing: `git add -f` still stages it, and `git clean -xdf` deletes it without asking. So the
+  file is convenient rather than safe, and the credential in it should be one that can be
+  rotated cheaply.
 #>
 [CmdletBinding()]
 param(
@@ -55,8 +63,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
-$script:DefaultEnvFile = 'd:\tmp\dockerdesk-vm.env'
 $script:GuestStage = 'C:\dockerdesk-test'
+
+# Where the settings file is looked for, in order. The repository-root entry is ignored by the
+# `*.env` line in .gitignore, which is what keeps `git add -A` from staging a credential.
+$script:EnvFileCandidates = @(
+    (Join-Path $script:RepoRoot 'dockerdesk-vm.env'),
+    'd:\tmp\dockerdesk-vm.env'
+)
 
 # ---------------------------------------------------------------------------------------------
 # The report
@@ -117,10 +131,22 @@ function Write-Report {
 # Configuration, and the secrets that are never printed
 # ---------------------------------------------------------------------------------------------
 
+function Find-EnvFile {
+    # An explicit DOCKERDESK_VM_ENV is honoured even when the file is missing, so a typo in it
+    # reads as "that file is not there" rather than silently falling through to another one.
+    if ($env:DOCKERDESK_VM_ENV) {
+        if (Test-Path -LiteralPath $env:DOCKERDESK_VM_ENV) { return $env:DOCKERDESK_VM_ENV }
+        return $null
+    }
+    foreach ($candidate in $script:EnvFileCandidates) {
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    return $null
+}
+
 function Import-EnvFile {
-    $path = $env:DOCKERDESK_VM_ENV
-    if (-not $path) { $path = $script:DefaultEnvFile }
-    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    $path = Find-EnvFile
+    if (-not $path) { return $null }
 
     foreach ($line in Get-Content -LiteralPath $path) {
         $trimmed = $line.Trim()
@@ -216,9 +242,14 @@ function Test-Reachability {
         Add-Row -Title 'settings file' -Verdict 'ok' -Detail "read $envFile" -NotBlocking
     }
     else {
-        Add-Row -Title 'settings file' -Verdict 'warn' -NotBlocking `
-            -Detail 'none read; environment variables only' `
-            -Remedy "Put KEY=VALUE lines in $script:DefaultEnvFile, or point DOCKERDESK_VM_ENV at a file."
+        $looked = if ($env:DOCKERDESK_VM_ENV) {
+            "DOCKERDESK_VM_ENV points at $env:DOCKERDESK_VM_ENV, which is not there"
+        }
+        else {
+            'none found; environment variables only'
+        }
+        Add-Row -Title 'settings file' -Verdict 'warn' -NotBlocking -Detail $looked `
+            -Remedy "Put KEY=VALUE lines in $($script:EnvFileCandidates[0]) — .gitignore covers it."
     }
 
     # --- which guest ----------------------------------------------------------------------

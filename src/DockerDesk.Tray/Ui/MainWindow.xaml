@@ -1,0 +1,175 @@
+<!-- The one window, and it is a list of containers, because that is what the tool is opened for.
+     The chrome borrows claude-tray's: ThemeMode="System" so light and dark follow the OS, the
+     Fluent brushes by DynamicResource, and Segoe UI Variable — two apps by the same author that
+     look unrelated read as two unfinished apps. -->
+<Window x:Class="DockerDesk.Tray.Ui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:ClassModifier="internal"
+        Title="DockerDesk"
+        Width="900" Height="560"
+        MinWidth="720" MinHeight="360"
+        WindowStartupLocation="CenterScreen"
+        ThemeMode="System"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+
+    <Window.Resources>
+        <!-- A port that is published opens in a browser; one that is only exposed is plain text.
+             Same cell, two behaviours, and the difference has to be visible without a caption. -->
+        <Style x:Key="PortLink" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Hit" Background="{TemplateBinding Background}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hit" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PortText" TargetType="TextBlock">
+            <Setter Property="Margin" Value="6,2,6,2" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Style>
+
+        <Style x:Key="Header" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20,16,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- The engine's own state, in words. The list below is a view of this thing. -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
+            <Ellipse x:Name="EngineDot" Width="10" Height="10" VerticalAlignment="Center" />
+            <TextBlock x:Name="EngineLabel" Margin="8,0,0,0" FontSize="14"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" x:Name="HeaderRow" Margin="10,0,10,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.4*" />
+                <ColumnDefinition Width="1.6*" />
+                <ColumnDefinition Width="0.8*" />
+                <ColumnDefinition Width="1.4*" />
+                <ColumnDefinition Width="1.6*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="NAME" Style="{StaticResource Header}" />
+            <TextBlock Grid.Column="1" Text="IMAGE" Style="{StaticResource Header}" />
+            <TextBlock Grid.Column="2" Text="STATE" Style="{StaticResource Header}" />
+            <TextBlock Grid.Column="3" Text="STATUS" Style="{StaticResource Header}" />
+            <TextBlock Grid.Column="4" Text="PORTS" Style="{StaticResource Header}" />
+        </Grid>
+
+        <ListView Grid.Row="2" x:Name="Containers" BorderThickness="0"
+                  Background="Transparent"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="10,8" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.4*" />
+                            <ColumnDefinition Width="1.6*" />
+                            <ColumnDefinition Width="0.8*" />
+                            <ColumnDefinition Width="1.4*" />
+                            <ColumnDefinition Width="1.6*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Image}" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="2" Text="{Binding State}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ItemsControl Grid.Column="4" ItemsSource="{Binding Ports}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- One of the two shows. A DataTrigger rather than a converter:
+                                         the whole condition is IsLink, and a converter class would
+                                         be a file to explain that. -->
+                                    <Grid>
+                                        <Button Content="{Binding Text}" Tag="{Binding Url}"
+                                                Click="OpenPort" ToolTip="{Binding Url}">
+                                            <Button.Style>
+                                                <Style TargetType="Button"
+                                                       BasedOn="{StaticResource PortLink}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLink}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <TextBlock Text="{Binding Text}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock"
+                                                       BasedOn="{StaticResource PortText}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLink}" Value="False">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Empty is designed, not a blank grid: the two reasons a list is empty read differently,
+             and only one of them is something the user can do anything about. -->
+        <StackPanel Grid.Row="2" x:Name="Empty" VerticalAlignment="Center"
+                    HorizontalAlignment="Center" Visibility="Collapsed">
+            <TextBlock x:Name="EmptyHeadline" FontSize="20" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock x:Name="EmptyDetail" Margin="0,8,0,0" FontSize="13"
+                       HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Button x:Name="EmptyStart" Content="Start the engine" Margin="0,18,0,0"
+                    Padding="18,8" HorizontalAlignment="Center" Visibility="Collapsed"
+                    Click="StartEngine" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DockerDesk — Docker on Windows, without Docker Desktop</title>
+<meta name="description" content="A free Windows desktop app that installs upstream Moby into a WSL2 distribution it owns, serves the docker_engine pipe your existing tools already look for, and shows your containers in one window. Per-user install, no admin, nothing resident.">
+
+<!-- Open Graph / social -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="DockerDesk">
+<meta property="og:description" content="Upstream Moby in a WSL2 distro it owns, the docker_engine pipe your tools already look for, and one window of containers. No licence fee, nothing resident.">
+<meta property="og:image" content="logo.svg">
+<meta property="og:url" content="https://alegauss.github.io/dockerdesk/">
+<meta name="twitter:card" content="summary">
+
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --azure:#2E9BD6;
+    --azure-bright:#67C3F2;
+    --azure-deep:#1C6BA4;
+    --bg:#08131b;
+    --bg-2:#0c1a24;
+    --panel:#11212c;
+    --panel-2:#172c39;
+    --line:#22404f;
+    --text:#e9f2f8;
+    --muted:#9db3c1;
+    /* the dimmest text on the page still has to clear 4.5:1 on --panel, which is where
+       the captions and footnotes sit */
+    --muted-2:#7d95a5;
+    /* the three the tray actually draws — same hex as StateIcon */
+    --running:#2EA043;
+    --starting:#D29A00;
+    --stopped:#8B949E;
+    --red:#e5484d;
+    --radius:18px;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  code,kbd{font-family:'JetBrains Mono',monospace}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .accent{color:var(--azure)}
+
+  /* ambient background glow */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(900px 500px at 80% -5%, rgba(46,155,214,.22), transparent 60%),
+      radial-gradient(700px 600px at -10% 20%, rgba(46,155,214,.10), transparent 55%),
+      linear-gradient(180deg,var(--bg),var(--bg-2));
+  }
+
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:50;
+    -webkit-backdrop-filter:blur(12px);
+    backdrop-filter:blur(12px);
+    background:rgba(8,19,27,.74);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
+  .nav-left{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;white-space:nowrap}
+  .brand img{width:32px;height:32px;border-radius:8px;flex:0 0 auto}
+  /* parent-brand backlink: this site is one of the alegauss tools */
+  .parent{
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+    padding:7px 13px;border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--muted);font-size:.8rem;font-weight:500;white-space:nowrap;
+    transition:color .2s,border-color .2s,background .2s;
+  }
+  .parent b{color:var(--text);font-weight:600}
+  .parent svg{width:12px;height:12px;color:var(--muted-2);transition:transform .2s,color .2s}
+  .parent:hover{background:var(--panel);border-color:var(--azure);color:var(--text)}
+  .parent:hover svg{color:var(--azure);transform:translate(1.5px,-1.5px)}
+  @media(max-width:560px){.parent .pre{display:none}}
+  .nav-links{display:flex;align-items:center;gap:26px}
+  .nav-links a:not(.btn){color:var(--muted);font-weight:500;font-size:.95rem;transition:color .2s}
+  .nav-links a:not(.btn):hover{color:var(--text)}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:11px 20px;border-radius:11px;font-weight:600;font-size:.95rem;
+    transition:transform .15s ease, box-shadow .2s ease, background .2s;
+    white-space:nowrap;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,var(--azure),var(--azure-deep));
+    color:#fff;box-shadow:0 8px 24px -8px rgba(46,155,214,.7);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 32px -10px rgba(46,155,214,.85)}
+  .btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+  .btn-ghost:hover{background:var(--panel-2);transform:translateY(-2px)}
+  @media(max-width:860px){.nav-links a:not(.btn){display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:84px 0 60px;text-align:center;position:relative}
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 15px;border-radius:999px;
+    background:rgba(46,155,214,.12);border:1px solid rgba(46,155,214,.35);
+    color:var(--azure-bright);font-size:.82rem;font-weight:600;letter-spacing:.01em;
+    margin-bottom:28px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--azure-bright);box-shadow:0 0 10px var(--azure);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .hero h1{
+    font-size:clamp(2.6rem,6.5vw,4.6rem);line-height:1.04;font-weight:900;letter-spacing:-.035em;
+    margin-bottom:22px;
+  }
+  .hero h1 .grad{
+    background:linear-gradient(120deg,var(--azure-bright),var(--azure) 55%,var(--azure-deep));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.sub{
+    font-size:clamp(1.05rem,2.2vw,1.32rem);color:var(--muted);
+    max-width:700px;margin:0 auto 36px;line-height:1.55;
+  }
+  .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+  .hero-meta{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;color:var(--muted-2);font-size:.85rem;margin-top:8px}
+  .hero-meta span{display:inline-flex;align-items:center;gap:7px}
+
+  .pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  .pill{
+    padding:8px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);
+    font-size:.82rem;color:var(--muted);font-weight:500;
+  }
+  .pill b{color:var(--text)}
+
+  /* floating hero icon */
+  .hero-icon{width:96px;height:96px;border-radius:22px;margin:0 auto 30px;display:block;
+    box-shadow:0 24px 60px -16px rgba(46,155,214,.6);animation:float 5s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+  /* ---------- section ---------- */
+  section{padding:72px 0;position:relative}
+  .sec-head{text-align:center;max-width:700px;margin:0 auto 52px}
+  .eyebrow{color:var(--azure);font-weight:700;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+  .sec-head h2{font-size:clamp(1.9rem,4vw,2.7rem);font-weight:800;letter-spacing:-.025em;line-height:1.12;margin-bottom:16px}
+  .sec-head p{color:var(--muted);font-size:1.05rem}
+
+  /* ---------- feature grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px;transition:transform .2s ease,border-color .2s,box-shadow .25s;
+    position:relative;overflow:hidden;
+  }
+  .card:hover{transform:translateY(-4px);border-color:rgba(46,155,214,.5);box-shadow:0 18px 40px -22px rgba(46,155,214,.6)}
+  .card .ico{
+    width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+    background:rgba(46,155,214,.14);border:1px solid rgba(46,155,214,.3);
+    font-size:1.4rem;margin-bottom:18px;
+  }
+  .card h3{font-size:1.12rem;font-weight:700;margin-bottom:9px;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:.93rem;line-height:1.6}
+  .card code{font-size:.85em;color:var(--azure-bright)}
+
+  /* ---------- split / showcase ---------- */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  @media(max-width:840px){.split{grid-template-columns:1fr;gap:32px}}
+  .split.rev .split-txt{order:2}
+  @media(max-width:840px){.split.rev .split-txt{order:0}}
+  .split-txt h2{font-size:clamp(1.7rem,3.5vw,2.3rem);font-weight:800;letter-spacing:-.02em;margin-bottom:18px;line-height:1.15}
+  .split-txt p{color:var(--muted);font-size:1.02rem;margin-bottom:18px}
+  .feat-list{list-style:none;display:flex;flex-direction:column;gap:14px}
+  .feat-list li{display:flex;gap:13px;align-items:flex-start;font-size:.97rem}
+  .feat-list .chk{
+    flex:0 0 auto;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+    background:rgba(46,155,214,.16);color:var(--azure-bright);font-size:.75rem;font-weight:800;margin-top:2px;
+  }
+  .feat-list b{color:var(--text)}
+  .feat-list span{color:var(--muted)}
+  .feat-list code{color:var(--azure-bright);font-size:.86em}
+  /* the same list at full width, where one column would run to 1000px of line */
+  .feat-list.two{display:grid;grid-template-columns:1fr 1fr;gap:16px 40px}
+  @media(max-width:760px){.feat-list.two{grid-template-columns:1fr}}
+  .shot-frame{
+    border-radius:18px;padding:14px;
+    background:linear-gradient(160deg,rgba(46,155,214,.12),transparent 60%),var(--bg-2);
+    border:1px solid var(--line);
+  }
+  .shot-frame svg{display:block;width:100%;height:auto;border-radius:12px}
+  figcaption{color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px;line-height:1.55}
+  figcaption b{color:var(--text)}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:#060f16;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.85);
+  }
+  .term .bar{
+    display:flex;align-items:center;gap:8px;padding:11px 14px;
+    border-bottom:1px solid var(--line);background:var(--panel);
+  }
+  .term .bar i{width:10px;height:10px;border-radius:50%;background:var(--line);display:block}
+  .term .bar span{margin-left:8px;color:var(--muted-2);font-size:.78rem;font-family:'JetBrains Mono',monospace}
+  .term pre{
+    margin:0;padding:18px;overflow-x:auto;
+    font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.75;color:#c8dbe6;
+  }
+  .term .ok{color:#4cc76a}
+  .term .fail{color:#ff6b6f;font-weight:500}
+  .term .warn{color:#e2b23c}
+  .term .rem{color:var(--azure-bright)}
+  .term .c{color:var(--muted-2)}
+  .term .sum{color:#fff}
+
+  /* ---------- state icons ---------- */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:700px){.states{grid-template-columns:1fr}}
+  .state{
+    border-radius:16px;padding:24px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));text-align:center;
+  }
+  .state svg{width:56px;height:56px;display:block;margin:0 auto 16px}
+  .state.run{border-color:rgba(46,160,67,.45)}
+  .state.start{border-color:rgba(210,154,0,.45)}
+  .state.stop{border-color:rgba(139,148,158,.4)}
+  .state h3{font-size:1.05rem;font-weight:700;margin-bottom:8px}
+  .state.run h3{color:var(--running)}
+  .state.start h3{color:var(--starting)}
+  .state.stop h3{color:var(--stopped)}
+  .state p{color:var(--muted);font-size:.9rem}
+  .state code{color:var(--azure-bright);font-size:.86em}
+
+  /* ---------- banner ---------- */
+  .banner{
+    background:linear-gradient(135deg,rgba(46,155,214,.1),var(--panel));
+    border:1px solid rgba(46,155,214,.3);border-radius:var(--radius);
+    padding:40px;text-align:center;
+  }
+  .banner h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin-bottom:14px;letter-spacing:-.02em}
+  .banner p{color:var(--muted);max-width:700px;margin:0 auto;font-size:1rem}
+  .banner p + p{margin-top:14px}
+  .banner .lock{font-size:2.4rem;margin-bottom:14px}
+  .banner code{color:var(--azure-bright)}
+
+  /* ---------- non-goals ---------- */
+  .nots{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .not{
+    border:1px dashed var(--line);border-radius:14px;padding:20px 22px;background:rgba(23,44,57,.35);
+  }
+  .not h4{font-size:1rem;font-weight:700;margin-bottom:7px;display:flex;gap:9px;align-items:baseline}
+  .not h4 em{color:var(--muted-2);font-style:normal;font-weight:800}
+  .not p{color:var(--muted);font-size:.9rem}
+
+  /* ---------- roadmap ---------- */
+  .rows{display:flex;flex-direction:column;gap:10px}
+  .row{
+    display:flex;gap:16px;align-items:flex-start;
+    border:1px solid var(--line);border-radius:12px;padding:15px 18px;background:var(--panel);
+  }
+  .row .mark{flex:0 0 auto;font-size:1rem;line-height:1.5;width:22px;text-align:center}
+  .row .id{
+    flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:500;
+    color:var(--muted-2);width:66px;padding-top:2px;
+  }
+  .row .what{font-size:.95rem}
+  .row .what b{color:var(--text)}
+  .row .what span{color:var(--muted);display:block;font-size:.88rem;margin-top:3px}
+  .row.done{background:rgba(46,160,67,.07);border-color:rgba(46,160,67,.3)}
+  .row.now{background:rgba(46,155,214,.08);border-color:rgba(46,155,214,.4)}
+  .legend{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;color:var(--muted-2);font-size:.84rem;margin-bottom:26px}
+
+  /* ---------- steps + code ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:32px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative}
+  .step .n{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;
+    background:linear-gradient(135deg,var(--azure),var(--azure-deep));color:#fff;margin-bottom:14px;font-size:.95rem;
+  }
+  /* the one card that is not a numbered step, so it does not wear a number */
+  .step .n.ask{background:var(--panel-2);border:1px solid var(--line);color:var(--azure-bright)}
+  .step h4{font-size:1.05rem;margin-bottom:7px;font-weight:700}
+  .step p{color:var(--muted);font-size:.9rem}
+  .step code{color:var(--azure-bright);font-size:.85em}
+  .codeblock{
+    background:#060f16;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:.85rem;color:#c8dbe6;
+    overflow-x:auto;line-height:1.8;
+  }
+  .codeblock .c{color:var(--muted-2)}
+  .codeblock .g{color:var(--azure-bright)}
+  .codeblock.copy{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .codeblock.copy code{font-family:inherit;white-space:nowrap}
+  .copy-btn{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
+    padding:7px 12px;border-radius:8px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;
+    transition:background .2s,color .2s,border-color .2s;
+  }
+  .copy-btn:hover{background:var(--azure);color:#fff;border-color:var(--azure)}
+  .copy-btn.copied{background:rgba(46,160,67,.2);color:#7ee6a0;border-color:rgba(46,160,67,.5)}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:46px 0 38px;margin-top:30px}
+  .foot-grid{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+  .foot-brand{display:flex;align-items:center;gap:12px;font-weight:800}
+  .foot-brand img{width:30px;height:30px;border-radius:8px}
+  .foot-links{display:flex;gap:24px;flex-wrap:wrap}
+  .foot-links a{color:var(--muted);font-size:.9rem;transition:color .2s}
+  .foot-links a:hover{color:var(--azure)}
+  .disclaimer{color:var(--muted-2);font-size:.8rem;margin-top:22px;text-align:center;max-width:820px;margin-left:auto;margin-right:auto;line-height:1.6}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-left">
+      <a class="brand" href="#top"><img src="logo.svg" alt="">DockerDesk</a>
+      <a class="parent" href="https://alegauss.github.io/" title="alegauss — small developer tools">
+        <span class="pre">part of</span><b>alegauss</b>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 17 17 7"/><path d="M9 7h8v8"/>
+        </svg>
+      </a>
+    </div>
+    <div class="nav-links">
+      <a href="#why">Why</a>
+      <a href="#preflight">Preflight</a>
+      <a href="#engine">Engine</a>
+      <a href="#pipe">The pipe</a>
+      <a href="#tray">Tray</a>
+      <a href="#window">Window</a>
+      <a href="#status">Status</a>
+      <a class="btn btn-primary" href="https://github.com/alegauss/dockerdesk">★ View on GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <img class="hero-icon" src="logo.svg" alt="DockerDesk logo">
+    <div class="badge"><span class="dot"></span> In development · No release yet · Windows 10 / 11</div>
+    <h1>Docker on Windows,<br><span class="grad">without Docker Desktop.</span></h1>
+    <p class="sub">
+      DockerDesk puts <b>upstream Moby</b> into a WSL2 distribution it owns, serves the
+      <code>docker_engine</code> pipe every tool you already have looks for, and shows your
+      containers in one window. Per-user install, no administrator prompt, and nothing left
+      running that you did not ask for.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://github.com/alegauss/dockerdesk">★ View on GitHub</a>
+      <a class="btn btn-ghost" href="#status">📋 Read the status</a>
+    </div>
+    <div class="hero-meta">
+      <span>🔓 Free at any headcount</span>
+      <span>🚫 No telemetry, no account</span>
+      <span>💤 Not a background service</span>
+    </div>
+    <div class="pills">
+      <span class="pill"><b>.NET 10</b> · WinForms tray + WPF window</span>
+      <span class="pill">Upstream <b>Moby 29.7.2</b>, pinned by digest</span>
+      <span class="pill">One owned <b>WSL2</b> distro</span>
+      <span class="pill">Zero NuGet <b>Engine API client</b></span>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section id="why">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Why it exists</div>
+      <h2>The engine is free. The desktop app is what costs.</h2>
+      <p>
+        Moby and the <code>docker</code> CLI are Apache-2.0 and always were. What a company pays
+        for, and what a managed laptop cannot install, is the wrapper around them. DockerDesk is a
+        different wrapper: it installs the same engine, gets out of the way, and stops when you
+        tell it to.
+      </p>
+    </div>
+    <div class="grid">
+      <div class="card reveal">
+        <div class="ico">🪪</div>
+        <h3>No licence to count seats against</h3>
+        <p>Free at any headcount, for any use, with no seat maths and no renewal date. That is the whole reason to try this instead of the thing everyone already has.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🔌</div>
+        <h3>Nothing resident</h3>
+        <p>No Windows service, no scheduled task, and autostart is <b>off</b> until you turn it on. The engine runs for exactly as long as something is running it — an engine that holds gigabytes from every boot is the complaint this project starts from.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🧍</div>
+        <h3>Per-user, no admin prompt</h3>
+        <p>Everything lands under <code>%LOCALAPPDATA%\DockerDesk</code>: the verified downloads, the distribution's disk, and the <code>docker.exe</code> that goes on your PATH. Which is what reaches a corporate laptop you are not an administrator on.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">📦</div>
+        <h3>Upstream, not a fork</h3>
+        <p>Alpine's minirootfs, Docker's own static Linux binaries, Docker's own Windows CLI — each pinned to a version <b>and a SHA-256 this project states itself</b>. Nothing is patched, so nothing here can be blamed for how the engine behaves.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🧪</div>
+        <h3>It checks before it copies</h3>
+        <p>A preflight reads the Windows build, virtualization, the WSL2 kernel and any rival engine, and refuses the install while a blocking row is not green. <b>Nothing is written to disk while the answer is no.</b></p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🗑️</div>
+        <h3>An uninstall that is one command</h3>
+        <p>The distribution is called <code>dockerdesk</code> and it is this tool's, never yours. Your own WSL distros are untouched, and removing the engine cannot take anything of yours with it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREFLIGHT -->
+<section id="preflight">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Before anything is installed</div>
+      <h2>Why Docker will not run here — in four rows</h2>
+      <p>
+        “It does not work on my machine” has four common causes on Windows, and they have four
+        different remedies. <code>dockerdesk-preflight</code> names the one you have, prints the
+        command that fixes it, changes nothing, and exits <code>1</code> so an installer can stop
+        rather than fail halfway.
+      </p>
+    </div>
+    <div class="reveal">
+      <div class="term">
+        <div class="bar"><i></i><i></i><i></i><span>dockerdesk-preflight</span></div>
+<pre>DockerDesk preflight — what this machine can host
+
+  [<span class="ok">ok  </span>]  Windows build            Windows 10.0, build 26200
+  [<span class="ok">ok  </span>]  Hardware virtualization  enabled — a hypervisor is already running
+  [<span class="fail">FAIL</span>]  WSL2                     not installed — wsl.exe is not on this machine
+           <span class="rem">-> Run `wsl --install --no-distribution` in an administrator terminal, then
+              reboot.</span>
+  [<span class="ok">ok  </span>]  Container engine         nothing else owns the docker command or the docker_engine pipe
+
+<span class="sum">1 row blocks an install. Nothing has been copied to disk.</span>
+</pre>
+      </div>
+    </div>
+    <ul class="feat-list two reveal" style="margin-top:34px">
+      <li><span class="chk">✓</span><span><b>Windows build</b> — 19041 or later, because below it no amount of configuration gets a WSL2 kernel</span></li>
+      <li><span class="chk">✓</span><span><b>Hardware virtualization</b> — and it reads the hypervisor <i>first</i>: Windows reports the firmware bit as off once something has claimed it, so the naive order sends you into a BIOS to enable what is already on</span></li>
+      <li><span class="chk">✓</span><span><b>WSL2</b> — missing <code>wsl.exe</code>, a half-installed feature with no kernel behind it, and “new distros default to WSL1” are three different states with three different lines</span></li>
+      <li><span class="chk">✓</span><span><b>Container engine</b> — anything else that owns the <code>docker</code> command or the <code>docker_engine</code> pipe, because two engines competing for one pipe leaves neither working</span></li>
+      <li><span class="chk">✓</span><span><b>Every row carries its remedy</b> — the command that fixes it, wrapped and marked once, because repeating the arrow per line reads as several actions where there is one</span></li>
+      <li><span class="chk">✓</span><span><b>Or as JSON</b> — <code>--json</code> gives an installer the same report, verdicts and remedies included</span></li>
+    </ul>
+    <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:30px">
+      The same check runs inside the installer, and the same report is what
+      <b style="color:var(--text)">a clean Windows 11 virtual machine</b> is driven through on the
+      way to a release — because a red row nobody has ever executed is not a check.
+    </p>
+  </div>
+</section>
+
+<!-- ENGINE -->
+<section id="engine">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Provisioning</div>
+      <h2>Seven steps, and it stops at the one that broke</h2>
+      <p>
+        Provisioning runs from an installer, where there is no terminal to answer a prompt in. So
+        every step is unattended, every step is named, and the run stops at the first failure —
+        a report listing six failures where there was one is a report nobody can act on.
+      </p>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="n">1</div>
+        <h4>Acquire, and verify</h4>
+        <p>Three of the seven steps, one per artefact: the Alpine root filesystem, the static Linux engine, and the Windows CLI zip — each downloaded and checked against a <b>digest recorded in this repository</b>, not one served by the same host as the file. Already verified on disk means no second download.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h4>Inspect, before touching WSL</h4>
+        <p>The engine tarball's member list is read locally: do the entries share one top directory, and are <code>dockerd</code>, <code>containerd</code>, <code>runc</code> and the rest actually in there? A bad archive is caught before a distribution exists.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h4>Import an owned distro</h4>
+        <p><code>wsl --import dockerdesk … --version 2</code>. A fixed name that is this tool's, so an <code>apt upgrade</code> or a <code>wsl --unregister</code> you ran for your own reasons cannot take the engine with it.</p>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <h4>Install the engine inside it</h4>
+        <p>One non-interactive <code>sh</code> script under <code>set -e</code>, so it stops where it broke: <code>iptables</code> and <code>socat</code> from apk, the binaries unpacked into <code>/usr/local/bin</code>, and <code>systemd=false</code> — nothing here is a service.</p>
+      </div>
+      <div class="step">
+        <div class="n">5</div>
+        <h4>Place the Windows CLI</h4>
+        <p><code>docker.exe</code> is extracted to <code>…\DockerDesk\bin</code>. Putting that directory on your PATH is the installer's job, and this step's only job is being the path it points at.</p>
+      </div>
+      <div class="step">
+        <div class="n ask">?</div>
+        <h4>Or just look first</h4>
+        <p><code>--plan</code> prints every pinned version, digest and path and reaches nothing at all. <code>--acquire</code> downloads and verifies, and stops before WSL2 is touched — both change nothing outside this tool's own directory.</p>
+      </div>
+    </div>
+    <div class="term reveal">
+      <div class="bar"><i></i><i></i><i></i><span>dockerdesk-engine --help</span></div>
+<pre>dockerdesk-engine — put upstream Moby into a WSL2 distribution this tool owns.
+
+  --plan        the pinned versions, digests and paths; reaches nothing
+  --acquire     download and verify every artefact, and stop
+  --provision   acquire, import the distribution, install the engine, place docker.exe
+
+  --run         start the engine and serve \\.\pipe\docker_engine until Ctrl+C
+  --stop        stop the engine and terminate the distribution
+  --status      what the engine is doing, by asking it
+  --api         version and containers, read through the Engine API
+  --watch       print /events as they happen, until Ctrl+C
+  --autostart   on | off | status  <span class="c">- off unless you turn it on</span>
+
+  --help        this
+
+<span class="c">Exit code 0 means the mode finished; 1 names the step it stopped at. For --status,
+1 means the engine is not answering.</span>
+</pre>
+    </div>
+  </div>
+</section>
+
+<!-- THE PIPE -->
+<section id="pipe">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">The transport</div>
+      <h2>Your <code>docker</code> commands do not need to know</h2>
+      <p>
+        A Linux <code>dockerd</code> cannot create a Windows named pipe — that is a Win32 object.
+        So something on the Windows side has to, or every shell and every script you already have
+        needs a <code>DOCKER_HOST</code>. DockerDesk is that something.
+      </p>
+    </div>
+    <div class="shot-frame reveal">
+      <svg viewBox="0 0 900 250" role="img" aria-label="docker.exe, compose and the DockerDesk window all connect to the Windows named pipe docker_engine, which the relay forwards over wsl.exe stdio to socat inside the dockerdesk distribution, and on to the dockerd unix socket">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#67C3F2"/>
+          </marker>
+        </defs>
+        <rect width="900" height="250" rx="12" fill="#0a151d"/>
+
+        <!-- windows side -->
+        <text x="30" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WINDOWS</text>
+        <line x1="470" y1="16" x2="470" y2="234" stroke="#22404f" stroke-width="1" stroke-dasharray="5 5"/>
+        <text x="500" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WSL2 · dockerdesk</text>
+
+        <!-- clients -->
+        <rect x="30" y="54" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
+        <text x="105" y="76" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">docker.exe</text>
+        <rect x="30" y="100" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
+        <text x="105" y="122" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">docker compose</text>
+        <rect x="30" y="146" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
+        <text x="105" y="168" text-anchor="middle" fill="#e9f2f8" font-family="Inter,sans-serif" font-size="11.5">the DockerDesk window</text>
+
+        <!-- arrows into the pipe -->
+        <path d="M186 71 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
+        <path d="M186 117 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
+        <path d="M186 163 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
+
+        <!-- the pipe -->
+        <rect x="256" y="54" width="196" height="126" rx="10" fill="#132734" stroke="#2E9BD6" stroke-width="1.6"/>
+        <text x="354" y="88" text-anchor="middle" fill="#67C3F2" font-family="JetBrains Mono,monospace" font-size="12">\\.\pipe\</text>
+        <text x="354" y="106" text-anchor="middle" fill="#67C3F2" font-family="JetBrains Mono,monospace" font-size="13" font-weight="500">docker_engine</text>
+        <text x="354" y="132" text-anchor="middle" fill="#9db3c1" font-family="Inter,sans-serif" font-size="11.5">the relay, in the tray's</text>
+        <text x="354" y="148" text-anchor="middle" fill="#9db3c1" font-family="Inter,sans-serif" font-size="11.5">own process</text>
+        <text x="354" y="168" text-anchor="middle" fill="#2EA043" font-family="Inter,sans-serif" font-size="11.5" font-weight="600">ACL: your account only</text>
+
+        <!-- hop -->
+        <path d="M458 117 H556" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
+        <text x="507" y="97" text-anchor="middle" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11">wsl.exe</text>
+        <text x="507" y="111" text-anchor="middle" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11">stdio</text>
+
+        <!-- socat -->
+        <rect x="562" y="98" width="106" height="38" rx="8" fill="#11212c" stroke="#22404f"/>
+        <text x="615" y="122" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">socat</text>
+        <path d="M674 117 H736" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
+
+        <!-- dockerd -->
+        <rect x="742" y="90" width="128" height="54" rx="8" fill="#11212c" stroke="#2EA043" stroke-width="1.4"/>
+        <text x="806" y="112" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">dockerd</text>
+        <text x="806" y="130" text-anchor="middle" fill="#9db3c1" font-family="JetBrains Mono,monospace" font-size="10.5">/var/run/docker.sock</text>
+
+        <text x="450" y="216" text-anchor="middle" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11.5">No forwarded TCP port anywhere on this path — the Engine API is equivalent to root on the machine,</text>
+        <text x="450" y="232" text-anchor="middle" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11.5">and a port every local process can reach cannot express “only me”.</text>
+      </svg>
+    </div>
+    <div class="grid" style="margin-top:34px">
+      <div class="card reveal">
+        <div class="ico">🔒</div>
+        <h3>The ACL is the reason</h3>
+        <p>The pipe is created for <b>your account and nobody else</b>. A forwarded port cannot say that, and full access to the Engine API is full access to the machine — so the hop runs over <code>wsl.exe</code>'s stdio instead.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🧩</div>
+        <h3>Your existing tools, unchanged</h3>
+        <p>It is the same pipe name, so the CLI, Compose, Testcontainers, an IDE plugin and whatever your CI script does locally all find it without a setting. Nothing has to be told about DockerDesk.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico">🧵</div>
+        <h3>An API client with no dependencies</h3>
+        <p>The app talks HTTP over the pipe directly — a named-pipe stream handed to .NET's own HTTP handler, pinned to Engine API <code>v1.43</code>. No NuGet package, and no shelling out to <code>docker.exe</code> once per refresh.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRAY -->
+<section id="tray">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">In the tray</div>
+      <h2>“Is Docker up?” should be a glance</h2>
+      <p>
+        The icon carries the engine state as a <b>shape</b>, and colour only reinforces it. At
+        sixteen pixels a hue is a hint: two of these are seen at a glance, by people who may not
+        separate red from green, against a taskbar that is light on one machine and dark on the
+        next. These three are still distinguishable in a screenshot printed in black and white.
+      </p>
+    </div>
+    <div class="states reveal">
+      <div class="state run">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#2EA043"/></svg>
+        <h3>Running</h3>
+        <p>A filled disc. And it means the engine <b>answered</b> — the state comes from the event stream's own connection, not from remembering that a start was clicked.</p>
+      </div>
+      <div class="state start">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38.85 9.15 A21 21 0 1 1 9.15 9.15" fill="none" stroke="#D29A00" stroke-width="6"/></svg>
+        <h3>Starting</h3>
+        <p>A ring with a bite out of it: the same outline as stopped and unmistakably not it, which is what tells “on its way up” from “not running” without relying on hue.</p>
+      </div>
+      <div class="state stop">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="none" stroke="#8B949E" stroke-width="6"/></svg>
+        <h3>Stopped</h3>
+        <p>A plain ring. <code>Start engine</code> is one click away in the menu, and it launches the engine in a process the tray does not own.</p>
+      </div>
+    </div>
+    <div class="split reveal" style="margin-top:52px">
+      <div class="split-txt">
+        <div class="eyebrow">Deliberately short</div>
+        <h2>Four items, because a tray menu that grows is a second app</h2>
+        <ul class="feat-list">
+          <li><span class="chk">✓</span><span><b>Start engine</b> / <b>Stop engine</b> — each enabled only when it would do something</span></li>
+          <li><span class="chk">✓</span><span><b>Open window</b> — the container list, and the one already open is brought forward rather than duplicated</span></li>
+          <li><span class="chk">✓</span><span><b>Quit</b> — and the engine keeps running. The asymmetry is the point: a database another process is using does not die because somebody closed an icon</span></li>
+          <li><span class="chk">✓</span><span><b>The only thing that stops the engine</b> is the menu item that says so</span></li>
+        </ul>
+      </div>
+      <div class="shot-frame">
+        <svg viewBox="0 0 420 260" role="img" aria-label="The tray icon showing a filled green disc, with its context menu: Start engine, Stop engine, Open window, Quit">
+          <rect width="420" height="260" rx="12" fill="#0a151d"/>
+          <!-- menu -->
+          <rect x="70" y="26" width="230" height="150" rx="10" fill="#172c39" stroke="#22404f"/>
+          <text x="90" y="52" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Start engine</text>
+          <text x="90" y="80" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Stop engine</text>
+          <line x1="82" y1="96" x2="288" y2="96" stroke="#22404f"/>
+          <text x="90" y="120" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Open window</text>
+          <line x1="82" y1="136" x2="288" y2="136" stroke="#22404f"/>
+          <text x="90" y="160" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Quit</text>
+          <!-- taskbar -->
+          <rect x="0" y="200" width="420" height="60" fill="#101c25"/>
+          <line x1="0" y1="200" x2="420" y2="200" stroke="#22404f"/>
+          <circle cx="176" cy="230" r="9" fill="#2EA043"/>
+          <circle cx="212" cy="230" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
+          <circle cx="248" cy="230" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
+          <text x="300" y="235" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">14:08</text>
+          <!-- the tooltip, where Windows puts it: above the icon it describes -->
+          <rect x="96" y="180" width="160" height="22" rx="4" fill="#1b2f3c" stroke="#2a4characters"/>
+          <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">DockerDesk — engine running</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WINDOW -->
+<section id="window">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">The window</div>
+      <h2>One window, and it is the list of containers</h2>
+      <p>
+        Because that is what the tool is opened for. Name, image, state, how long it has been up,
+        and the ports — and the ports are links, because a published <code>8080</code> is the thing
+        you actually wanted and retyping <code>localhost:8080</code> is a small daily tax a GUI
+        exists to remove.
+      </p>
+    </div>
+    <figure class="shot-frame reveal" style="margin:0">
+      <svg viewBox="0 0 900 420" role="img" aria-label="The DockerDesk window: engine running, then a table of containers with name, image, state, status and clickable published ports">
+        <rect width="900" height="420" rx="12" fill="#0e1a22"/>
+        <!-- title bar -->
+        <rect x="0" y="0" width="900" height="42" rx="12" fill="#132029"/>
+        <rect x="0" y="30" width="900" height="12" fill="#132029"/>
+        <text x="24" y="27" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">DockerDesk</text>
+        <text x="820" y="27" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="14" letter-spacing="6">─☐✕</text>
+
+        <!-- engine state -->
+        <circle cx="34" cy="76" r="6" fill="#2EA043"/>
+        <text x="50" y="81" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="15">Engine running</text>
+        <text x="176" y="81" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">· Engine API v1.43</text>
+
+        <!-- header -->
+        <text x="36" y="120" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11" font-weight="600" letter-spacing="1">NAME</text>
+        <text x="200" y="120" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11" font-weight="600" letter-spacing="1">IMAGE</text>
+        <text x="404" y="120" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11" font-weight="600" letter-spacing="1">STATE</text>
+        <text x="500" y="120" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11" font-weight="600" letter-spacing="1">STATUS</text>
+        <text x="676" y="120" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11" font-weight="600" letter-spacing="1">PORTS</text>
+
+        <!-- row 1 -->
+        <rect x="24" y="134" width="852" height="46" rx="6" fill="#152530"/>
+        <text x="36" y="162" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13.5">web</text>
+        <text x="200" y="162" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">nginx:1.29-alpine</text>
+        <text x="404" y="162" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">running</text>
+        <text x="500" y="162" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Up 12 seconds</text>
+        <rect x="670" y="146" width="104" height="22" rx="4" fill="#1d3a4b"/>
+        <text x="680" y="162" fill="#67C3F2" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12.5">8080-&gt;80/tcp</text>
+
+        <!-- row 2 -->
+        <text x="36" y="212" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13.5">postgres-dev</text>
+        <text x="200" y="212" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">postgres:17-alpine</text>
+        <text x="404" y="212" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">running</text>
+        <text x="500" y="212" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Up 4 minutes</text>
+        <text x="680" y="212" fill="#67C3F2" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12.5">5432-&gt;5432/tcp</text>
+
+        <!-- row 3 -->
+        <text x="36" y="262" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13.5">redis</text>
+        <text x="200" y="262" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">redis:8-alpine</text>
+        <text x="404" y="262" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">running</text>
+        <text x="500" y="262" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Up 4 minutes</text>
+        <text x="680" y="262" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12.5">6379/tcp</text>
+
+        <!-- row 4 -->
+        <text x="36" y="312" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13.5">api</text>
+        <text x="200" y="312" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">node:22-alpine</text>
+        <text x="404" y="312" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">exited</text>
+        <text x="500" y="312" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Exited (1) 3 minutes ago</text>
+        <text x="680" y="312" fill="#3c5666" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12.5">—</text>
+
+        <line x1="24" y1="352" x2="876" y2="352" stroke="#1b2e3a"/>
+        <text x="36" y="382" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11.5">A blue port is published and opens in your browser. Grey is exposed only — there is nowhere on this machine to send you,</text>
+        <text x="36" y="398" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11.5">so it is plain text and not a link that lands on nothing.</text>
+      </svg>
+      <figcaption>
+        <b>Dark, because Windows is.</b> The window is WPF on the built-in Fluent theme with
+        <code>ThemeMode="System"</code> — light and dark follow the OS, with no extra package.
+      </figcaption>
+    </figure>
+    <div class="split rev reveal" style="margin-top:48px">
+      <div class="shot-frame">
+        <svg viewBox="0 0 420 280" role="img" aria-label="The empty state: the engine is not running, with a Start the engine button">
+          <rect width="420" height="280" rx="12" fill="#0e1a22"/>
+          <rect x="0" y="0" width="420" height="36" rx="12" fill="#132029"/>
+          <rect x="0" y="24" width="420" height="12" fill="#132029"/>
+          <text x="18" y="23" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">DockerDesk</text>
+          <circle cx="26" cy="64" r="5" fill="#8B949E"/>
+          <text x="38" y="68" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Engine stopped</text>
+          <text x="210" y="150" text-anchor="middle" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="19">The engine is not running</text>
+          <text x="210" y="176" text-anchor="middle" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12.5">Start it to see your containers.</text>
+          <rect x="145" y="200" width="130" height="36" rx="6" fill="#1d3a4b" stroke="#2E9BD6"/>
+          <text x="210" y="223" text-anchor="middle" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Start the engine</text>
+        </svg>
+      </div>
+      <div class="split-txt">
+        <div class="eyebrow">The details</div>
+        <h2>Correct without being asked, and empty on purpose</h2>
+        <ul class="feat-list">
+          <li><span class="chk">✓</span><span><b>No refresh button.</b> The list is a view of the engine: it reads <code>/events</code> as the daemon writes it, and only the events that change a container list cost a read — the rest would be a poll in disguise</span></li>
+          <li><span class="chk">✓</span><span><b>Started in a terminal, shown here.</b> A <code>docker run</code> in any shell appears without you touching the window</span></li>
+          <li><span class="chk">✓</span><span><b>The stream re-opens itself</b> after every break, so stopping and starting the engine does not leave a window quietly lying</span></li>
+          <li><span class="chk">✓</span><span><b>Empty is a designed state</b>, and the two reasons a list is empty read differently — only one of them is something you can act on, and that one offers the button</span></li>
+          <li><span class="chk">✓</span><span><b>Duplicates folded.</b> A port published on both address families comes back twice from the API and would otherwise be two identical cells</span></li>
+          <li><span class="chk">✓</span><span><b>UDP is text.</b> Only TCP gets a link, because <code>http://localhost:x</code> is not where a published UDP port is</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NOT RESIDENT -->
+<section style="padding-top:20px">
+  <div class="wrap reveal">
+    <div class="banner">
+      <div class="lock">💤</div>
+      <h2>It is not running right now</h2>
+      <p>
+        There is no service and no scheduled task. The engine runs for exactly as long as
+        something is holding it — quit that, and Windows is back to where it was. Autostart
+        exists, it is a single per-user registry value, it is <b>off unless you turn it on</b>,
+        and turning it off <b>removes</b> the value rather than setting it to zero.
+      </p>
+      <p>
+        Nothing is uploaded, there is no account, and there is nothing to log into. The only
+        network traffic this project makes is downloading the three pinned artefacts, from
+        <code>dl-cdn.alpinelinux.org</code> and <code>download.docker.com</code>, during a
+        provision you asked for.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- NON-GOALS -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Scope</div>
+      <h2>What it is not</h2>
+      <p>
+        Five things this project has decided against, written down where they can be pointed at.
+        A tool with no stated non-goals is a tool that will eventually be asked for all of them.
+      </p>
+    </div>
+    <div class="nots reveal">
+      <div class="not">
+        <h4><em>✗</em> Feature parity with Docker Desktop</h4>
+        <p>Kubernetes, extensions, a dashboard for everything. The list a user actually opens the app for is short, and stopping there is what keeps this small enough to trust.</p>
+      </div>
+      <div class="not">
+        <h4><em>✗</em> A fork of the engine</h4>
+        <p>Upstream Moby, unpatched, pinned by digest. If the engine misbehaves, that is between you and upstream, and this project has not touched it.</p>
+      </div>
+      <div class="not">
+        <h4><em>✗</em> macOS and Linux</h4>
+        <p>Linux already has the engine, and the entire mechanism here is WSL2 and a Windows named pipe. Portability would mean a different tool wearing the same name.</p>
+      </div>
+      <div class="not">
+        <h4><em>✗</em> Telemetry, accounts or a sign-in</h4>
+        <p>Nothing is measured, nothing is sent, and there is nothing to register. There is no build of this with an opt-out.</p>
+      </div>
+      <div class="not">
+        <h4><em>✗</em> A resident background service</h4>
+        <p>The complaint that sends people looking for an alternative is an engine holding gigabytes from every boot. Not being that is the product, not a preference.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS -->
+<section id="status">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Where it actually is</div>
+      <h2>Honest status: there is nothing to download yet</h2>
+      <p>
+        The engine half works end to end — provision, start, stop, the pipe, the API, the event
+        stream, the tray. What does not exist yet is the thing you would install: no executable,
+        no installer, no release. Building from source is the only way in today.
+      </p>
+    </div>
+    <div class="legend reveal">
+      <span>✅ shipped</span><span>🛠 in progress</span><span>📋 open</span>
+      <span>Every line is a numbered <b>DD</b> task in the roadmap</span>
+    </div>
+    <div class="rows reveal">
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD1</div>
+        <div class="what"><b>The preflight</b><span>The Windows build, virtualization, the WSL2 kernel and any rival engine — one row each with the action that fixes it, and exit 1 while a blocking row is not green.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD2</div>
+        <div class="what"><b>Unattended provisioning</b><span>Upstream Moby 29.7.2 into an owned WSL2 distribution, and <code>docker.exe</code> where an installer can add it to PATH.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD3</div>
+        <div class="what"><b>Start, stop, and the pipe</b><span>Starts the distro and the daemon, serves <code>\\.\pipe\docker_engine</code>, and reports Running only once the engine answers.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD4</div>
+        <div class="what"><b>The Engine API client</b><span>Ping, version, containers and a stream for endpoints that never end — over the named pipe, with no NuGet dependency.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD5</div>
+        <div class="what"><b>The event stream</b><span>Reads <code>/events</code> as the daemon writes it and re-opens after every break, so nothing here polls.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD6</div>
+        <div class="what"><b>The tray icon</b><span>Carries the engine state as a shape, and its menu starts the engine in a process that outlives the tray, or stops it.</span></div>
+      </div>
+      <div class="row done">
+        <div class="mark">✅</div><div class="id">DD17</div>
+        <div class="what"><b>A clean Windows to test on</b><span>The product preflight is driven inside a Windows 11 guest and what it said is read back — so a red row is something that has actually been executed.</span></div>
+      </div>
+      <div class="row now">
+        <div class="mark">🛠</div><div class="id">DD7</div>
+        <div class="what"><b>The window: the container list</b><span>Name, image, state, uptime and the ports as links, on the WPF Fluent theme. In progress — this is the screen the tool is opened for.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD8</div>
+        <div class="what"><b>Acting on a container</b><span>Start, stop, restart and remove from the list — the work is the pending state and the confirmation, not the four endpoints.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD9</div>
+        <div class="what"><b>Logs</b><span>A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD10</div>
+        <div class="what"><b>A shell inside a container</b><span>Anything the log does not say is currently unreachable.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD11–12</div>
+        <div class="what"><b>Images and volumes</b><span>Which layers are dangling and which are still in use; and for volumes, making an irreversible deletion legible rather than reclaiming space.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD13</div>
+        <div class="what"><b>The licence, stated</b><span>Apache-2.0 where the choice is made, and a NOTICE covering the bundled upstream binaries — a compliance requirement, not a courtesy.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD14–15</div>
+        <div class="what"><b>Something to hand a user</b><span>A per-user install into <code>LOCALAPPDATA</code> with no admin prompt, an uninstall that respects your data, and a release built by CI rather than on one developer's machine.</span></div>
+      </div>
+      <div class="row">
+        <div class="mark">📋</div><div class="id">DD16, 18–21</div>
+        <div class="what"><b>Known defects</b><span>A per-user Docker Desktop that the rival-engine row misses; fifteen seconds spent failing to read WSL on a machine that never had it; “virtualization enabled” inside a VM that WSL2 then refuses to start in; a leftover <code>docker context</code> pointing the CLI at another pipe; and a tray icon that Windows 11 files into the overflow, where a state indicator is not the thing it was built to be.</span></div>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:28px">
+      The full list, with the reason each line exists, is in
+      <a href="https://github.com/alegauss/dockerdesk/blob/main/docs/ROADMAP.md" style="color:var(--azure-bright)">docs/ROADMAP.md</a>
+      and
+      <a href="https://github.com/alegauss/dockerdesk/blob/main/docs/IMPROVEMENTS.md" style="color:var(--azure-bright)">docs/IMPROVEMENTS.md</a>.
+    </p>
+  </div>
+</section>
+
+<!-- BUILD -->
+<section id="build">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Try it today</div>
+      <h2>Four commands, from a clone</h2>
+      <p>
+        You need the <b>.NET 10 SDK</b> and Windows 10 build 19041 or later. The first two
+        commands change nothing on your machine — the preflight only reads, and
+        <code>--plan</code> does not even download.
+      </p>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="n">1</div>
+        <h4>Check the machine</h4>
+        <p>Run the preflight. If a row is red, its remedy is the next thing to do — and nothing has been copied to disk.</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h4>Install the engine</h4>
+        <p><code>--provision</code> downloads and verifies, imports the <code>dockerdesk</code> distribution, and puts <code>docker.exe</code> under <code>%LOCALAPPDATA%\DockerDesk\bin</code>.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h4>Run the tray</h4>
+        <p>Start the tray and use <b>Start engine</b>, or hold the engine in a terminal yourself with <code>--run</code> until Ctrl+C.</p>
+      </div>
+    </div>
+    <div style="max-width:720px;margin:0 auto">
+      <div class="codeblock copy" style="margin-bottom:12px">
+        <code id="cmd-clone">git clone <span class="g">https://github.com/alegauss/dockerdesk</span> &amp;&amp; cd dockerdesk</code>
+        <button class="copy-btn" type="button" data-target="cmd-clone" aria-label="Copy the clone command">
+          <span class="ic">⧉</span><span class="lbl">Copy</span>
+        </button>
+      </div>
+      <div class="codeblock copy" style="margin-bottom:12px">
+        <code id="cmd-preflight">dotnet run --project <span class="g">src/DockerDesk.Preflight</span></code>
+        <button class="copy-btn" type="button" data-target="cmd-preflight" aria-label="Copy the preflight command">
+          <span class="ic">⧉</span><span class="lbl">Copy</span>
+        </button>
+      </div>
+      <div class="codeblock copy" style="margin-bottom:12px">
+        <code id="cmd-provision">dotnet run --project <span class="g">src/DockerDesk.Engine</span> -- --provision</code>
+        <button class="copy-btn" type="button" data-target="cmd-provision" aria-label="Copy the provision command">
+          <span class="ic">⧉</span><span class="lbl">Copy</span>
+        </button>
+      </div>
+      <div class="codeblock copy">
+        <code id="cmd-tray">dotnet run --project <span class="g">src/DockerDesk.Tray</span></code>
+        <button class="copy-btn" type="button" data-target="cmd-tray" aria-label="Copy the tray command">
+          <span class="ic">⧉</span><span class="lbl">Copy</span>
+        </button>
+      </div>
+      <p style="text-align:center;color:var(--muted-2);font-size:.85rem;margin-top:16px">
+        Prefer to look before you download anything? <code style="color:var(--azure-bright)">-- --plan</code>
+        prints every pinned version, digest and path and reaches nothing.
+      </p>
+    </div>
+    <div style="text-align:center;margin-top:30px">
+      <a class="btn btn-primary" href="https://github.com/alegauss/dockerdesk">★ View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <a class="foot-brand" href="#top"><img src="logo.svg" alt="">DockerDesk</a>
+      <div class="foot-links">
+        <a href="https://github.com/alegauss/dockerdesk">GitHub</a>
+        <a href="https://github.com/alegauss/dockerdesk/blob/main/docs/ROADMAP.md">Roadmap</a>
+        <a href="https://github.com/alegauss/dockerdesk/blob/main/docs/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/alegauss/dockerdesk/blob/main/CONTRIBUTING.md">Contributing</a>
+      </div>
+    </div>
+    <p class="disclaimer">
+      Unofficial / community project — not affiliated with, endorsed by, or sponsored by Docker, Inc.
+      “Docker” and “Docker Desktop” are trademarks of Docker, Inc.; this tool installs the
+      Apache-2.0 licensed Moby engine and Docker CLI as published upstream, unmodified, and pins
+      each artefact to a version and a digest. Apache-2.0 is this project's stated licence; the
+      <code>LICENSE</code> file and the <code>NOTICE</code> covering those bundled upstream binaries
+      are DD13 on the roadmap and not written yet. © 2026 Alexandre Oliveira.
+    </p>
+  </div>
+</footer>
+
+<script>
+  // reveal-on-scroll
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // copy any command block: the button names the <code> it copies
+  document.querySelectorAll('.copy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const source = document.getElementById(btn.dataset.target);
+      if(!source){ return; }
+      const cmd = source.innerText.trim();
+      const done = ()=>{
+        btn.classList.add('copied');
+        btn.querySelector('.lbl').textContent = 'Copied!';
+        btn.querySelector('.ic').textContent = '✓';
+        setTimeout(()=>{
+          btn.classList.remove('copied');
+          btn.querySelector('.lbl').textContent = 'Copy';
+          btn.querySelector('.ic').textContent = '⧉';
+        }, 1800);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(cmd).then(done).catch(()=>fallbackCopy(cmd, done));
+      } else {
+        fallbackCopy(cmd, done);
+      }
+    });
+  });
+  function fallbackCopy(text, done){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){}
+    document.body.removeChild(ta);
+  }
+</script>
+</body>
+</html>

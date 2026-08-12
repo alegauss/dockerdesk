@@ -3,6 +3,18 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- WPF for the window; the tray icon itself stays NotifyIcon + GDI+. The built-in Fluent theme
+         gives a Windows 11 look with no package at all, so the self-contained .exe story holds. -->
+    <UseWPF>true</UseWPF>
+    <!-- WPF0001: ThemeMode, the Fluent switch, is marked [Experimental] in the SDK and is the
+         supported way to opt in. Same suppression claude-tray carries, for the same reason. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <!-- Overrides Directory.Build.props for this project only. WPF data binding asks for the
+         specific culture behind the current one, and under InvariantGlobalization there is none:
+         the window died on its first binding with "Cannot find non-neutral culture related to
+         'en-us'". The console tools keep the invariant build and its smaller footprint; the one
+         project with a UI pays for ICU. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <RootNamespace>DockerDesk.Tray</RootNamespace>
     <AssemblyName>dockerdesk-tray</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>

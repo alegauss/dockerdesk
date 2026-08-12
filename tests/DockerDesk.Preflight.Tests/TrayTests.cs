@@ -6,11 +6,15 @@ using Xunit;
 namespace DockerDesk.Preflight.Tests;
 
 /// <summary>Records what it was asked to launch instead of launching it.</summary>
-internal sealed class FakeLauncher : IProcessLauncher
+internal sealed class FakeLauncher(string? failure = null) : IProcessLauncher
 {
     internal List<(string File, string Arguments)> Launched { get; } = [];
 
-    public void Launch(string fileName, string arguments) => Launched.Add((fileName, arguments));
+    public string? Launch(string fileName, string arguments)
+    {
+        Launched.Add((fileName, arguments));
+        return failure;
+    }
 }
 
 /// <summary>
@@ -154,6 +158,34 @@ public sealed class TrayTests
         holder.Stop();
 
         Assert.Equal((@"C:\x\dockerdesk-engine.exe", "--stop"), launcher.Launched[0]);
+    }
+
+    [Fact]
+    public void An_engine_that_cannot_be_started_is_reported_rather_than_thrown()
+    {
+        // This crashed the tray from a click handler: the engine was simply not beside it in a dev
+        // build, Process.Start threw, and the icon vanished. An icon that disappears when somebody
+        // presses its own menu item is worse than any message it could have shown instead.
+        var holder = new EngineHolder(@"C:\x\dockerdesk-engine.exe", new FakeLauncher("not there"));
+
+        Assert.Equal("not there", holder.Start());
+        Assert.Equal("not there", holder.Stop());
+    }
+
+    [Fact]
+    public void A_start_that_worked_reports_nothing() =>
+        Assert.Null(new EngineHolder(@"C:\x\dockerdesk-engine.exe", new FakeLauncher()).Start());
+
+    [Fact]
+    public void The_real_launcher_names_the_missing_file_instead_of_throwing()
+    {
+        var missing = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), $"dockerdesk-absent-{Guid.NewGuid():N}.exe");
+
+        var failure = new DetachedLauncher().Launch(missing, "--run");
+
+        Assert.NotNull(failure);
+        Assert.Contains("is not beside the tray", failure, StringComparison.Ordinal);
     }
 
     [Fact]

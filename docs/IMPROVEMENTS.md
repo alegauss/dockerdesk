@@ -133,27 +133,6 @@ rather than the implementation.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD7 The window: the container list, in claude-tray's elements
-
-One window, one list, and the list is containers — because that is what a user opens
-this for. Name, image, state, uptime, ports, and the ports are links: a published `8080`
-is the thing they actually want, and making them retype `localhost:8080` is a small
-daily tax a GUI exists to remove.
-
-WPF with the built-in .NET Fluent theme, which is how the tray app this borrows from
-gets a Windows 11 look with no extra package — the same `ThemeMode` switch, the same
-light and dark following the OS, the same self-contained `.exe` story. Reusing that
-styling is not only economy: two apps by the same author that look unrelated read as two
-unfinished apps.
-
-State arrives from the event stream and never from a refresh button. The list is a view
-of the engine, so it is correct without being asked.
-
-Empty is a designed state, not a blank grid. No containers with the engine down says
-start the engine; no containers with it up says so plainly. The first screen a new user
-sees is usually empty, and a table with headers and nothing under them is where a free
-alternative loses them.
-
 ### §DD21 A new tray icon does not get the visible row
 
 The tray's whole argument is that answering "is Docker up?" costs a glance. Windows 11
@@ -177,6 +156,31 @@ what Docker Desktop does, and it is also what every user resents when six instal
 each decide their icon deserves the visible row. Either leave it in the overflow and say
 so in the installer, or promote once at first run and never again. What is not an option
 is a section that promises a glance while a new user gets a chevron.
+
+### §DD22 A window is verified by rendering it, not by copying the screen
+
+Windows here are verified by copying the pixels inside their rectangle off the screen.
+That reads whatever is actually there, which is not the window: shipping DD7 it twice
+photographed something else — an editor holding the guest's credentials, and a messaging
+app holding a medical appointment. Both reached a transcript, which deleting the file
+afterwards does not undo.
+
+claude-tray already solved this and its script says why in its own docstring: a screen
+copy is the fallback, and the preferred path is rendering the window off-screen, where
+there is nothing else in the frame to catch. Its `--capture-*` verbs use
+`RenderTargetBitmap` over the page's own content; the screen copy is kept only for
+popups, which a render cannot reach.
+
+That script is worth reading rather than reinventing. It carries four assertions earned
+from real wrong captures, and one of them is exactly what was missing here: **no foreign
+window in front of it overlaps the rectangle about to be copied**. Its history records
+that nine sampled points could not answer that, the number of points covering a window
+being the number of pixels in it, so it asks about the region instead.
+
+So: a `--capture-window <path>` verb on the tray that renders off-screen and photographs
+nothing else, and the overlap-checked screen copy kept for what a render cannot see.
+Until then, verifying a window on a machine with anything else open is a privacy
+incident waiting for its second turn, and it has already had one.
 
 ## Block D — Container operations (what a user came to do)
 

@@ -13,19 +13,19 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD7** (deps: DD4 ✅, DD5 ✅, DD6 ✅) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
 - 📋 **DD21** (deps: —) **The tray icon was not in the visible notification area while the tray was running, so the glance costs a click** — Windows 11 puts a new icon in the overflow by default, and a state indicator behind a chevron is not the thing the tray was built to be. → §DD21
+- 📋 **DD22** (deps: —) **Verifying a window copies the screen, so a capture twice photographed private content that was in front of it** — Rendering the window off-screen photographs nothing else, and claude-tray already carries both that verb and an overlap-checked screen copy for what a render cannot reach. → §DD22
 
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD8** (deps: DD7) **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — This is what a user came for, and the work is in the pending state and the confirmation around the call, not in the four endpoints. → §DD8
-- 📋 **DD9** (deps: DD7) **A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal** — The log is the one artefact a failed container leaves, and its stream is framed per chunk unless a TTY was allocated. → §DD9
-- 📋 **DD10** (deps: DD7) **There is no way into a running container: no shell, so anything the log does not say is unreachable** — Launching Windows Terminal with docker exec costs a process, where a terminal inside the window costs a full ANSI emulator this project has no reason to write. → §DD10
+- 📋 **DD8** (deps: DD7 ✅) **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — This is what a user came for, and the work is in the pending state and the confirmation around the call, not in the four endpoints. → §DD8
+- 📋 **DD9** (deps: DD7 ✅) **A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal** — The log is the one artefact a failed container leaves, and its stream is framed per chunk unless a TTY was allocated. → §DD9
+- 📋 **DD10** (deps: DD7 ✅) **There is no way into a running container: no shell, so anything the log does not say is unreachable** — Launching Windows Terminal with docker exec costs a process, where a terminal inside the window costs a full ANSI emulator this project has no reason to write. → §DD10
 
 ## Block E — Images, volumes and networks
 
-- 📋 **DD11** (deps: DD7) **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Reclaiming disk is a judgement over a list, which is what a GUI is better at than three CLI commands and a mental join. → §DD11
-- 📋 **DD12** (deps: DD7) **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — A volume is the one thing here that does not come back, so the list's job is making an irreversible deletion legible rather than reclaiming space. → §DD12
+- 📋 **DD11** (deps: DD7 ✅) **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Reclaiming disk is a judgement over a list, which is what a GUI is better at than three CLI commands and a mental join. → §DD11
+- 📋 **DD12** (deps: DD7 ✅) **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — A volume is the one thing here that does not come back, so the list's job is making an irreversible deletion legible rather than reclaiming space. → §DD12
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 

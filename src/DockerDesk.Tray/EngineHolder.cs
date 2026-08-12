@@ -10,7 +10,8 @@ public interface IProcessLauncher
     /// <summary>Start <paramref name="fileName"/> with <paramref name="arguments"/>, detached.</summary>
     /// <param name="fileName">The executable.</param>
     /// <param name="arguments">Its command line.</param>
-    void Launch(string fileName, string arguments);
+    /// <returns>Null when it started, or why it did not.</returns>
+    string? Launch(string fileName, string arguments);
 }
 
 /// <summary>
@@ -35,15 +36,19 @@ public sealed class EngineHolder(string enginePath, IProcessLauncher launcher)
     /// <returns>The path.</returns>
     public static string BesideThisProcess()
     {
-        var here = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
-        return Path.Combine(here, EngineExecutable);
+        // System.IO.Path spelled out: enabling WPF brings System.Windows.Shapes.Path into the
+        // implicit usings, and the unqualified name then resolves to a drawing primitive.
+        var here = System.IO.Path.GetDirectoryName(Environment.ProcessPath)
+            ?? AppContext.BaseDirectory;
+        return System.IO.Path.Combine(here, EngineExecutable);
     }
 
     /// <summary>The engine executable this holder drives.</summary>
     public string EnginePath { get; } = enginePath;
 
     /// <summary>Start the engine, in a process this one does not own.</summary>
-    public void Start() => launcher.Launch(EnginePath, "--run");
+    /// <returns>Null when it started, or why it did not.</returns>
+    public string? Start() => launcher.Launch(EnginePath, "--run");
 
     /// <summary>
     /// Stop the engine.
@@ -53,22 +58,41 @@ public sealed class EngineHolder(string enginePath, IProcessLauncher launcher)
     /// distribution, and whatever is holding the engine notices and comes down with it. That works
     /// whoever started it, including a run from a terminal before the tray existed.
     /// </remarks>
-    public void Stop() => launcher.Launch(EnginePath, "--stop");
+    /// <returns>Null when it ran, or why it did not.</returns>
+    public string? Stop() => launcher.Launch(EnginePath, "--stop");
 }
 
 /// <summary>Launches through the shell, so the child inherits no console from this process.</summary>
 public sealed class DetachedLauncher : IProcessLauncher
 {
     /// <inheritdoc/>
-    public void Launch(string fileName, string arguments)
+    public string? Launch(string fileName, string arguments)
     {
-        // UseShellExecute, deliberately: started with it false the child inherits this process's
-        // console, and a Ctrl+C meant for the tray would reach the engine too.
-        using var started = Process.Start(new ProcessStartInfo(fileName, arguments)
+        // Reported and not thrown. A missing executable used to take the whole tray down from a
+        // click handler — measured, with the engine simply not beside the tray in a dev build — and
+        // an icon that vanishes when you press its menu item is worse than any error message.
+        if (!System.IO.File.Exists(fileName))
         {
-            UseShellExecute = true,
-            WindowStyle = ProcessWindowStyle.Hidden,
-        });
+            return $"{System.IO.Path.GetFileName(fileName)} is not beside the tray "
+                + $"(looked in {System.IO.Path.GetDirectoryName(fileName)})";
+        }
+
+        try
+        {
+            // UseShellExecute, deliberately: started with it false the child inherits this process's
+            // console, and a Ctrl+C meant for the tray would reach the engine too.
+            using var started = Process.Start(new ProcessStartInfo(fileName, arguments)
+            {
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            });
+            return null;
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
+            or InvalidOperationException or System.IO.IOException)
+        {
+            return $"starting {System.IO.Path.GetFileName(fileName)} failed: {exception.Message}";
+        }
     }
 }
 

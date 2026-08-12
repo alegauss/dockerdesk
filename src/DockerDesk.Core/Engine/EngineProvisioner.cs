@@ -15,6 +15,11 @@ public enum ProvisioningStep
     /// <summary>Download and verify the static Linux engine binaries.</summary>
     AcquireEngine,
 
+    /// <summary>
+    /// Read the engine tarball's member list and check the binaries it must carry are there.
+    /// </summary>
+    InspectEngine,
+
     /// <summary>Download and verify the archive holding the Windows CLI.</summary>
     AcquireCli,
 
@@ -115,6 +120,11 @@ public sealed class EngineProvisioner
             return new ProvisioningOutcome(steps);
         }
 
+        if (!Record(steps, InspectEngine(engine)))
+        {
+            return new ProvisioningOutcome(steps);
+        }
+
         var cli = await Acquire(steps, ProvisioningStep.AcquireCli, _manifest.Cli, cancellation)
             .ConfigureAwait(false);
         if (cli is null || !installing)
@@ -193,12 +203,45 @@ public sealed class EngineProvisioner
             "apk add --no-cache --no-progress iptables ip6tables ca-certificates",
             "mkdir -p /usr/local/bin",
             $"tar -xzf '{inside}' -C /usr/local/bin --strip-components=1",
-            "chmod 0755 /usr/local/bin/docker /usr/local/bin/dockerd /usr/local/bin/containerd "
-                + "/usr/local/bin/containerd-shim-runc-v2 /usr/local/bin/runc "
-                + "/usr/local/bin/docker-init /usr/local/bin/docker-proxy /usr/local/bin/ctr",
+            // A glob, not eight names: naming them makes `set -e` abort the whole install the day
+            // upstream renames or drops one, and which binaries have to be there is already decided
+            // locally by InspectEngine, before the distribution is touched.
+            "chmod 0755 /usr/local/bin/*",
             "printf '[boot]\\nsystemd=false\\n[network]\\ngenerateResolvConf=true\\n' > /etc/wsl.conf",
             "/usr/local/bin/dockerd --version",
         ]);
+    }
+
+    private StepResult InspectEngine(string engineTarballPath)
+    {
+        try
+        {
+            var contents = EngineArchive.Read(engineTarballPath);
+            if (contents.TopDirectory is null)
+            {
+                return new StepResult(ProvisioningStep.InspectEngine, false,
+                    "the tarball's entries do not share one top directory, so unpacking it with "
+                    + "--strip-components=1 would scatter them");
+            }
+
+            var missing = EngineArchive.Missing(contents);
+            if (missing.Count > 0)
+            {
+                return new StepResult(ProvisioningStep.InspectEngine, false,
+                    $"{_manifest.Engine.FileName} is missing {string.Join(", ", missing)} — "
+                    + $"it carries {contents.Binaries.Count} file(s) under {contents.TopDirectory}/");
+            }
+
+            return new StepResult(ProvisioningStep.InspectEngine, true,
+                $"{contents.Binaries.Count} binaries under {contents.TopDirectory}/, "
+                + $"including {string.Join(", ", EngineArchive.RequiredBinaries)}");
+        }
+        catch (Exception exception) when (exception is IOException
+            or InvalidDataException or UnauthorizedAccessException)
+        {
+            return new StepResult(ProvisioningStep.InspectEngine, false,
+                $"reading {_manifest.Engine.FileName} failed: {exception.Message}");
+        }
     }
 
     private StepResult ImportDistribution(string rootfsPath)

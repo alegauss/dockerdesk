@@ -1,3 +1,4 @@
+using System.Formats.Tar;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -132,6 +133,60 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.Single(fetcher.Requested);
     }
 
+    // ---- what is inside the engine tarball --------------------------------------------------
+
+    [Fact]
+    public void A_tarball_shaped_like_upstreams_reads_as_one_top_directory()
+    {
+        var path = Write("engine.tgz", TarballBytes());
+
+        var contents = EngineArchive.Read(path);
+
+        Assert.Equal("docker", contents.TopDirectory);
+        Assert.Empty(EngineArchive.Missing(contents));
+        Assert.Contains("dockerd", contents.Binaries);
+    }
+
+    [Fact]
+    public async Task A_tarball_missing_a_required_binary_stops_before_any_wsl_command()
+    {
+        // The injection this check exists for. Unread, the same archive fails inside the
+        // distribution, after the import, with a message about tar.
+        var wsl = new FakeWsl();
+        var provisioner = Provisioner(wsl, out _, WithRealArtefacts(engineDropping: "dockerd"));
+
+        var outcome = await provisioner.ProvisionAsync();
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(ProvisioningStep.InspectEngine, outcome.Failure!.Step);
+        Assert.Contains("missing dockerd", outcome.Failure.Detail, StringComparison.Ordinal);
+        Assert.Empty(wsl.Invocations);
+    }
+
+    [Fact]
+    public void A_tarball_with_no_shared_top_directory_is_refused()
+    {
+        // --strip-components=1 on this would scatter the binaries across /usr/local/bin's parent.
+        var path = Write("flat.tgz", TarballBytes(top: "docker", loose: "README"));
+
+        var contents = EngineArchive.Read(path);
+
+        Assert.Null(contents.TopDirectory);
+    }
+
+    [Fact]
+    public void A_file_that_is_not_a_tarball_raises_rather_than_reporting_nothing()
+    {
+        var path = Write("junk.tgz", Encoding.UTF8.GetBytes("not gzip at all"));
+
+        Assert.Throws<InvalidDataException>(() => EngineArchive.Read(path));
+    }
+
+    // The pinned artefact itself is not asserted here: a test that needs a 86 MB download to mean
+    // anything is a test that passes vacuously wherever the download is absent, which is every
+    // clean checkout and every CI run. `dockerdesk-engine --acquire` runs this same check on the
+    // real file, and its exit code is the assertion.
+
     // ---- path translation -------------------------------------------------------------------
 
     [Theory]
@@ -185,8 +240,9 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
         Assert.Equal(
             [ProvisioningStep.AcquireRootfs, ProvisioningStep.AcquireEngine,
-             ProvisioningStep.AcquireCli, ProvisioningStep.ImportDistribution,
-             ProvisioningStep.InstallEngine, ProvisioningStep.PlaceCli],
+             ProvisioningStep.InspectEngine, ProvisioningStep.AcquireCli,
+             ProvisioningStep.ImportDistribution, ProvisioningStep.InstallEngine,
+             ProvisioningStep.PlaceCli],
             outcome.Steps.Select(step => step.Step));
         Assert.NotNull(wsl.WithVerb("--import"));
         Assert.True(File.Exists(paths.DockerCli));
@@ -263,7 +319,10 @@ public sealed class EngineProvisioningTests : IDisposable
         var outcome = await provisioner.AcquireAsync();
 
         Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
-        Assert.Equal(3, outcome.Steps.Count);
+        Assert.Equal(
+            [ProvisioningStep.AcquireRootfs, ProvisioningStep.AcquireEngine,
+             ProvisioningStep.InspectEngine, ProvisioningStep.AcquireCli],
+            outcome.Steps.Select(step => step.Step));
         Assert.Empty(wsl.Invocations);
         Assert.False(File.Exists(paths.DockerCli));
     }
@@ -290,10 +349,11 @@ public sealed class EngineProvisioningTests : IDisposable
     /// </summary>
     private EngineManifest _manifest = null!;
 
-    private Func<string, byte[]?> WithRealArtefacts(bool cliHasDockerExe = true)
+    private Func<string, byte[]?> WithRealArtefacts(
+        bool cliHasDockerExe = true, string? engineDropping = null)
     {
         var rootfs = Encoding.UTF8.GetBytes("pretend rootfs tarball");
-        var engine = Encoding.UTF8.GetBytes("pretend engine tarball");
+        var engine = TarballBytes(engineDropping);
         var cli = ZipBytes(cliHasDockerExe ? "docker/docker.exe" : "docker/dockerd.exe");
 
         _manifest = new EngineManifest
@@ -316,6 +376,48 @@ public sealed class EngineProvisioningTests : IDisposable
     }
 
     private static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
+
+    /// <summary>
+    /// A real gzip tar shaped like upstream's: every entry under one `docker/` directory, which is
+    /// what --strip-components=1 removes. Real rather than a placeholder, because the archive is now
+    /// read before it is unpacked and a placeholder would only ever exercise the failure path.
+    /// </summary>
+    private static byte[] TarballBytes(
+        string? dropping = null, string top = "docker", string? loose = null)
+    {
+        var names = EngineArchive.RequiredBinaries
+            .Concat(["ctr", "docker", "docker-init"])
+            .Where(name => name != dropping)
+            .Select(name => $"{top}/{name}")
+            .ToList();
+        if (loose is not null)
+        {
+            names.Add(loose);
+        }
+
+        using var buffer = new MemoryStream();
+        using (var gzip = new GZipStream(buffer, CompressionLevel.Fastest, leaveOpen: true))
+        using (var tar = new TarWriter(gzip, leaveOpen: true))
+        {
+            foreach (var name in names)
+            {
+                var entry = new PaxTarEntry(TarEntryType.RegularFile, name)
+                {
+                    DataStream = new MemoryStream(Encoding.UTF8.GetBytes($"ELF {name}")),
+                };
+                tar.WriteEntry(entry);
+            }
+        }
+
+        return buffer.ToArray();
+    }
+
+    private string Write(string name, byte[] bytes)
+    {
+        var path = Path.Combine(_temp, name);
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
 
     private static byte[] ZipBytes(string entryName)
     {

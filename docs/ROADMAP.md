@@ -4,10 +4,10 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD3** (deps: DD2 ✅) **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — WSL2 needs seconds to boot the distro before dockerd opens its pipe, so the state a user acts on has to be the pipe answering and never the start command returning. → §DD3
 - 📋 **DD16** (deps: —) **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — A false green on the one row whose remedy is uninstall the rival clears an install to walk into the docker_engine collision that row exists to prevent. → §DD16
 - 📋 **DD18** (deps: —) **On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row** — That is the most common machine this installer meets, wsl --status names the state and the fix in milliseconds, and the remedy offered updates a WSL that is not installed. → §DD18
 - 📋 **DD19** (deps: —) **Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start** — HypervisorPresent is true of every guest, so the row reads I am virtualized as I can host one, and the install fails halfway on exactly the machine the check exists to stop. → §DD19
+- 📋 **DD20** (deps: —) **A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering** — The context outlives a rival uninstall because it lives in the user profile, and the result is a tool that looks broken with nothing wrong with it. → §DD20
 
 ## Block B — The daemon client (talk to the engine)
 
@@ -16,7 +16,7 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD6** (deps: DD3, DD4) **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — The tray is where this tool lives between tasks: the icon carries the engine state at a glance and its menu holds the two verbs that change it. → §DD6
+- 📋 **DD6** (deps: DD3 ✅, DD4) **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — The tray is where this tool lives between tasks: the icon carries the engine state at a glance and its menu holds the two verbs that change it. → §DD6
 - 📋 **DD7** (deps: DD4, DD5, DD6) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
 
 ## Block D — Container operations (what a user came to do)

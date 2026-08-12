@@ -200,7 +200,11 @@ public sealed class EngineProvisioner
         return string.Join(" && ",
         [
             "set -e",
-            "apk add --no-cache --no-progress iptables ip6tables ca-certificates",
+            // socat is what carries the Engine API out to Windows: a Linux daemon cannot create a
+            // Windows named pipe, and every IP route to it is reachable by any local process, so the
+            // hop is over wsl.exe's stdio and needs a tool that speaks unix sockets. BusyBox's nc
+            // does not — measured: its usage line offers HOST PORT and no -U.
+            "apk add --no-cache --no-progress iptables ip6tables ca-certificates socat",
             "mkdir -p /usr/local/bin",
             // --no-same-owner, because tar as root otherwise restores the uid the archive was built
             // with: measured on a real install, every binary landed owned by 1001:1001, a user this

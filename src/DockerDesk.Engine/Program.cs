@@ -20,9 +20,12 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
 
         var mode = args.Length == 0 ? "--help" : args[0];
-        if (args.Length > 1)
+
+        // --autostart is the one mode that takes a value; everything else is a verb on its own.
+        var allowed = mode == "--autostart" ? 2 : 1;
+        if (args.Length > allowed)
         {
-            return Complain($"unexpected argument {args[1]}");
+            return Complain($"unexpected argument {args[allowed]}");
         }
 
         return mode switch
@@ -30,9 +33,136 @@ internal static class Program
             "--plan" => Plan(),
             "--acquire" => Run(acquireOnly: true),
             "--provision" => Run(acquireOnly: false),
+            "--status" => Status(),
+            "--run" => RunEngine(),
+            "--stop" => Stop(),
+            "--autostart" => AutostartMode(args.Length > 1 ? args[1] : "status"),
             "-h" or "--help" => Help(Ok),
             _ => Complain($"unknown argument {mode}"),
         };
+    }
+
+    private static EngineLifecycle NewLifecycle() => new(
+        new Wsl(), new WslDaemonProcess(), new WslSocatBackend());
+
+    private static void Report(EngineStatus status)
+    {
+        Console.WriteLine($"  {status.State,-8}  {status.Detail}");
+        if (status.ApiVersion is { } version)
+        {
+            Console.WriteLine($"  {"",-8}  Engine API {version}");
+        }
+    }
+
+    private static int Status()
+    {
+        var status = NewLifecycle().StatusAsync().GetAwaiter().GetResult();
+        Report(status);
+        return status.Usable ? Ok : Failed;
+    }
+
+    /// <summary>
+    /// Start the engine and stay in the foreground serving the pipe until interrupted.
+    /// </summary>
+    /// <remarks>
+    /// Foreground on purpose. The relay has to outlive the start command — a Linux daemon cannot
+    /// create the Windows pipe, so something here must hold it — and a resident background service
+    /// is a stated non-goal. So the engine runs for exactly as long as somebody is running it, and
+    /// Ctrl+C stops both halves.
+    /// </remarks>
+    private static int RunEngine()
+    {
+        using var stopping = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            stopping.Cancel();
+        };
+
+        var lifecycle = NewLifecycle();
+        try
+        {
+            var started = lifecycle.StartAsync(cancellation: stopping.Token)
+                .GetAwaiter().GetResult();
+            Report(started);
+            if (!started.Usable)
+            {
+                return Failed;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Serving the engine. Ctrl+C stops it.");
+
+            // Watch, rather than sleep forever. Two defects came from sleeping, both measured: a
+            // `--stop` from another process left this one serving a pipe with nothing behind it, and
+            // the wsl.exe children held here kept the distribution alive after it was terminated. So
+            // the engine stopping by any means has to bring this down too.
+            try
+            {
+                while (!stopping.IsCancellationRequested)
+                {
+                    Task.Delay(TimeSpan.FromSeconds(2), stopping.Token)
+                        .GetAwaiter().GetResult();
+                    var now = lifecycle.StatusAsync(stopping.Token).GetAwaiter().GetResult();
+                    if (now.State is not EngineState.Running)
+                    {
+                        Console.WriteLine($"  {now.State,-8}  {now.Detail}");
+                        break;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine();
+            }
+
+            Report(lifecycle.StopAsync().GetAwaiter().GetResult());
+            return Ok;
+        }
+        catch (OperationCanceledException)
+        {
+            Report(lifecycle.StopAsync().GetAwaiter().GetResult());
+            return Ok;
+        }
+        finally
+        {
+            lifecycle.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+    }
+
+    private static int Stop()
+    {
+        // Terminating the distribution kills the daemon, and whatever `--run` is serving the pipe
+        // notices and comes down with it. So this works from any process, which a pid would not.
+        var status = NewLifecycle().StopAsync().GetAwaiter().GetResult();
+        Report(status);
+        return Ok;
+    }
+
+    private static int AutostartMode(string mode)
+    {
+        var exe = Environment.ProcessPath
+            ?? throw new InvalidOperationException("this process has no path");
+        var autostart = new Autostart($"\"{exe}\" --run");
+
+        switch (mode)
+        {
+            case "on":
+                autostart.Enable();
+                Console.WriteLine($"  autostart on   {autostart.Registered}");
+                return Ok;
+            case "off":
+                autostart.Disable();
+                Console.WriteLine("  autostart off  the registry entry is gone");
+                return Ok;
+            case "status":
+                Console.WriteLine(autostart.Enabled
+                    ? $"  autostart {(autostart.Current ? "on " : "stale")}  {autostart.Registered}"
+                    : "  autostart off  nothing is registered");
+                return Ok;
+            default:
+                return Complain($"--autostart takes on, off or status, not {mode}");
+        }
     }
 
     /// <summary>What would be downloaded and where things would go. Reaches nothing.</summary>
@@ -122,9 +252,16 @@ internal static class Program
               --plan        the pinned versions, digests and paths; reaches nothing
               --acquire     download and verify every artefact, and stop
               --provision   acquire, import the distribution, install the engine, place docker.exe
+
+              --run         start the engine and serve \\.\pipe\docker_engine until Ctrl+C
+              --stop        stop the engine and terminate the distribution
+              --status      what the engine is doing, by asking it
+              --autostart   on | off | status  - off unless you turn it on
+
               --help        this
 
-            Exit code 0 means the mode finished; 1 names the step it stopped at.
+            Exit code 0 means the mode finished; 1 names the step it stopped at. For --status,
+            1 means the engine is not answering.
 
             """);
         return code;

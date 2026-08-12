@@ -2,24 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD3 Engine lifecycle: three states, and autostart as a choice
-
-An engine is a background service with three states a user cares about — stopped,
-starting, running — and the honest one is the third: WSL2 takes seconds to boot the
-distro before `dockerd` even opens its socket. A UI that shows "running" the moment the
-start command returns is lying for the length of that gap, and the user's first `docker
-ps` fails.
-
-So starting is: boot the distro, launch the daemon, then poll the pipe until it answers
-or a timeout names which of the two steps did not finish. Stopping is the reverse and
-terminates the distro, because an idle WSL2 VM holds memory a laptop user notices.
-
-Autostart at logon is a *choice*, defaulted off, and that is the point of difference
-this project is built around. Docker Desktop starting itself on every boot and holding
-several gigabytes is the complaint that sends people looking for an alternative. Here
-the engine runs when asked, and the setting to make it automatic is one checkbox the
-user ticks themselves.
-
 ### §DD16 The rival row asks where a vendor installs, not what owns the docker command
 
 The rival row shipped looking for `%ProgramFiles%\Docker\Docker\Docker Desktop.exe`, a
@@ -109,6 +91,43 @@ green rather than merely incomplete.
 Both facts are needed and neither is sufficient: whether a hypervisor is running, and
 whether this machine is itself a guest. A row that cannot tell them apart should say
 `Unknown`, not `Pass`.
+
+### §DD20 The CLI follows its active context, not the pipe this engine serves
+
+The engine is reached through `\\.\pipe\docker_engine`, which is what the CLI's
+`default` context names and what every tutorial assumes. But the CLI does not read that
+context unless it is the active one, and the active one is a per-user setting in
+`~/.docker/config.json` that any Docker distribution may have written. Docker Desktop
+writes one.
+
+Measured on the development machine, with this project's engine answering and no
+`DOCKER_HOST` set:
+
+    docker version
+      failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
+
+    docker context ls
+      default           npipe:////./pipe/docker_engine
+      desktop-linux *   npipe:////./pipe/dockerDesktopLinuxEngine
+
+    docker --context default version
+      client 29.7.2 / server 29.7.2 / api 1.55 / os linux/amd64
+
+So the engine was running, serving the right pipe, and the user's own `docker` went
+somewhere else and reported the daemon as absent. The tool looks broken and nothing is
+wrong with it.
+
+This is not DD16. That one is about the preflight failing to *notice* a rival before
+installing. This is about what happens after a clean install on a machine that once had
+one: the leftover context outlives the uninstall, because it is configuration in the
+user's profile rather than anything the rival's installer removes.
+
+Two candidate answers, not equivalent. Registering a context of this project's own and
+making it active is what Docker Desktop does, and it takes the setting over from the
+user. Reading the active context and saying so — "your docker points at X, this engine
+is at `\\.\pipe\docker_engine`" — leaves the choice with them. The second suits a tool
+whose argument is that it takes nothing over, and picking between them is the task
+rather than the implementation.
 
 ## Block B — The daemon client (talk to the engine)
 

@@ -23,6 +23,7 @@
   engine    the same for dockerdesk-engine; -Command carries its mode, default --plan
   run       run one command in the guest and print its output
   start     power the guest on and wait for its agent
+  screenshot capture the guest's screen to a PNG; -Command is the path, default under TEMP
 
 .PARAMETER Command
   For -Action run: the command line to execute in the guest.
@@ -53,7 +54,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('doctor', 'preflight', 'run', 'start', 'engine')]
+    [ValidateSet('doctor', 'preflight', 'run', 'start', 'engine', 'screenshot')]
     [string] $Action = 'doctor',
 
     [string] $Command,
@@ -574,7 +575,9 @@ function Start-Guest {
         Write-Host 'started'
     }
 
-    $deadline = (Get-Date).AddMinutes(5)
+    # Ten minutes, not five: measured on this guest, the agent took longer than five to come up
+    # after the WSL components were installed, and the script gave up on a machine that was fine.
+    $deadline = (Get-Date).AddMinutes(10)
     while ((Get-Date) -lt $deadline) {
         $tools = Invoke-VmRun -Arguments @('checkToolsState', $env:DOCKERDESK_VMX)
         $state = Get-OneLine $tools.Output 40
@@ -599,6 +602,28 @@ switch ($Action) {
     }
     'start' {
         exit (Start-Guest)
+    }
+    'screenshot' {
+        # The one answer no exit code carries. A guest whose agent never comes up is either booting,
+        # waiting at a prompt, or showing an error, and those are indistinguishable from here —
+        # `checkToolsState` says "installed" for all three. So look at the screen.
+        Import-EnvFile | Out-Null
+        $script:VmRun = Find-VmRun
+        if (-not $script:VmRun) { throw 'vmrun.exe was not found on this host' }
+        if ($Vmx) { $env:DOCKERDESK_VMX = $Vmx }
+        $shot = if ($Command) { $Command } else { Join-Path $env:TEMP 'dockerdesk-guest.png' }
+        if (Test-Path -LiteralPath $shot) { Remove-Item -LiteralPath $shot -Force }
+
+        # -Guest, because captureScreen is a guest operation: without a login vmrun answers
+        # "Anonymous guest operations are not allowed on this virtual machine". Which also means it
+        # cannot answer at all while the agent is down — the one moment you most want to look.
+        $result = Invoke-VmRun -Guest -Arguments @('captureScreen', $env:DOCKERDESK_VMX, $shot)
+        if ($result.Ok -and (Test-Path -LiteralPath $shot)) {
+            Write-Host $shot
+            exit 0
+        }
+        Write-Host "captureScreen failed: $(Get-OneLine $result.Output)"
+        exit 1
     }
     'run' {
         if (-not $Command) { throw '-Action run needs -Command' }

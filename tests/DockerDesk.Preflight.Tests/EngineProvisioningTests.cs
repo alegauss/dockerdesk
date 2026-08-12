@@ -163,6 +163,31 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.Empty(wsl.Invocations);
     }
 
+    [Theory]
+    [InlineData("docker/dockerd", "docker/dockerd")]
+    [InlineData("./docker/dockerd", "docker/dockerd")]
+    [InlineData("/docker/dockerd", "docker/dockerd")]
+    [InlineData(".//docker/dockerd", "docker/dockerd")]
+    [InlineData(@"docker\dockerd", "docker/dockerd")]
+    [InlineData("./", "")]
+    [InlineData(".", "")]
+    public void An_entry_name_is_read_past_the_prefixes_that_mean_nothing(
+        string written, string expected) =>
+        Assert.Equal(expected, EngineArchive.Normalize(written));
+
+    [Fact]
+    public void A_tarball_written_with_the_dot_slash_prefix_still_reads_as_one_top_directory()
+    {
+        // The Alpine root filesystem this project downloads is written exactly this way, so the
+        // convention is in use by an artefact already in the manifest — not a hypothetical.
+        var path = Write("dotslash.tgz", TarballBytes(top: "./docker"));
+
+        var contents = EngineArchive.Read(path);
+
+        Assert.Equal("docker", contents.TopDirectory);
+        Assert.Empty(EngineArchive.Missing(contents));
+    }
+
     [Fact]
     public void A_tarball_with_no_shared_top_directory_is_refused()
     {

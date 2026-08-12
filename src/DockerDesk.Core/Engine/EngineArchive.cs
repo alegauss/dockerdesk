@@ -50,7 +50,12 @@ public static class EngineArchive
 
         while (tar.GetNextEntry() is { } entry)
         {
-            var name = entry.Name.Replace('\\', '/').TrimStart('/');
+            var name = Normalize(entry.Name);
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
             var slash = name.IndexOf('/', StringComparison.Ordinal);
             if (slash <= 0)
             {
@@ -69,6 +74,38 @@ public static class EngineArchive
 
         var top = directories.Count == 1 ? directories.Single() : null;
         return new Contents(string.IsNullOrEmpty(top) ? null : top, binaries);
+    }
+
+    /// <summary>
+    /// An entry name with the conventions that mean nothing stripped: backslashes, a leading slash,
+    /// and the <c>./</c> prefix GNU tar writes by default.
+    /// </summary>
+    /// <remarks>
+    /// Not hypothetical. The Alpine root filesystem this project downloads writes every entry as
+    /// <c>./etc/…</c>, so a reader that takes the first path segment literally sees one top
+    /// directory called "." and concludes every required binary is missing. Docker's tarball happens
+    /// to write <c>docker/…</c> today, and that is a habit rather than a promise.
+    /// </remarks>
+    /// <param name="name">The entry name as the archive spells it.</param>
+    /// <returns>The name with those prefixes removed.</returns>
+    internal static string Normalize(string name)
+    {
+        var text = name.Replace('\\', '/');
+        while (true)
+        {
+            if (text.StartsWith("./", StringComparison.Ordinal))
+            {
+                text = text[2..];
+            }
+            else if (text.StartsWith('/'))
+            {
+                text = text[1..];
+            }
+            else
+            {
+                return text == "." ? "" : text;
+            }
+        }
     }
 
     /// <summary>

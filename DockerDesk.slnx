@@ -3,6 +3,7 @@
     <Project Path="src/DockerDesk.Core/DockerDesk.Core.csproj" />
     <Project Path="src/DockerDesk.Engine/DockerDesk.Engine.csproj" />
     <Project Path="src/DockerDesk.Preflight/DockerDesk.Preflight.csproj" />
+    <Project Path="src/DockerDesk.Tray/DockerDesk.Tray.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DockerDesk.Preflight.Tests/DockerDesk.Preflight.Tests.csproj" />

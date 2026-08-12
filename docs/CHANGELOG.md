@@ -14,6 +14,8 @@
 
 ## Block C — The window (claude-tray's elements)
 
+- ✅ **DD6** **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — A tray icon carries the engine state as a shape, and its menu starts the engine in a process that outlives the tray or stops it.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

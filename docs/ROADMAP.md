@@ -13,8 +13,8 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD6** (deps: DD3 ✅, DD4 ✅) **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — The tray is where this tool lives between tasks: the icon carries the engine state at a glance and its menu holds the two verbs that change it. → §DD6
-- 📋 **DD7** (deps: DD4 ✅, DD5 ✅, DD6) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
+- 📋 **DD7** (deps: DD4 ✅, DD5 ✅, DD6 ✅) **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — This is the screen the tool is opened for, and the tray app's WPF Fluent theme gets that list a Windows 11 look with no extra dependency. → §DD7
+- 📋 **DD21** (deps: —) **The tray icon was not in the visible notification area while the tray was running, so the glance costs a click** — Windows 11 puts a new icon in the overflow by default, and a state indicator behind a chevron is not the thing the tray was built to be. → §DD21
 
 ## Block D — Container operations (what a user came to do)
 

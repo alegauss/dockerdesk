@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>DockerDesk.Tray</RootNamespace>
+    <AssemblyName>dockerdesk-tray</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DockerDesk.Core\DockerDesk.Core.csproj" />
+  </ItemGroup>
+
+</Project>

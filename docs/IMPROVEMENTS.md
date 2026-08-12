@@ -133,26 +133,6 @@ rather than the implementation.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD6 The tray icon: the engine state at a glance
-
-The tray is where this tool lives most of the time, because the answer to "is Docker
-up?" is a glance and not a window. A WinForms `NotifyIcon` with a GDI+ drawn icon
-carries the state in the icon itself — stopped, starting, running — and the tooltip
-names it in words for the case where the colours are ambiguous at 16 pixels.
-
-The menu is deliberately short: start or stop the engine, open the window, quit.
-Everything else belongs in the window, and a context menu that grows into a second UI is
-how a tray app stops being glanceable.
-
-Quitting does not stop the engine, and that asymmetry is intentional. A container
-running a database another process is using must not die because a user closed a tray
-icon; the engine is a service with its own lifecycle, and the only thing that stops it
-is the menu item that says so.
-
-The pattern, the icon drawing and the theme come from the tray app this project reuses —
-same elements, so a user who has both sees one family and this project spends its effort
-on the engine rather than on inventing a second look.
-
 ### §DD7 The window: the container list, in claude-tray's elements
 
 One window, one list, and the list is containers — because that is what a user opens
@@ -173,6 +153,30 @@ Empty is a designed state, not a blank grid. No containers with the engine down 
 start the engine; no containers with it up says so plainly. The first screen a new user
 sees is usually empty, and a table with headers and nothing under them is where a free
 alternative loses them.
+
+### §DD21 A new tray icon does not get the visible row
+
+The tray's whole argument is that answering "is Docker up?" costs a glance. Windows 11
+does not grant that to a new icon: unless a user has promoted it, a freshly registered
+notification icon goes into the overflow behind the chevron, where a glance costs a
+click first.
+
+Observed with `NotifyIcon.Visible` true and the process alive: a capture of the
+notification area showed the icons already promoted on this machine and not this one.
+What it does not settle is which of two things happened — the icon went to the overflow,
+the documented default, or it never registered. This is one observation, not a
+diagnosis.
+
+Both possibilities are worth the same first step: confirm where the icon actually went,
+on a machine that has never seen this application. The test guest is exactly that
+machine and has never had a tray icon promoted, which the development machine cannot
+say.
+
+If it is the overflow, there is a decision behind it and not a fix. Promoting itself is
+what Docker Desktop does, and it is also what every user resents when six installers
+each decide their icon deserves the visible row. Either leave it in the overflow and say
+so in the installer, or promote once at first run and never again. What is not an option
+is a section that promises a glance while a new user gets a chevron.
 
 ## Block D — Container operations (what a user came to do)
 

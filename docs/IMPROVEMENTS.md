@@ -99,6 +99,38 @@ has said WSL is there. A timeout then becomes what it should always have been: t
 report admitting it could not read a fact, rather than the normal path for a bare
 machine.
 
+### §DD19 HypervisorPresent answers I am virtualized, not I can host a hypervisor
+
+The virtualization row reads `Win32_ComputerSystem.HypervisorPresent` first and treats
+true as proof. That ordering was added for a real reason and it is not the mistake: a
+running Hyper-V claims the firmware bit, so Windows reports
+`VirtualizationFirmwareEnabled` as false on a machine that is plainly virtualizing, and
+reading the bit first sends the user into a BIOS to enable something already on.
+
+The mistake is what true means. `HypervisorPresent` is true of every machine running
+*under* a hypervisor, which is every virtual machine there is. So the row answers "I am
+virtualized" to a question that asked "can I host one", and those come apart exactly
+where it matters.
+
+Measured on the Windows 11 guest, build 26200, two commands apart and nothing changed
+between them:
+
+    [ok  ]  Hardware virtualization  enabled — a hypervisor is already running
+    This machine can host a container engine.        exit 0
+
+    [FAIL]  ImportDistribution  importing dockerdesk exited -1 saying: O WSL2 não pode ser
+            iniciado porque a virtualização não está habilitada nesta máquina.
+
+That guest is a VMware VM with `Virtualize Intel VT-x/EPT` switched off, so nested
+virtualization is not exposed to it and WSL2 cannot start. The preflight cleared the
+install anyway, and the install failed halfway — which is the exact sequence the whole
+check exists to prevent, and worse than DD16, because here the report is confidently
+green rather than merely incomplete.
+
+Both facts are needed and neither is sufficient: whether a hypervisor is running, and
+whether this machine is itself a guest. A row that cannot tell them apart should say
+`Unknown`, not `Pass`.
+
 ## Block B — The daemon client (talk to the engine)
 
 ### §DD4 The Engine API client: a named pipe, HttpClient, and no dependencies

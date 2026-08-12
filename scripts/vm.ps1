@@ -20,7 +20,9 @@
 .PARAMETER Action
   doctor    every reachability fact, as a report (default)
   preflight build the product preflight, copy it to the guest, run it there, print what it said
+  engine    the same for dockerdesk-engine; -Command carries its mode, default --plan
   run       run one command in the guest and print its output
+  start     power the guest on and wait for its agent
 
 .PARAMETER Command
   For -Action run: the command line to execute in the guest.
@@ -51,7 +53,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('doctor', 'preflight', 'run')]
+    [ValidateSet('doctor', 'preflight', 'run', 'start', 'engine')]
     [string] $Action = 'doctor',
 
     [string] $Command,
@@ -510,20 +512,24 @@ function Invoke-InGuest {
     return $result.ExitCode
 }
 
-function Invoke-GuestPreflight {
+function Publish-ToGuest {
     <#
-      Publishes the product's preflight, copies it into the guest and runs it there. This is the
-      whole reason the reach exists: the report's red rows have never been produced by a machine,
-      only by injected facts, and this is the machine that can produce them.
+      Publishes one project and copies it into the guest, returning the exe's guest path.
+
+      Self-contained and single-file, because a clean Windows 11 has no .NET runtime: a
+      framework-dependent build died in the guest with 0x80008083 and a link to the download page —
+      which is also the fact the installer itself has to reckon with. One file, so one copy call.
     #>
-    $publish = Join-Path $env:TEMP 'dockerdesk-guest-preflight'
+    param(
+        [Parameter(Mandatory)] [string] $Project,
+        [Parameter(Mandatory)] [string] $Exe
+    )
+
+    $publish = Join-Path $env:TEMP "dockerdesk-guest-$Project"
     if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
 
-    # Self-contained and single-file, because a clean Windows 11 has no .NET runtime: a
-    # framework-dependent build died in the guest with 0x80008083 and a link to the download page,
-    # which is also the fact the installer has to reckon with. One file, so the copy is one call.
-    Write-Host "publishing a self-contained preflight to $publish"
-    & dotnet publish (Join-Path $script:RepoRoot 'src\DockerDesk.Preflight') `
+    Write-Host "publishing a self-contained $Project to $publish"
+    & dotnet publish (Join-Path $script:RepoRoot "src\$Project") `
         -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true -p:DebugType=none `
         -o $publish --nologo -v q
@@ -532,16 +538,56 @@ function Invoke-GuestPreflight {
     $null = Invoke-VmRun -Guest -Arguments @(
         'createDirectoryInGuest', $env:DOCKERDESK_VMX, $script:GuestStage)
 
-    foreach ($file in Get-ChildItem -LiteralPath $publish -File) {
+    $files = @(Get-ChildItem -LiteralPath $publish -File)
+    foreach ($file in $files) {
         $copy = Invoke-VmRun -Guest -Arguments @(
             'copyFileFromHostToGuest', $env:DOCKERDESK_VMX,
             $file.FullName, (Join-Path $script:GuestStage $file.Name))
         if (-not $copy.Ok) { throw "copying $($file.Name) failed: $(Get-OneLine $copy.Output)" }
     }
-    Write-Host "copied $((Get-ChildItem -LiteralPath $publish -File).Count) file(s) to $script:GuestStage"
+    Write-Host "copied $($files.Count) file(s) to $script:GuestStage"
     Write-Host ''
 
-    return Invoke-InGuest "$script:GuestStage\dockerdesk-preflight.exe"
+    return (Join-Path $script:GuestStage $Exe)
+}
+
+function Start-Guest {
+    <#
+      Powers the guest on and waits for its agent, because the next command needs one and a VM that
+      is merely "started" cannot run anything for another minute. The doctor's remedy names the raw
+      `vmrun start` line, and it is unusable here for one reason: it would put the encryption
+      password on a command line.
+    #>
+    Import-EnvFile | Out-Null
+    $script:VmRun = Find-VmRun
+    if (-not $script:VmRun) { throw 'vmrun.exe was not found on this host' }
+    if ($Vmx) { $env:DOCKERDESK_VMX = $Vmx }
+    if (-not $env:DOCKERDESK_VMX) { throw 'DOCKERDESK_VMX is not set' }
+
+    $running = Invoke-VmRun -Arguments @('list')
+    if ($running.Output -match [regex]::Escape([IO.Path]::GetFileName($env:DOCKERDESK_VMX))) {
+        Write-Host 'already running'
+    }
+    else {
+        $start = Invoke-VmRun -Arguments @('start', $env:DOCKERDESK_VMX, 'nogui')
+        if (-not $start.Ok) { throw "starting the guest failed: $(Get-OneLine $start.Output)" }
+        Write-Host 'started'
+    }
+
+    $deadline = (Get-Date).AddMinutes(5)
+    while ((Get-Date) -lt $deadline) {
+        $tools = Invoke-VmRun -Arguments @('checkToolsState', $env:DOCKERDESK_VMX)
+        $state = Get-OneLine $tools.Output 40
+        if ($state -eq 'running') {
+            Write-Host 'VMware Tools is running'
+            return 0
+        }
+        Write-Host "waiting for VMware Tools ($state)"
+        Start-Sleep -Seconds 10
+    }
+
+    Write-Host 'VMware Tools did not come up within 5 minutes'
+    return 1
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -551,6 +597,9 @@ switch ($Action) {
         Test-Reachability
         exit (Write-Report)
     }
+    'start' {
+        exit (Start-Guest)
+    }
     'run' {
         if (-not $Command) { throw '-Action run needs -Command' }
         Assert-Reachable
@@ -558,6 +607,14 @@ switch ($Action) {
     }
     'preflight' {
         Assert-Reachable
-        exit (Invoke-GuestPreflight)
+        $exe = Publish-ToGuest -Project 'DockerDesk.Preflight' -Exe 'dockerdesk-preflight.exe'
+        exit (Invoke-InGuest $exe)
+    }
+    'engine' {
+        Assert-Reachable
+        $exe = Publish-ToGuest -Project 'DockerDesk.Engine' -Exe 'dockerdesk-engine.exe'
+        $mode = if ($Command) { $Command } else { '--plan' }
+        Write-Host "running dockerdesk-engine $mode in the guest"
+        exit (Invoke-InGuest "$exe $mode")
     }
 }

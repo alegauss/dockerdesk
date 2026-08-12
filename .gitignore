@@ -16,6 +16,12 @@
 # `roadkeep report` output — a local capture, never a source.
 .roadkeep/
 
+# === Test-guest credentials ===
+# `scripts/vm.ps1` reads DOCKERDESK_* from environment variables or from a file *outside* this
+# repository, so nothing here should ever hold one. This is the net for one written in here by
+# mistake — a committed credential cannot be un-published by deleting it later.
+*.env
+
 # === .NET ===
 [Bb]in/
 [Oo]bj/

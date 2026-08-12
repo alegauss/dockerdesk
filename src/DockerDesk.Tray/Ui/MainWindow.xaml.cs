@@ -15,6 +15,7 @@ internal partial class MainWindow : Window
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
     private readonly RowActivity _activity = new();
+    private readonly Dictionary<string, LogWindow> _logs = new(StringComparer.Ordinal);
 
     /// <summary>Construct the window.</summary>
     /// <param name="api">The Engine API client.</param>
@@ -103,6 +104,32 @@ internal partial class MainWindow : Window
     }
 
     private void StartEngine(object sender, RoutedEventArgs e) => _startEngine();
+
+    /// <summary>
+    /// Open this container's log, or bring the window already open on it to the front.
+    /// </summary>
+    /// <remarks>
+    /// One window per container, keyed by id. Pressing Logs twice on the same row opening a second
+    /// window would mean two streams against one container and two buffers filling in parallel.
+    /// </remarks>
+    private void OpenLogs(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ContainerRow row })
+        {
+            return;
+        }
+
+        if (_logs.TryGetValue(row.Id, out var open))
+        {
+            open.Activate();
+            return;
+        }
+
+        var window = new LogWindow(_api, row.Id, row.Name) { Owner = this };
+        _logs[row.Id] = window;
+        window.Closed += (_, _) => _logs.Remove(row.Id);
+        window.Show();
+    }
 
     private void StartContainer(object sender, RoutedEventArgs e) =>
         Act(sender, ContainerVerb.Start);

@@ -184,27 +184,6 @@ incident waiting for its second turn, and it has already had one.
 
 ## Block D — Container operations (what a user came to do)
 
-### §DD9 Logs: a followed stream, de-framed and capped
-
-A container that exited two seconds after starting has one useful artefact, and it is
-the log. Without it the GUI can report the failure and nothing about its cause, which
-sends the user to a terminal — and a tool people leave to do the actual diagnosis is a
-launcher, not a desktop.
-
-`GET /containers/{id}/logs?follow=1` is the same streaming shape the event reader
-already handles, with one wrinkle: a container started without a TTY multiplexes stdout
-and stderr into a framed stream, eight bytes of header per chunk. Rendered without
-de-framing, every line carries visible control bytes, and that is the bug this task
-exists to not ship.
-
-The view is a window per container, follow on by default, with a copy-all that puts the
-whole buffer on the clipboard — because the next thing a developer does with a stack
-trace is paste it somewhere.
-
-The buffer is capped and drops from the front. A chatty container emits megabytes a
-minute, and an unbounded collection in a window someone left open overnight is the leak
-that gets this tool called heavy — the exact reputation it was built to escape.
-
 ### §DD10 A shell in a container: launch the terminal the user already has
 
 Reading a log answers what happened; a shell answers why. Inspecting a config file the

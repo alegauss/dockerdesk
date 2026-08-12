@@ -154,6 +154,48 @@ public sealed class DockerApi : IDisposable
         return await GetAsync<List<ContainerSummary>>(query, cancellation).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Everything the daemon knows about one container.
+    /// </summary>
+    /// <remarks>
+    /// Read for one field: whether a TTY was allocated. That is not on the list endpoint, and it is
+    /// what decides whether the log stream carries frame headers — so a log window asks this once
+    /// before it opens the stream, rather than guessing from the bytes that arrive.
+    /// </remarks>
+    /// <param name="id">The container's id.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>What the daemon said.</returns>
+    public Task<ContainerInspect> InspectAsync(string id, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return GetAsync<ContainerInspect>(
+            $"containers/{Uri.EscapeDataString(id)}/json", cancellation);
+    }
+
+    /// <summary>
+    /// Open a container's log and keep it open.
+    /// </summary>
+    /// <remarks>
+    /// The same streaming shape as <c>/events</c>, so it goes through <see cref="StreamAsync"/>.
+    /// <paramref name="tail"/> is what makes opening a window on a container that has been running
+    /// for a week finish at all: without it the daemon replays the entire log first.
+    /// </remarks>
+    /// <param name="id">The container's id.</param>
+    /// <param name="tail">How many lines of history to open with.</param>
+    /// <param name="follow">Whether to keep the stream open for new output.</param>
+    /// <param name="cancellation">Cancellation. Closing it is how the stream ends.</param>
+    /// <returns>The response body, framed unless the container has a TTY.</returns>
+    public Task<Stream> LogsAsync(
+        string id, int tail = 2000, bool follow = true, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentOutOfRangeException.ThrowIfNegative(tail);
+        return StreamAsync(
+            $"containers/{Uri.EscapeDataString(id)}/logs"
+            + $"?stdout=1&stderr=1&tail={tail}&follow={(follow ? 1 : 0)}",
+            cancellation);
+    }
+
     /// <summary>Start a container.</summary>
     /// <param name="id">The container's id.</param>
     /// <param name="cancellation">Cancellation.</param>

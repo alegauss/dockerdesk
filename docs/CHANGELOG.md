@@ -20,6 +20,7 @@
 ## Block D — Container operations (what a user came to do)
 
 - ✅ **DD8** **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — Start, stop, restart and remove on every row: the click lands in a pending state, the event stream is what ends it, and a refusal shows the daemon's own sentence where the button is.
+- ✅ **DD9** **A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal** — A window per container: frame headers stripped, stderr told from stdout, follow on by default, copy-all to the clipboard, and a buffer capped at 5,000 lines that drops from the front.
 
 ## Block E — Images, volumes and networks
 

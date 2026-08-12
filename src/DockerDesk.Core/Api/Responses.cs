@@ -56,6 +56,33 @@ public sealed record PortBinding
         : $"{PrivatePort}/{Type}";
 }
 
+/// <summary>The part of a container's configuration this tool reads.</summary>
+public sealed record ContainerConfig
+{
+    /// <summary>
+    /// Whether a TTY was allocated, which is what decides how the log stream is shaped.
+    /// </summary>
+    /// <remarks>
+    /// Without one the daemon multiplexes stdout and stderr into a framed stream. With one there is
+    /// only a terminal's worth of bytes and no headers at all, so the same reader would eat eight
+    /// characters out of every chunk.
+    /// </remarks>
+    [JsonPropertyName("Tty")]
+    public bool Tty { get; init; }
+}
+
+/// <summary>A container as the inspect endpoint reports it — the fields this tool reads.</summary>
+public sealed record ContainerInspect
+{
+    /// <summary>The full id.</summary>
+    [JsonPropertyName("Id")]
+    public string Id { get; init; } = "";
+
+    /// <summary>How it was configured.</summary>
+    [JsonPropertyName("Config")]
+    public ContainerConfig Config { get; init; } = new();
+}
+
 /// <summary>A container, as the list endpoint reports it.</summary>
 public sealed record ContainerSummary
 {

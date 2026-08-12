@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash",
+      "PowerShell",
+      "Read",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "TodoWrite",
+      "Task",
+      "Agent",
+      "Skill",
+      "SlashCommand",
+      "Artifact",
+      "Workflow",
+      "Monitor",
+      "BashOutput",
+      "KillShell",
+      "KillBash",
+      "ToolSearch",
+      "SendMessage",
+      "TaskOutput",
+      "TaskStop",
+      "ScheduleWakeup",
+      "CronCreate",
+      "CronList",
+      "CronDelete",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "EnterWorktree",
+      "ExitWorktree",
+      "DesignSync",
+      "PushNotification",
+      "RemoteTrigger",
+      "ReportFindings",
+      "ShareOnboardingGuide",
+      "mcp__plugin_roadkeep_roadkeep",
+      "mcp__roadkeep"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "D:\\Git\\alegauss\\dockerdesk",
+      "D:\\Dev\\bin",
+      "D:\\tmp",
+      "C:\\Users\\alexa\\AppData\\Local\\Temp\\claude"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "roadkeep"
+  ],
+  "enableAllProjectMcpServers": true,
+  "enabledPlugins": {
+    "roadkeep@alegauss": true
+  },
+  "extraKnownMarketplaces": {
+    "alegauss": {
+      "source": {
+        "source": "github",
+        "repo": "alegauss/roadkeep"
+      }
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/roadkeep-launch.py\" guard",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|NotebookEdit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/roadkeep-launch.py\" guard",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/roadkeep-launch.py\" guard",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

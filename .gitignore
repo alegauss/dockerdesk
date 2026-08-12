@@ -1,0 +1,26 @@
+# === AI / Tooling ===
+# `.claude/skills/` IS committed — the roadkeep skill is a vendored copy that
+# `roadkeep install --check` keeps in step with the checkout it came from.
+# Everything else under .claude/ is local machine state: locks, scheduled-task
+# bookkeeping. Note the `*` — git does not descend into an ignored directory, so
+# `/.claude/` without it would make the negations below unreachable.
+/.claude/*
+!/.claude/skills/
+# settings.json IS committed: it declares the roadkeep marketplace and enables the
+# plugin, so a clone gets the hook, the tools and the skill with no local setup.
+!/.claude/settings.json
+# hooks/ IS committed: the plugin never installs on Claude Code on the web (no
+# `/plugin`), so the committed roadkeep-launch.py is how a cloud session gets the
+# guard the plugin would give a local machine.
+!/.claude/hooks/
+# `roadkeep report` output — a local capture, never a source.
+.roadkeep/
+
+# === .NET ===
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# === Build output ===
+/dist/

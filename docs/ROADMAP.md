@@ -7,6 +7,7 @@
 - ⏳ **DD2** (deps: DD1 ✅) **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — The engine is the product: until upstream Moby lands in an owned WSL2 distro with the docker CLI on PATH, there is nothing for a GUI to drive. → §DD2
 - 📋 **DD3** (deps: DD2 ⏳) **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — WSL2 needs seconds to boot the distro before dockerd opens its pipe, so the state a user acts on has to be the pipe answering and never the start command returning. → §DD3
 - 📋 **DD16** (deps: —) **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — A false green on the one row whose remedy is uninstall the rival clears an install to walk into the docker_engine collision that row exists to prevent. → §DD16
+- 📋 **DD18** (deps: —) **On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row** — That is the most common machine this installer meets, wsl --status names the state and the fix in milliseconds, and the remedy offered updates a WSL that is not installed. → §DD18
 
 ## Block B — The daemon client (talk to the engine)
 

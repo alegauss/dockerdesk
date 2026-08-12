@@ -69,6 +69,36 @@ that survives the app being shut down. The three existing checks stay — a path
 open pipe are still evidence, and evidence carried into the report is what lets a user
 argue with it.
 
+### §DD18 The WSL2 row asks the one question that hangs on a machine with no WSL
+
+`wsl.exe` ships in System32 on a Windows 11 that never had WSL, so its presence was
+never the answer, and the shipped probe knows that: it runs `wsl --version` for the
+kernel version. What that command does on such a machine could not be known until a
+clean one existed. It does not answer and it does not fail — it hangs, and the probe's
+own fifteen-second timeout ends it.
+
+Measured on a fresh Windows 11 guest, build 26200, through `scripts/vm.ps1 -Action
+preflight`:
+
+    [?   ]  WSL2   C:\WINDOWS\system32\wsl.exe did not finish within 15 seconds
+             -> Run `wsl --update` in an administrator terminal.
+
+Two defects in one row. The verdict is `Unknown`, which is honest and blocks — that part
+of the design held. But the report costs fifteen seconds of silence to say nothing, on
+the single most common machine this installer will meet, and the remedy it offers is
+`wsl --update`, which updates a WSL that is not installed.
+
+The same guest answers `wsl --status` immediately: exit code 50, and the sentence *"O
+Subsistema do Windows para Linux não está instalado. Você pode instalar executando
+'wsl.exe --install'"* — the right verdict and the right remedy, in milliseconds, from
+the tool itself. `--status` is also the older command, so a machine too old for
+`--version` answers it too.
+
+The fix is to ask the cheap question first and reach for `--version` only once something
+has said WSL is there. A timeout then becomes what it should always have been: the
+report admitting it could not read a fact, rather than the normal path for a bare
+machine.
+
 ## Block B — The daemon client (talk to the engine)
 
 ### §DD4 The Engine API client: a named pipe, HttpClient, and no dependencies

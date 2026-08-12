@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DockerDesk.Core/DockerDesk.Core.csproj" />
+    <Project Path="src/DockerDesk.Engine/DockerDesk.Engine.csproj" />
     <Project Path="src/DockerDesk.Preflight/DockerDesk.Preflight.csproj" />
   </Folder>
   <Folder Name="/tests/">

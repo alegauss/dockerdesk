@@ -1,0 +1,33 @@
+{
+  "comment": [
+    "Every artefact this project installs, pinned to a version and a digest.",
+    "download.docker.com publishes no .sha256 sibling (measured: 404), so the digest recorded",
+    "here is the one this project states — which is stronger than a checksum served by the same",
+    "host as the file it vouches for. Alpine does publish one, and the value below was taken",
+    "from it. Bumping a version means replacing the digest in the same commit.",
+    "Every URL names a version in its directory too. Alpine's latest-stable/ path serves the",
+    "same bytes today and stops serving this file the day 3.25 becomes stable, which turns a",
+    "pinned download into a 404 with no code change — so the versioned v3.24/ path is used."
+  ],
+  "rootfs": {
+    "id": "rootfs",
+    "version": "3.24.1",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.1-x86_64.tar.gz",
+    "fileName": "alpine-minirootfs-3.24.1-x86_64.tar.gz",
+    "sha256": "41f73e3cf5fa919b8aa5ca6b30dc48f0da2720776d7423e2a7748211456fe081"
+  },
+  "engine": {
+    "id": "engine",
+    "version": "29.7.2",
+    "url": "https://download.docker.com/linux/static/stable/x86_64/docker-29.7.2.tgz",
+    "fileName": "docker-29.7.2.tgz",
+    "sha256": "803d433f226db4776e1768fd319fc6c6e4935a456acf84fcc0080818b854bc8f"
+  },
+  "cli": {
+    "id": "cli",
+    "version": "29.7.2",
+    "url": "https://download.docker.com/win/static/stable/x86_64/docker-29.7.2.zip",
+    "fileName": "docker-29.7.2.zip",
+    "sha256": "ed9222f478a5d143ac90e8e2fd3209b5076382cdb4b210321f97aa4b68bc6811"
+  }
+}

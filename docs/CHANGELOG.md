@@ -3,6 +3,7 @@
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
 - ✅ **DD1** **A Windows user cannot tell why Docker will not run here: WSL2 missing, virtualization off, or a rival engine** — `dockerdesk-preflight` reports the Windows build, virtualization, the WSL2 kernel and any rival engine one row each with the action that fixes it, and exits 1 while a blocking row is not green.
+- ✅ **DD2 (download and verification)** **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — `dockerdesk-engine --acquire` downloads the pinned rootfs, engine and Windows CLI and refuses any whose digest is not the one this build states, naming both digests.
 
 ## Block B — The daemon client (talk to the engine)
 

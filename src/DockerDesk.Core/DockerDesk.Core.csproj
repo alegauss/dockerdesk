@@ -5,6 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The pinned versions and digests travel inside the assembly, so a build carries its own
+         answer and "latest" is never resolved at run time. -->
+    <EmbeddedResource Include="Engine\engine-manifest.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The console decoder is the one internal worth a test: wsl.exe writes UTF-16LE, and getting
          that wrong reads as "WSL is not installed" on a machine where it is. -->
     <InternalsVisibleTo Include="DockerDesk.Preflight.Tests" />

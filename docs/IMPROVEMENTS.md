@@ -69,30 +69,6 @@ that survives the app being shut down. The three existing checks stay — a path
 open pipe are still evidence, and evidence carried into the report is what lets a user
 argue with it.
 
-### §DD17 A reachable Windows guest, and the snapshot that makes a destructive test repeatable
-
-Every check in this project has only ever run on one machine, and that machine passes.
-The preflight's red rows are reached by injected facts alone: virtualization cannot be
-switched off here, WSL cannot be unregistered here, and DD16 exists because a rival
-engine was installed on this machine the whole time and the report said otherwise. An
-install, an uninstall and an upgrade have never been executed at all.
-
-A Windows 11 guest under VMware Workstation closes all of it, and the reason is the
-snapshot rather than the guest: reverting to a clean image is what makes a destructive
-test repeatable, and an installer is only tested by being run on a machine that has
-never seen it.
-
-Two things have to be established first. A reach: `vmrun.exe` with VMware Tools gives
-`runProgramInGuest`, `copyFileToGuest` and `revertToSnapshot` over no network at all,
-which is why it beats SSH — and either way the credential lives outside this repository.
-And nested virtualization: WSL2 needs `Virtualize Intel VT-x/EPT` on, while the same
-switch off is the fault injector the virtualization row has never met.
-
-What this delivers is a checked-in script answering, from this machine, whether the
-guest is reachable, whether it can be reverted, and what its preflight says — so the
-answer is a command anybody re-runs rather than a session somebody remembers. It is
-first in the queue because every later verification depends on it.
-
 ## Block B — The daemon client (talk to the engine)
 
 ### §DD4 The Engine API client: a named pipe, HttpClient, and no dependencies

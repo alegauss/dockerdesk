@@ -339,15 +339,36 @@ function Test-Reachability {
         return
     }
 
-    $probe = Invoke-VmRun -Guest -Arguments @(
-        'runProgramInGuest', $vmxPath, '-interactive',
-        'C:\Windows\System32\cmd.exe', '/c', 'echo dockerdesk')
-    if (-not $probe.Ok) {
-        Add-Row -Title 'guest login' -Verdict 'FAIL' -Detail (Get-OneLine $probe.Output) `
-            -Remedy 'Check DOCKERDESK_GUEST_USER and DOCKERDESK_GUEST_PASSWORD against the guest.'
+    $probe = Invoke-GuestCapture 'echo dockerdesk-reachable'
+    if (-not $probe.Ran) {
+        # The remedy has to match the message. "Check the credentials" is wrong advice for an error
+        # about interactive sessions, and wrong advice costs more than none at all.
+        $remedy = if ($probe.VmRunSaid -match 'nvalid user|uthentication fail|assword') {
+            'DOCKERDESK_GUEST_USER or DOCKERDESK_GUEST_PASSWORD is wrong. It must be a local account with a non-empty password: vmrun cannot authenticate a Microsoft account signed in with Hello or a PIN.'
+        }
+        elseif ($probe.VmRunSaid -match 'logged in interactively') {
+            'The guest needs a desktop session. Log in once at the guest console.'
+        }
+        else {
+            'Read what vmrun said above; it is not reporting a credential problem.'
+        }
+        Add-Row -Title 'guest login' -Verdict 'FAIL' -Detail $probe.VmRunSaid -Remedy $remedy
         return
     }
-    Add-Row -Title 'guest login' -Verdict 'ok' -Detail "$env:DOCKERDESK_GUEST_USER can run a program"
+    Add-Row -Title 'guest login' -Verdict 'ok' `
+        -Detail "$env:DOCKERDESK_GUEST_USER can run a program"
+
+    # A separate row, because it is a separate fact and the one the preflight depends on: vmrun
+    # reports a status and never the guest's standard output, so being able to read what a program
+    # there said is a capability of its own and not a consequence of being able to start it.
+    if ($probe.Output -match 'dockerdesk-reachable') {
+        Add-Row -Title 'guest output' -Verdict 'ok' -Detail "read back through $script:GuestStage"
+    }
+    else {
+        Add-Row -Title 'guest output' -Verdict 'FAIL' `
+            -Detail "the program ran and its output did not come back: $($probe.CopySaid)" `
+            -Remedy "mkdir $script:GuestStage said: $($probe.MkdirSaid)"
+    }
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -360,13 +381,132 @@ function Assert-Reachable {
     if ($code -ne 0) { exit $code }
 }
 
+function Read-ConsoleText {
+    <#
+      Decodes a file of console output as UTF-16LE or UTF-8, by what is in it rather than by what
+      the program documents. Guest tools disagree: the product's own exe writes UTF-8, and wsl.exe
+      writes UTF-16LE. Reading either with the wrong one is not a crash — it is a string with a NUL
+      after every character, or an em dash rendered as three bytes of noise, and both read as data.
+
+      The same decision the product makes in ConsoleTool.Decode, for the same reason.
+    #>
+    param([Parameter(Mandatory)] [string] $Path)
+
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -eq 0) { return '' }
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+        return [Text.Encoding]::Unicode.GetString($bytes, 2, $bytes.Length - 2)
+    }
+
+    # No BOM: UTF-16LE ASCII text puts a zero in every odd byte, which valid UTF-8 never does.
+    $zeroes = 0
+    for ($i = 1; $i -lt $bytes.Length; $i += 2) {
+        if ($bytes[$i] -eq 0) { $zeroes++ }
+    }
+    if ($bytes.Length -ge 2 -and ($zeroes * 4) -gt $bytes.Length) {
+        return [Text.Encoding]::Unicode.GetString($bytes)
+    }
+    return [Text.Encoding]::UTF8.GetString($bytes)
+}
+
+function Invoke-GuestCapture {
+    <#
+      Runs a command in the guest and brings back both its exit code and what it wrote.
+
+      Two things vmrun does that shape this. It never relays the guest's standard output, so the
+      output is redirected to a file inside the guest and copied out — without that, reaching the
+      guest to read what its preflight reports produces a bare number. And it does not adopt the
+      guest program's exit code as its own: it exits non-zero and states the code in its own
+      output. So an exit code of any value is proof the program *ran*, which is what the
+      reachability question actually asks; only a failure with no code at all is unreachable.
+
+      No -interactive anywhere. That flag needs an active desktop session and fails with "must be
+      logged in interactively" on a guest sitting at the lock screen, which is what a test machine
+      does between runs and is the state this harness exists to drive.
+
+      The command is delivered as a batch file rather than as arguments to cmd.exe. Passing
+      `/c "... > file 2>&1"` puts the quoting through two layers that both rewrite it — PowerShell's
+      native-argument rules and vmrun's own command-line assembly — and what arrives is not what was
+      written: `cmd /c exit 0` came back reporting exit code 1, and a redirect silently produced no
+      file at all. A batch file run with no arguments has nothing left to mangle.
+    #>
+    param([Parameter(Mandatory)] [string] $CommandLine)
+
+    $guestOut = Join-Path $script:GuestStage 'last-run.txt'
+    $guestScript = Join-Path $script:GuestStage 'run.cmd'
+    $hostOut = Join-Path $env:TEMP 'dockerdesk-guest-out.txt'
+    $hostScript = Join-Path $env:TEMP 'dockerdesk-guest-run.cmd'
+    if (Test-Path -LiteralPath $hostOut) { Remove-Item -LiteralPath $hostOut -Force }
+
+    # Kept rather than discarded: this fails harmlessly when the directory already exists, and it
+    # fails fatally when the account cannot write there — and the second one is invisible later,
+    # showing up only as an output file that "was not found".
+    $mkdir = Invoke-VmRun -Guest -Arguments @(
+        'createDirectoryInGuest', $env:DOCKERDESK_VMX, $script:GuestStage)
+
+    # Delete the previous run's output *inside the guest* first. Without this, a command that writes
+    # nothing leaves the last one's file in place, the copy succeeds, and the caller is handed stale
+    # text as this run's answer — which is worse than an error, because it looks like a result.
+    $null = Invoke-VmRun -Guest -Arguments @(
+        'deleteFileInGuest', $env:DOCKERDESK_VMX, $guestOut)
+
+    # ASCII: the guest's console code page is not this host's, and a batch file is read as bytes.
+    $batch = @(
+        '@echo off',
+        "$CommandLine > `"$guestOut`" 2>&1",
+        'exit /b %ERRORLEVEL%'
+    )
+    Set-Content -LiteralPath $hostScript -Value $batch -Encoding ascii
+
+    $push = Invoke-VmRun -Guest -Arguments @(
+        'copyFileFromHostToGuest', $env:DOCKERDESK_VMX, $hostScript, $guestScript)
+    if (-not $push.Ok) {
+        return [pscustomobject]@{
+            Ran = $false; ExitCode = $null; Output = $null
+            VmRunSaid = "copying the command into the guest failed: $(Get-OneLine $push.Output)"
+            CopySaid = ''; MkdirSaid = Get-OneLine $mkdir.Output; StagedOk = $mkdir.Ok
+        }
+    }
+
+    $run = Invoke-VmRun -Guest -Arguments @(
+        'runProgramInGuest', $env:DOCKERDESK_VMX, $guestScript)
+
+    $guestCode = $null
+    if ($run.Output -match 'non-zero exit code:\s*(-?\d+)') { $guestCode = [int]$Matches[1] }
+    elseif ($run.Ok) { $guestCode = 0 }
+
+    $text = $null
+    $copy = Invoke-VmRun -Guest -Arguments @(
+        'copyFileFromGuestToHost', $env:DOCKERDESK_VMX, $guestOut, $hostOut)
+    if ($copy.Ok -and (Test-Path -LiteralPath $hostOut)) {
+        $text = Read-ConsoleText $hostOut
+    }
+
+    return [pscustomobject]@{
+        Ran       = ($null -ne $guestCode)
+        ExitCode  = $guestCode
+        Output    = $text
+        VmRunSaid = Get-OneLine $run.Output
+        CopySaid  = Get-OneLine $copy.Output
+        MkdirSaid = Get-OneLine $mkdir.Output
+        StagedOk  = $mkdir.Ok
+    }
+}
+
 function Invoke-InGuest {
     param([Parameter(Mandatory)] [string] $CommandLine)
 
-    $result = Invoke-VmRun -Guest -Arguments @(
-        'runProgramInGuest', $env:DOCKERDESK_VMX, '-interactive',
-        'C:\Windows\System32\cmd.exe', '/c', $CommandLine)
-    Write-Host $result.Output
+    $result = Invoke-GuestCapture $CommandLine
+    if (-not $result.Ran) {
+        Write-Host "vmrun could not run it: $($result.VmRunSaid)"
+        return 1
+    }
+    if ($result.Output) {
+        foreach ($line in ($result.Output -split "`r?`n")) { Write-Host $line }
+    }
+    else {
+        Write-Host "(it ran and no output came back: $($result.CopySaid))"
+    }
     return $result.ExitCode
 }
 
@@ -377,14 +517,20 @@ function Invoke-GuestPreflight {
       only by injected facts, and this is the machine that can produce them.
     #>
     $publish = Join-Path $env:TEMP 'dockerdesk-guest-preflight'
-    Write-Host "publishing preflight to $publish"
+    if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
+
+    # Self-contained and single-file, because a clean Windows 11 has no .NET runtime: a
+    # framework-dependent build died in the guest with 0x80008083 and a link to the download page,
+    # which is also the fact the installer has to reckon with. One file, so the copy is one call.
+    Write-Host "publishing a self-contained preflight to $publish"
     & dotnet publish (Join-Path $script:RepoRoot 'src\DockerDesk.Preflight') `
-        -c Release -o $publish --nologo -v q
+        -c Release -r win-x64 --self-contained true `
+        -p:PublishSingleFile=true -p:DebugType=none `
+        -o $publish --nologo -v q
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with $LASTEXITCODE" }
 
     $null = Invoke-VmRun -Guest -Arguments @(
-        'runProgramInGuest', $env:DOCKERDESK_VMX, '-interactive',
-        'C:\Windows\System32\cmd.exe', '/c', "if not exist $script:GuestStage mkdir $script:GuestStage")
+        'createDirectoryInGuest', $env:DOCKERDESK_VMX, $script:GuestStage)
 
     foreach ($file in Get-ChildItem -LiteralPath $publish -File) {
         $copy = Invoke-VmRun -Guest -Arguments @(

@@ -55,11 +55,12 @@ internal sealed class TrayApplication : ApplicationContext
 
         // The window is a view of the engine, so what makes it correct is the same stream. Only the
         // events that change a container list ask for a read; the rest would be a poll in disguise.
+        // The id travels with it: this event is also what confirms an action the user is waiting on.
         _events.Received += e =>
         {
             if (e.ChangesTheContainerList)
             {
-                _ui.Post(_ => _ = _open?.RefreshAsync(), null);
+                _ui.Post(_ => _ = _open?.RefreshAsync(e.Id), null);
             }
         };
         _events.Start();

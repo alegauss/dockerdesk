@@ -225,6 +225,126 @@ public sealed class DockerApiTests
         Assert.Contains("bad filter", thrown.Message, StringComparison.Ordinal);
     }
 
+    // ---- the four verbs -----------------------------------------------------------------------
+
+    private const string Id = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
+
+    private static string NoBody(string status) => $"HTTP/1.1 {status}\r\nConnection: close\r\n\r\n";
+
+    [Theory]
+    [InlineData("start")]
+    [InlineData("stop")]
+    [InlineData("restart")]
+    public async Task A_verb_is_a_post_to_the_container_and_a_204_is_the_whole_answer(string verb)
+    {
+        await using var daemon = new FakeDockerDaemon()
+            .Raw(Path($"containers/{Id}/{verb}"), NoBody("204 No Content"));
+        using var api = new DockerApi(daemon.PipeName);
+
+        await (verb switch
+        {
+            "start" => api.StartContainerAsync(Id),
+            "stop" => api.StopContainerAsync(Id),
+            _ => api.RestartContainerAsync(Id),
+        });
+
+        Assert.Contains(daemon.Requested, line =>
+            line.StartsWith($"POST /{DockerApi.ApiVersion}/containers/{Id}/{verb} ",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Stopping_a_container_that_is_already_down_is_not_a_failure()
+    {
+        // 304 is the daemon saying the container is already in the state that was asked for. The
+        // row already reads that way, so reporting "not modified" would be an error about nothing.
+        await using var daemon = new FakeDockerDaemon()
+            .Raw(Path($"containers/{Id}/stop"), NoBody("304 Not Modified"));
+        using var api = new DockerApi(daemon.PipeName);
+
+        await api.StopContainerAsync(Id);
+    }
+
+    [Fact]
+    public async Task A_removal_says_whether_it_may_kill_first()
+    {
+        await using var daemon = new FakeDockerDaemon()
+            .Raw(Path($"containers/{Id}?force=1"), NoBody("204 No Content"))
+            .Raw(Path($"containers/{Id}?force=0"), NoBody("204 No Content"));
+        using var api = new DockerApi(daemon.PipeName);
+
+        await api.RemoveContainerAsync(Id, force: true);
+        await api.RemoveContainerAsync(Id);
+
+        Assert.Contains(daemon.Requested, line =>
+            line.StartsWith($"DELETE /{DockerApi.ApiVersion}/containers/{Id}?force=1 ",
+                StringComparison.Ordinal));
+        Assert.Contains(daemon.Requested, line =>
+            line.Contains("?force=0", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_refused_action_carries_the_daemon_s_own_sentence_for_the_row_to_show()
+    {
+        // What the engine says here is the useful part: "port is already allocated" is an answer,
+        // and "the action failed" is not.
+        await using var daemon = new FakeDockerDaemon().Fails(
+            Path($"containers/{Id}/start"),
+            "500 Internal Server Error",
+            "driver failed programming external connectivity: "
+            + "Bind for 0.0.0.0:8080 failed: port is already allocated");
+        using var api = new DockerApi(daemon.PipeName);
+
+        var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.StartContainerAsync(Id));
+
+        Assert.Contains("port is already allocated", thrown.Message, StringComparison.Ordinal);
+        Assert.Equal(System.Net.HttpStatusCode.InternalServerError, thrown.Status);
+
+        // The row shows Detail, and Detail is the daemon's sentence with none of this client's
+        // framing: no status, no endpoint, nothing the user did not ask about.
+        Assert.StartsWith("driver failed", thrown.Detail!, StringComparison.Ordinal);
+        Assert.DoesNotContain("the engine answered", thrown.Detail!, StringComparison.Ordinal);
+        Assert.DoesNotContain(DockerApi.ApiVersion, thrown.Detail!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_engine_that_never_answered_has_nothing_of_its_own_to_quote()
+    {
+        // Detail is the daemon's words or nothing. A row that falls back to Message here is showing
+        // the only sentence that exists.
+        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+
+        var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.StartContainerAsync(Id));
+
+        Assert.Null(thrown.Detail);
+    }
+
+    [Fact]
+    public async Task Removing_a_running_container_without_force_is_the_409_the_daemon_gives()
+    {
+        await using var daemon = new FakeDockerDaemon().Fails(
+            Path($"containers/{Id}?force=0"), "409 Conflict",
+            "You cannot remove a running container. Stop the container before attempting removal or force remove");
+        using var api = new DockerApi(daemon.PipeName);
+
+        var thrown = await Assert.ThrowsAsync<DockerApiException>(
+            () => api.RemoveContainerAsync(Id));
+
+        Assert.Equal(System.Net.HttpStatusCode.Conflict, thrown.Status);
+        Assert.Contains("cannot remove a running container", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_action_against_an_absent_engine_names_the_endpoint_rather_than_timing_out_blankly()
+    {
+        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+
+        var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.StopContainerAsync(Id));
+
+        Assert.Contains("did not answer", thrown.Message, StringComparison.Ordinal);
+        Assert.Contains($"{Id}/stop", thrown.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Several_calls_in_a_row_work_on_one_client()
     {

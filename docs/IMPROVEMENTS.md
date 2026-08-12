@@ -184,26 +184,6 @@ incident waiting for its second turn, and it has already had one.
 
 ## Block D — Container operations (what a user came to do)
 
-### §DD8 Container actions: four verbs, and what surrounds them
-
-Start, stop, restart, remove. Four verbs against the engine's own endpoints, and the
-work is almost entirely in what surrounds them.
-
-Each action is optimistic and reversible in the UI: the row goes to a pending state
-immediately, and the event stream — not the HTTP response — is what confirms it. A stop
-can take the full ten-second grace period before the container is killed, and a row that
-sits unchanged for ten seconds reads as a click that did nothing.
-
-Remove asks first, and only for what is not recoverable. A container is cheap to
-recreate from an image, so the prompt exists mainly for the running case, where removal
-implies a kill. The dialog names the container and says what will be lost, because "Are
-you sure?" is a question nobody has the information to answer.
-
-Failures are shown where the action was taken, on the row, in the engine's own words. A
-port already in use, a volume still mounted, a container that exited immediately — these
-are the ordinary answers, and the engine's message is more useful than any paraphrase
-this tool could write.
-
 ### §DD9 Logs: a followed stream, de-framed and capped
 
 A container that exited two seconds after starting has one useful artefact, and it is

@@ -19,6 +19,8 @@
 
 ## Block D — Container operations (what a user came to do)
 
+- ✅ **DD8** **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — Start, stop, restart and remove on every row: the click lands in a pending state, the event stream is what ends it, and a refusal shows the daemon's own sentence where the button is.
+
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)

@@ -18,7 +18,6 @@
 
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD8** (deps: DD7 ✅) **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — This is what a user came for, and the work is in the pending state and the confirmation around the call, not in the four endpoints. → §DD8
 - 📋 **DD9** (deps: DD7 ✅) **A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal** — The log is the one artefact a failed container leaves, and its stream is framed per chunk unless a TTY was allocated. → §DD9
 - 📋 **DD10** (deps: DD7 ✅) **There is no way into a running container: no shell, so anything the log does not say is unreachable** — Launching Windows Terminal with docker exec costs a process, where a terminal inside the window costs a full ANSI emulator this project has no reason to write. → §DD10
 

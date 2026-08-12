@@ -8,11 +8,23 @@ namespace DockerDesk.Core.Api;
 /// <summary>The engine refused a call, and said why.</summary>
 /// <param name="message">What went wrong, as a sentence naming the endpoint.</param>
 /// <param name="status">The HTTP status, when there was one.</param>
-public sealed class DockerApiException(string message, HttpStatusCode? status = null)
+/// <param name="detail">The sentence the daemon itself put in the body, if it put one there.</param>
+public sealed class DockerApiException(
+    string message, HttpStatusCode? status = null, string? detail = null)
     : Exception(message)
 {
     /// <summary>The status the daemon returned, or <see langword="null"/> if it never answered.</summary>
     public HttpStatusCode? Status { get; } = status;
+
+    /// <summary>
+    /// What the daemon said, with none of this client's framing around it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Exception.Message"/> names the endpoint because a log needs to know which call
+    /// this was. A row does not: the user pressed the button, so sixty characters of URL before
+    /// "port is already allocated" is this tool talking over the engine.
+    /// </remarks>
+    public string? Detail { get; } = string.IsNullOrWhiteSpace(detail) ? null : detail;
 }
 
 /// <summary>
@@ -142,6 +154,91 @@ public sealed class DockerApi : IDisposable
         return await GetAsync<List<ContainerSummary>>(query, cancellation).ConfigureAwait(false);
     }
 
+    /// <summary>Start a container.</summary>
+    /// <param name="id">The container's id.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task StartContainerAsync(string id, CancellationToken cancellation = default) =>
+        ActOnAsync(HttpMethod.Post, id, "start", cancellation);
+
+    /// <summary>
+    /// Stop a container, giving it the daemon's default grace period before the kill.
+    /// </summary>
+    /// <remarks>
+    /// No <c>t</c> parameter, so the daemon's own ten seconds apply. Shortening it here would make
+    /// this tool stop containers differently from every other Docker client on the machine, and the
+    /// wait is the reason the row goes to a pending state rather than the reason to cut it short.
+    /// </remarks>
+    /// <param name="id">The container's id.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task StopContainerAsync(string id, CancellationToken cancellation = default) =>
+        ActOnAsync(HttpMethod.Post, id, "stop", cancellation);
+
+    /// <summary>Restart a container.</summary>
+    /// <param name="id">The container's id.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task RestartContainerAsync(string id, CancellationToken cancellation = default) =>
+        ActOnAsync(HttpMethod.Post, id, "restart", cancellation);
+
+    /// <summary>Remove a container.</summary>
+    /// <remarks>
+    /// <paramref name="force"/> is what makes removing a running container possible at all: without
+    /// it the daemon answers 409 and the container stays. The caller is the one that knows whether
+    /// the user was asked, so this does not decide it.
+    /// </remarks>
+    /// <param name="id">The container's id.</param>
+    /// <param name="force">Whether to kill it first.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task RemoveContainerAsync(
+        string id, bool force = false, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return SendAsync(
+            HttpMethod.Delete, $"containers/{Uri.EscapeDataString(id)}?force={(force ? 1 : 0)}",
+            cancellation);
+    }
+
+    private Task ActOnAsync(
+        HttpMethod method, string id, string verb, CancellationToken cancellation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return SendAsync(method, $"containers/{Uri.EscapeDataString(id)}/{verb}", cancellation);
+    }
+
+    private async Task SendAsync(
+        HttpMethod method, string path, CancellationToken cancellation)
+    {
+        using var request = new HttpRequestMessage(method, Path(path));
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellation).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            (exception is HttpRequestException or IOException or TimeoutException
+             || (exception is TaskCanceledException && !cancellation.IsCancellationRequested)))
+        {
+            throw new DockerApiException(
+                $"the engine did not answer {Path(path)}: {exception.Message}");
+        }
+
+        using (response)
+        {
+            // 304 is the daemon saying the container is already in the state that was asked for.
+            // Nothing happened, and nothing needed to: surfacing that as a failure would put "not
+            // modified" on a row that already reads the way the user wanted it to.
+            if (response.StatusCode is HttpStatusCode.NotModified)
+            {
+                return;
+            }
+
+            await ThrowIfRefusedAsync(response, path, cancellation).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>
     /// Open a streaming endpoint and hand back its body, unread.
     /// </summary>
@@ -239,7 +336,8 @@ public sealed class DockerApi : IDisposable
         throw new DockerApiException(
             $"the engine answered {(int)response.StatusCode} {response.ReasonPhrase} "
             + $"for {ApiVersion}/{path}{said}",
-            response.StatusCode);
+            response.StatusCode,
+            Shorten(body));
     }
 
     private static string Shorten(string text) =>

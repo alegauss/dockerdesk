@@ -14,6 +14,7 @@ internal partial class MainWindow : Window
     private readonly DockerApi _api;
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
+    private readonly RowActivity _activity = new();
 
     /// <summary>Construct the window.</summary>
     /// <param name="api">The Engine API client.</param>
@@ -31,8 +32,18 @@ internal partial class MainWindow : Window
     /// Re-read the list. Called when an event says the list changed, never on a timer and never
     /// from a refresh button: the stream is what makes this correct.
     /// </summary>
-    internal async Task RefreshAsync()
+    /// <param name="settled">
+    /// The container an event just arrived for, whose pending state that event confirms. This is
+    /// what ends a wait — not the HTTP response, which only says the daemon took the call.
+    /// </param>
+    /// <returns>A task that completes when the window has been redrawn.</returns>
+    internal async Task RefreshAsync(string? settled = null)
     {
+        if (settled is not null)
+        {
+            _activity.Settled(settled);
+        }
+
         var engine = _engineState();
         ShowEngine(engine);
 
@@ -42,7 +53,8 @@ internal partial class MainWindow : Window
             try
             {
                 var containers = await _api.ContainersAsync().ConfigureAwait(true);
-                rows = [.. containers.Select(ContainerRow.From)];
+                _activity.Prune(containers.Select(c => c.Id));
+                rows = [.. containers.Select(ContainerRow.From).Select(_activity.Dress)];
             }
             catch (DockerApiException)
             {
@@ -91,4 +103,89 @@ internal partial class MainWindow : Window
     }
 
     private void StartEngine(object sender, RoutedEventArgs e) => _startEngine();
+
+    private void StartContainer(object sender, RoutedEventArgs e) =>
+        Act(sender, ContainerVerb.Start);
+
+    private void StopContainer(object sender, RoutedEventArgs e) =>
+        Act(sender, ContainerVerb.Stop);
+
+    private void RestartContainer(object sender, RoutedEventArgs e) =>
+        Act(sender, ContainerVerb.Restart);
+
+    private void RemoveContainer(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ContainerRow row })
+        {
+            return;
+        }
+
+        if (ContainerAction.AsksBeforeRemoving(row))
+        {
+            var answer = System.Windows.MessageBox.Show(
+                this,
+                ContainerAction.RemovalPrompt(row),
+                "Remove container",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning,
+
+                // The safe answer is the one Enter and Escape both land on.
+                System.Windows.MessageBoxResult.No);
+
+            if (answer is not System.Windows.MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
+        // force is what the dialog was about: without it the daemon answers 409 for a running
+        // container and the row would say so after the user already agreed to the kill.
+        Send(row, ContainerVerb.Remove, force: row.IsLive);
+    }
+
+    private void Act(object sender, ContainerVerb verb)
+    {
+        if (sender is FrameworkElement { Tag: ContainerRow row })
+        {
+            Send(row, verb);
+        }
+    }
+
+    private void Send(ContainerRow row, ContainerVerb verb, bool force = false)
+    {
+        // Pending first, and without asking the daemon anything: this is the half-second between
+        // the click and the engine's first word, and it is the half-second the row has to account
+        // for.
+        _activity.Began(row.Id, verb);
+        Redress();
+        _ = CallAsync(row.Id, verb, force);
+    }
+
+    private async Task CallAsync(string id, ContainerVerb verb, bool force)
+    {
+        try
+        {
+            await ContainerAction.InvokeAsync(_api, verb, id, force).ConfigureAwait(true);
+        }
+        catch (DockerApiException failure)
+        {
+            // On the row, in the engine's words. Detail is those words alone; Message wraps them in
+            // the endpoint, which a log wants and a row does not. A dialog would take the message
+            // away from the place the user was looking when they pressed the button.
+            _activity.Failed(id, failure.Detail ?? failure.Message);
+            Redress();
+        }
+    }
+
+    /// <summary>
+    /// Redraw the rows already on screen against what is now known about them, with no call to the
+    /// daemon. The list itself has not changed; what a row is waiting for has.
+    /// </summary>
+    private void Redress()
+    {
+        if (Containers.ItemsSource is IEnumerable<ContainerRow> rows)
+        {
+            Containers.ItemsSource = rows.Select(_activity.Dress).ToList();
+        }
+    }
 }

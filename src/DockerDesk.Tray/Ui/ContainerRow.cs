@@ -38,7 +38,7 @@ public sealed record PortLink(string Text, string? Url)
 /// <param name="State">One word.</param>
 /// <param name="Status">The daemon's own sentence: <c>Up 3 minutes</c>, <c>Exited (0) …</c>.</param>
 /// <param name="Ports">The ports, deduplicated, each with its link or without one.</param>
-/// <param name="Id">The full id, for the actions a later task adds.</param>
+/// <param name="Id">The full id, which is what an action is addressed to.</param>
 public sealed record ContainerRow(
     string Name,
     string Image,
@@ -47,8 +47,50 @@ public sealed record ContainerRow(
     IReadOnlyList<PortLink> Ports,
     string Id)
 {
+    /// <summary>
+    /// What this row is waiting for — <c>Stopping…</c> — or <see langword="null"/> when idle.
+    /// </summary>
+    /// <remarks>
+    /// Set the moment the button is pressed and cleared by the event that confirms it, because a
+    /// stop can take the daemon's full ten-second grace period and a row that sits unchanged for
+    /// ten seconds reads as a click that did nothing.
+    /// </remarks>
+    public string? Pending { get; init; }
+
+    /// <summary>The engine's own sentence about why the last action failed, or nothing.</summary>
+    public string? Failure { get; init; }
+
     /// <summary>Whether this container is running now.</summary>
     public bool IsRunning => State.Equals("running", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether the container is up in any sense the four verbs care about.
+    /// </summary>
+    /// <remarks>
+    /// Paused and restarting are not <c>running</c> and are not stopped either. Offering "Start" for
+    /// them would be a button whose only outcome is a 409 from the daemon.
+    /// </remarks>
+    public bool IsLive => State.Equals("running", StringComparison.OrdinalIgnoreCase)
+        || State.Equals("paused", StringComparison.OrdinalIgnoreCase)
+        || State.Equals("restarting", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether an action is in flight on this row.</summary>
+    public bool IsPending => Pending is not null;
+
+    /// <summary>Whether the last action on this row failed.</summary>
+    public bool HasFailure => Failure is not null;
+
+    /// <summary>Whether the row offers Start.</summary>
+    public bool CanStart => !IsPending && !IsLive;
+
+    /// <summary>Whether the row offers Stop.</summary>
+    public bool CanStop => !IsPending && IsLive;
+
+    /// <summary>Whether the row offers Restart.</summary>
+    public bool CanRestart => !IsPending && IsLive;
+
+    /// <summary>Whether the row offers Remove. Anything not already busy can be removed.</summary>
+    public bool CanRemove => !IsPending;
 
     /// <summary>Project one summary.</summary>
     /// <param name="container">What the API returned.</param>

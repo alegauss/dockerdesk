@@ -359,28 +359,31 @@ up` writes the same project label.
 
 ### §DD64 A gate that goes red for the wrong reason stops being a gate
 
-`AgentBudgetTests.The_canonical_task_costs_what_the_budget_records` failed once during a
-full run on 2026-08-13 and has passed 23 times since, including 16 full suites run four
-at a time to force contention. The failure was not reproduced and its message was not
-captured, so what follows is narrowed by elimination rather than observed.
+Two red runs now, both in `AgentBudgetTests` and both during a full suite:
+`The_canonical_task_costs_what_the_budget_records` on 2026-08-13, and
+`Re_discovery_is_the_largest_driver_and_not_the_inspect` shortly after. Neither
+reproduces — roughly forty full runs since, including sixteen four-at-a-time to force
+contention, and each passes in isolation immediately after failing.
 
-Two of that test's three assertions cannot vary: `cost.Calls` is the length of a list
-the test itself builds, and the token figure is `TokenEstimate` over constant fixtures.
-The third is `Assert.Equal(cost.Calls, served)`, where `served` is the fake daemon's
-recorded request count — and that one has a visible mechanism.
-`FakeDockerDaemon.ServeAsync` starts `AnswerAsync` fire-and-forget, every response
-carries `Connection: close`, and the pipe is disposed the moment `WaitForPipeDrain`
-returns. A request that .NET's handler retries transparently against a connection the
-server has already closed is recorded twice, and 7 is not 6.
+The second failure refutes the first diagnosis. This section previously blamed the fake
+daemon's recorded request count, on the reasoning that it was the only non-deterministic
+assertion in that test. `Re_discovery` never looks at that count, so a double-counted
+request cannot explain it.
 
-What makes this worth a task rather than a shrug is what the red run says when it
-happens: this is the assertion that gates every cost claim in the repository, and in CI
-its failure reads as "a response got more expensive". A gate that cries wolf is one
-somebody re-runs until it is green, which is the same as not having it.
+What explains both is a short read. Both tests measure `TokenEstimate` over bodies
+pulled with `StreamAsync` and `ReadToEndAsync`, while `FakeDockerDaemon.AnswerAsync`
+writes the response, calls `WaitForPipeDrain` and disposes the pipe from a
+fire-and-forget task. A client that has not finished reading when the server disposes
+sees the stream end rather than an exception, so it returns a body that is merely
+shorter. That lands as fewer tokens: a band violation in the first test, a broken
+equality in the second.
 
-The fix is to make the count deterministic rather than to widen the assertion —
-distinguishing a retried request from a second one, or counting distinct request lines,
-keeps the property the test was written for.
+So this is a defect in the harness rather than in what it measures — and it is the
+assertion gating every cost claim here, so a red run reads as "a response got more
+expensive". A gate that cries wolf is one somebody re-runs until it is green.
+
+The fix is to make the read complete rather than to widen the assertions: the fake
+should not dispose until the client has read what it was sent.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

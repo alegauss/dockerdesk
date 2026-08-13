@@ -1,0 +1,77 @@
+# DD50 — the publish job for the site (site/), separate from the .NET solution.
+#
+# S9 — publishing is deliberate: this fires on workflow_dispatch only. A deploy on every
+# push is one nobody can hold still while reviewing it, and the site is the one artefact
+# where a defect is public immediately.
+#
+# S8 — the gate is the build: there is no separate typecheck/lint step here, because
+# `npm run build` already is one. It runs the roadmap generation (roadkeep), tsc, the client
+# build, the og image, the SSR build and the prerender — and the prerender's replace-or-throw
+# head patch and the route-pair assertion are the route and head gates. A gate that runs
+# twice is one that can be satisfied by the copy nobody kept current.
+#
+# ┌─────────────────────────────────────────────────────────────────────────────────────┐
+# │ ONE-TIME REPOSITORY SETTING — this job is inert until it is changed:                 │
+# │   Settings → Pages → Build and deployment → Source: "GitHub Actions"                 │
+# │ Until then Pages keeps deploying the old docs/ folder, so nothing goes dark while    │
+# │ the new site is being built. The URL does not change: alegauss.github.io/dockerdesk/ │
+# └─────────────────────────────────────────────────────────────────────────────────────┘
+
+name: site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build (the gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The og image (DD49) rasterises SVG text with resvg, which needs a font on disk.
+      - name: Fonts for the social card
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-dejavu-core
+
+      # S2 — the build reads roadkeep for the generated status. The CLI is standalone.
+      - name: roadkeep
+        run: git clone --depth 1 https://github.com/alegauss/roadkeep.git "$RUNNER_TEMP/roadkeep"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build
+        working-directory: site
+        env:
+          ROADKEEP_CMD: python3 ${{ runner.temp }}/roadkeep/scripts/roadkeep.py
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    name: deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

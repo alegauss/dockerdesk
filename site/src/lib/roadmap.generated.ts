@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 2,
-      "shipped": 10,
+      "open": 1,
+      "shipped": 11,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 27,
-    "shipped": 24,
+    "open": 26,
+    "shipped": 25,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD50",
-      "status": "📋",
-      "block": "H",
-      "symptom": "The site is whatever was last committed to docs, so a broken page is public with no gate between",
-      "why": "A dispatch-only job whose gates are the build's own, typecheck then the prerender's route and head checks, publishing to the same URL the project already has.",
-      "deps": [
-        "DD41 ✅"
-      ]
-    },
-    {
       "id": "DD51",
       "status": "📋",
       "block": "H",
@@ -520,6 +510,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "The og image points at an svg, so every share of this link renders a card with no image at all",
       "why": "A 1200x630 og.png rasterised from public/og.svg on every build, with the mark and the tagline, and og:image points at it on every route.",
+      "deps": []
+    },
+    {
+      "id": "DD50",
+      "status": "✅",
+      "block": "H",
+      "symptom": "The site is whatever was last committed to docs, so a broken page is public with no gate between",
+      "why": "A workflow_dispatch-only Pages job whose single gate is npm run build (typecheck, the prerender route and head checks), publishing site/dist to the same URL.",
       "deps": []
     }
   ],

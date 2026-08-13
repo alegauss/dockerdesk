@@ -47,7 +47,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD50** (deps: DD41 ✅) **The site is whatever was last committed to docs, so a broken page is public with no gate between** — A dispatch-only job whose gates are the build's own, typecheck then the prerender's route and head checks, publishing to the same URL the project already has. → §DD50
 - 📋 **DD51** (deps: DD41 ✅, DD42 ✅, DD43 ✅) **A claim on the site that has gone false is invisible until somebody reads the page against the product** — node --test beside the scripts that own them: the generated figures, the route pair, the twin per route, and the rule that only the reader scrolls the window. → §DD51
 
 ## Non-goals

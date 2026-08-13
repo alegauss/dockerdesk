@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD50 The publish job, gated by the build
-
-The site is whatever was last committed under docs/, served by Pages from a branch
-folder. There is no gate: a broken page is public the moment it merges, and a build that
-never runs in CI is a build that works on one machine. The job is Shio's - install,
-typecheck, build, prerender, assemble, deploy - and its gates are the build's own rather
-than repeated steps, because a gate that runs twice is one that can be satisfied by the
-copy nobody kept current. The typecheck fails on a type error and the prerender throws
-on a drifted template or a half-declared route. Dispatch only, on Shio's reasoning: a
-deploy that fires on every push to a long-lived branch is one nobody can hold still
-while reviewing it, and the site is the artefact where a defect is immediately public.
-Two facts about the move: the URL does not change, so the base path stays; and Pages
-must be pointed at an Actions artefact instead of the docs folder, a repository setting
-the job is inert without, while the old page keeps serving until it is.
-
 ### §DD51 The site's own claims, asserted
 
 The one defect class a site cannot notice about itself is a claim that has gone false,

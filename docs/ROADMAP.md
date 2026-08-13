@@ -11,8 +11,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD61** (deps: —) **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — The overlap check cannot answer for this: the intruder is not in front of the window, it is showing through it, so the copy leaks with every assertion satisfied. → §DD61
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

@@ -52,29 +52,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD61 A translucent backdrop is a leak no overlap check can see
-
-Measured 2026-08-13, immediately after DD22's own overlap check passed. With nothing in
-front of the window and the copy cropped to the painted frame, the PNG still carried a
-legible blurred image of another application's window behind it: a browser conversation,
-readable enough to identify. A Fluent window's backdrop is translucent by design and
-composites what is behind it, so the pixels inside the window's rectangle genuinely are
-partly somebody else's content.
-
-That is a different failure from the one DD22 fixed. The overlap check enumerates what
-is above the window and refuses; this intruder is below it and arrives through it, so no
-amount of Z-order reasoning reaches it. `scripts\Capture-Window.ps1` now says so on
-every run and points at `--capture-window`, which has no such problem, but a printed
-warning is not a refusal and the script still defaults to the very window it cannot
-safely photograph.
-
-Two candidate answers, and they are not equivalent. Make the backdrop opaque for the
-duration of the copy — the window already paints an opaque surface for its own render,
-so the brush exists — and the transmitted image goes away at the source. Or refuse the
-main window outright and make the script take a popup or nothing, which is what it is
-actually for. The first keeps one script useful for both; the second is smaller and
-admits that a screen copy of a translucent window is not a thing worth making safe.
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

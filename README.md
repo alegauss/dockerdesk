@@ -298,7 +298,8 @@ states, otherwise the hardest thing here to reach, are one flag away.
 cannot catch anything that happens to be in front of it — and it needs no desktop at all,
 which a screen copy does. [`scripts/Capture-Window.ps1`](scripts/Capture-Window.ps1) is the
 screen-copy fallback for popups, and it refuses rather than writing when something overlaps
-the window.
+the window — or when the window has a translucent system backdrop, which composites what is
+behind it into the copy and is a leak no overlap check can see.
 
 A windowed program does not hold the prompt, so a typed verb prints *after* the prompt
 returns. Redirecting (`DockerDesk.exe --preflight > report.txt`) has neither problem, and

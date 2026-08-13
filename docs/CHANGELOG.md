@@ -30,6 +30,7 @@
 - ✅ **DD36** **A row says its state in plain text and carries six always-visible captions, so a list of forty reads as a form** — State is a tinted chip that tells a clean exit from a kill and carries its own evidence, and the six captions per row are Logs, one verb and an overflow that is always drawn.
 - ✅ **DD37** **No heading sorts and no list filters, so finding one container among forty is done with the scrollbar** — Every heading is a button that sorts and carries a glyph, and one box per list narrows over the rows in hand; both are held by the page so a refresh cannot drop them.
 - ✅ **DD39** **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — The window opens where it was left, at the size it was left, on the tab that was being read - and a rectangle that no longer lands on a monitor is refused rather than opened off-screen.
+- ✅ **DD61** **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — Capture-Window.ps1 asks DWM for the window's system backdrop and refuses to copy one that has it, with no flag to waive it - so the leak is a refusal rather than a printed warning.
 
 ## Block D — Container operations (what a user came to do)
 

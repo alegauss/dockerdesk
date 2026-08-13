@@ -16,35 +16,44 @@
   Because it is a screen copy, it verifies what it captured. Shipping DD7, a copy like this twice
   photographed something else: an editor holding the guest's credentials, and a messaging app holding
   a medical appointment. Both reached a transcript, which deleting the file afterwards does not undo.
-  Four assertions stand between that and a green run, and the success line names the window and the
+  Five assertions stand between that and a green run, and the success line names the window and the
   pid so the next wrong capture reports itself:
 
     1. the window handle belongs to the process this script launched;
     2. no other DockerDesk window is open, unless -IgnoreOtherInstances says to allow it;
-    3. no foreign window in front of it overlaps the rectangle about to be copied;
-    4. what came back is not a single flat colour.
+    3. the window has no system backdrop, so it is not transmitting what is behind it;
+    4. no foreign window in front of it overlaps the rectangle about to be copied;
+    5. what came back is not a single flat colour.
 
-  None of them makes a screen copy of THIS window safe, and that is worth stating plainly rather than
-  leaving to be discovered. Measured 2026-08-13: with assertion (3) satisfied and nothing overlapping,
-  the copy still carried a blurred image of the desktop behind the window - another application's
-  content legible through the frame - because a Fluent window's backdrop is translucent and transmits
-  what is behind it by design. An overlap check cannot answer for that: the intruder is not in front of
-  the window, it is showing through it.
+  (3) is DD61, and it is the assertion that decides what this script is FOR. Measured 2026-08-13:
+  with (4) satisfied and nothing overlapping, the copy still carried a blurred image of the desktop
+  behind the window - another application's content legible through the frame - because a Fluent
+  window's backdrop is translucent and composites what is behind it by design. Z-order reasoning
+  cannot answer for that: the intruder is not in front of the window, it is showing through it. A
+  printed warning was the first response and it was not enough - a warning is not a refusal, and the
+  file gets written either way.
 
-  So this script is for popups, and `--capture-window` is for the window. The run says so every time.
+  The refusal is not "this is the main window", which would be a name rather than a reason. DWM is
+  asked directly: DWMWA_SYSTEMBACKDROP_TYPE answers 2, 3 or 4 for a window that has opted into Mica,
+  acrylic or the tabbed backdrop, and answers nothing at all for a window that never set it. So the
+  refusal is positive evidence of transmission, and a popup - a context menu, a balloon tip, which is
+  the one thing a render cannot reach and this script exists for - is not refused by it.
 
-  (3) is the one that decides the file, and it is asked about the region rather than about sampled
-  points: the number of points that finally covers a window is the number of pixels in it. The Z order
-  above the window is enumerated and each frame intersected with the copy rectangle, which answers for
-  the whole area in one pass and names the intruder, its pid and the rectangle it covers. An overlap
-  FAILS rather than cropping the copy around it - a file quietly trimmed to dodge an intruder is a
-  picture of something nobody asked for.
+  Measured on this machine: the tray's window answers 2 (DWMSBT_MAINWINDOW). So this script is for
+  popups, `--capture-window` is for the window, and (3) is what makes that true rather than advisory.
 
-  Being in the foreground is only a proxy for (3), and one this script cannot insist on: Windows
+  (4) is the one that decides the file otherwise, and it is asked about the region rather than about
+  sampled points: the number of points that finally covers a window is the number of pixels in it. The
+  Z order above the window is enumerated and each frame intersected with the copy rectangle, which
+  answers for the whole area in one pass and names the intruder, its pid and the rectangle it covers.
+  An overlap FAILS rather than cropping the copy around it - a file quietly trimmed to dodge an
+  intruder is a picture of something nobody asked for.
+
+  Being in the foreground is only a proxy for (4), and one this script cannot insist on: Windows
   refuses SetForegroundWindow to a process that does not own focus. So the window is raised and pushed
   topmost as best effort, and then what is in front of it is checked directly.
 
-  (4) is this project's own, measured 2026-08-13 while shipping DD21. A copy of the notification area
+  (5) is this project's own, measured 2026-08-13 while shipping DD21. A copy of the notification area
   on this machine came back as exactly one distinct colour: the session was there, explorer was there,
   [Environment]::UserInteractive was true, and the display was not rendering anything a copy could
   read. A flat rectangle is not a picture of a window, and without this the script would have written
@@ -130,6 +139,7 @@ public static class Win {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attr, out RECT v, int size);
+    [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")] public static extern int DwmGetInt(IntPtr h, int attr, out int v, int size);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
 
     public static string TextOf(IntPtr h) { var sb = new StringBuilder(512); GetWindowTextW(h, sb, sb.Capacity); return sb.ToString(); }
@@ -141,6 +151,15 @@ public static class Win {
         var found = new List<IntPtr>();
         EnumWindows((h, p) => { if (IsWindowVisible(h)) found.Add(h); return true; }, IntPtr.Zero);
         return found;
+    }
+
+    /// DWMWA_SYSTEMBACKDROP_TYPE, or -1 where the window never opted into one. DD61: 2, 3 and 4 are
+    /// Mica, acrylic and the tabbed backdrop, and every one of them composites what is behind the
+    /// window into the pixels a screen copy reads. A window that never set it answers an error rather
+    /// than a zero, which is why "unreadable" and "none" are the same answer here and both allow.
+    public static int BackdropOf(IntPtr h) {
+        int value;
+        return DwmGetInt(h, 38 /* DWMWA_SYSTEMBACKDROP_TYPE */, out value, sizeof(int)) == 0 ? value : -1;
     }
 
     /// The painted frame, which is smaller than GetWindowRect by the resize border and the shadow.
@@ -159,6 +178,10 @@ public static class Win {
 # than the window rectangle it is a subset of - "trimmed -1469px right", which is not a thing.
 [void][Win]::SetProcessDPIAware()
 
+# A popup has no title, so the title filter alone excluded the one thing this script is actually for
+# (DD61). These are what a menu, a balloon tip and a WinForms popup are drawn as.
+$script:PopupClasses = @('#32768', 'tooltips_class32')
+
 function Get-DockerDeskWindows {
     param([int] $OwnerPid = 0)
     $wanted = @()
@@ -168,11 +191,34 @@ function Get-DockerDeskWindows {
         $proc = Get-Process -Id $owner -ErrorAction SilentlyContinue
         if (-not $proc) { continue }
         if ($proc.ProcessName -ne 'DockerDesk') { continue }
-        if ([Win]::TextOf($h) -notlike '*DockerDesk*') { continue }
-        if ($OwnerPid -ne 0 -and $owner -ne $OwnerPid) { $wanted += [pscustomobject]@{ Handle=$h; Pid=$owner; Title=[Win]::TextOf($h); Mine=$false }; continue }
-        $wanted += [pscustomobject]@{ Handle=$h; Pid=$owner; Title=[Win]::TextOf($h); Mine=($owner -eq $OwnerPid) }
+
+        $class = [Win]::ClassOf($h)
+        $title = [Win]::TextOf($h)
+        $popup = ($script:PopupClasses -contains $class) -or ($class -like 'WindowsForms10.Window*')
+        if (($title -notlike '*DockerDesk*') -and -not $popup) { continue }
+
+        # Z order is front first, so a menu that is open is found before the shell under it — which is
+        # what makes "capture the popup" the default whenever there is one.
+        $wanted += [pscustomobject]@{
+            Handle   = $h
+            Pid      = $owner
+            Title    = $title
+            Class    = $class
+            Backdrop = [Win]::BackdropOf($h)
+            Mine     = ($OwnerPid -ne 0 -and $owner -eq $OwnerPid)
+        }
     }
     return $wanted
+}
+
+function Get-BackdropName {
+    param([int] $Type)
+    switch ($Type) {
+        2 { 'Mica (DWMSBT_MAINWINDOW)' }
+        3 { 'acrylic (DWMSBT_TRANSIENTWINDOW)' }
+        4 { 'tabbed (DWMSBT_TABBEDWINDOW)' }
+        default { "type $Type" }
+    }
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -216,6 +262,22 @@ if ($others.Count -gt 0) {
     Write-Host "-IgnoreOtherInstances: proceeding with $named also open"
 }
 
+# (3) DD61: the window is not transmitting what is behind it. No flag turns this off — a switch that
+# waives a privacy refusal is a refusal that means nothing, and the safe way to photograph this
+# window already exists and renders off-screen where there is nothing else in the frame.
+if ($target.Backdrop -ge 2) {
+    Write-Host ("'{0}' ({1}) has a {2} system backdrop. Nothing was written." -f `
+        $target.Title, $target.Class, (Get-BackdropName $target.Backdrop))
+    Write-Host 'A translucent backdrop composites what is behind the window, so the pixels inside its'
+    Write-Host 'rectangle are partly somebody else''s content. No overlap check can see that: the'
+    Write-Host 'intruder is not in front of the window, it is showing through it.'
+    Write-Host "Use: DockerDesk.exe --capture-window <out.png> [tab] - it renders the window's own"
+    Write-Host 'visual tree off-screen, where nothing else can be in the frame.'
+    Write-Host 'This script is for a popup, which a render cannot reach and which has no backdrop.'
+    Stop-Launched
+    exit 1
+}
+
 # Best effort only: Windows refuses SetForegroundWindow to a process that does not own focus.
 [void][Win]::SetForegroundWindow($target.Handle)
 [void][Win]::SetWindowPos($target.Handle, [IntPtr] (-1), 0, 0, 0, 0, 0x0001 -bor 0x0002)  # HWND_TOPMOST, NOSIZE|NOMOVE
@@ -235,15 +297,13 @@ if ($w -le 0 -or $h -le 0) {
     exit 1
 }
 
-# (3) nothing in front of it overlaps the rectangle about to be copied
+# (4) nothing in front of it overlaps the rectangle about to be copied
 $z = [Win]::ZOrder()
 $above = @()
 foreach ($hwnd in $z) {
     if ($hwnd -eq $target.Handle) { break }
     $above += $hwnd
 }
-Write-Host 'NOTE: a Fluent backdrop is translucent, so this copy will carry a blurred image of whatever'
-Write-Host '      is behind the window. For the window itself use: DockerDesk.exe --capture-window <png>'
 
 $copy = New-Object System.Drawing.Rectangle $x, $y, $w, $h
 $intruders = @()
@@ -283,7 +343,7 @@ $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.CopyFromScreen($x, $y, 0, 0, $bmp.Size)
 $g.Dispose()
 
-# (4) what came back is not a single flat colour
+# (5) what came back is not a single flat colour
 $seen = New-Object 'System.Collections.Generic.HashSet[int]'
 for ($py = 0; $py -lt $h; $py += 4) {
     for ($px = 0; $px -lt $w; $px += 4) {

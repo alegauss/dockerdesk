@@ -80,7 +80,7 @@ jobs:
           # This is the other end of that chain: a tag naming a version the build did not produce
           # would ship an installer whose file name and whose Add/Remove Programs entry disagree,
           # and the only place that is cheap to catch is here.
-          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $exe = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
           $built = (Get-Item $exe).VersionInfo.ProductVersion.Trim()
           $tagged = "$env:GITHUB_REF_NAME" -replace '^v', ''
           Write-Output "tag $env:GITHUB_REF_NAME, built $built"
@@ -91,9 +91,9 @@ jobs:
 
       - name: Name the artefacts after the version, and sum them
         run: |
-          $publish = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
-          Copy-Item $publish "dist\DockerDesk-$env:VERSION.exe"
-          Move-Item "dist\DockerDesk-Setup.exe" "dist\DockerDesk-Setup-$env:VERSION.exe"
+          $publish = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
+          Copy-Item $publish "dist\FreeWilly-$env:VERSION.exe"
+          Move-Item "dist\FreeWilly-Setup.exe" "dist\FreeWilly-Setup-$env:VERSION.exe"
 
           # SHA-256, in the `<hash>  <name>` shape sha256sum -c reads, because a download whose
           # integrity cannot be checked is a download a corporate proxy is right to block - and a
@@ -114,14 +114,14 @@ jobs:
           # --draft: nothing is downloadable until a person publishes it.
           # --verify-tag: refuse to invent a tag if this ever runs from something other than a push.
           $assets = @(
-            "dist\DockerDesk-Setup-$env:VERSION.exe",
-            "dist\DockerDesk-$env:VERSION.exe",
+            "dist\FreeWilly-Setup-$env:VERSION.exe",
+            "dist\FreeWilly-$env:VERSION.exe",
             "dist\SHA256SUMS.txt"
           )
           gh release create "$env:GITHUB_REF_NAME" `
             --draft `
             --verify-tag `
-            --title "DockerDesk $env:VERSION" `
+            --title "FreeWilly $env:VERSION" `
             --generate-notes `
             $assets
           Write-Output "drafted. Nothing is public until it is published by hand."

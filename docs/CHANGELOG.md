@@ -50,6 +50,7 @@
 - ✅ **DD15** **Every release is built on one developer's machine, so the first download finds what that machine hid** — Two Windows workflows: a check that builds, tests and starts the published .exe on every push, and a tag that drafts a release carrying SHA-256 sums for a person to publish.
 - ✅ **DD32** **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A skill naming the verbs, an allowlist line and a generated brief ship with the install, which proposes all three and writes none of them into your configuration.
 - ✅ **DD53** **The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts** — vm.ps1 gained a revert action that names the snapshot and what reverting discards, and refuses without -Yes rather than prompting - so a state a row was measured on is reachable again.
+- ✅ **DD54** **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — The build spells FreeWilly throughout - projects, namespaces, assembly, icon and the harness - while the app root and the WSL distribution stay behind for DD55 to migrate.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

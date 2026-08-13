@@ -4,7 +4,7 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD55** (deps: DD54) **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable. → §DD55
+- 📋 **DD55** (deps: DD54 ✅) **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable. → §DD55
 - 📋 **DD56** (deps: DD55) **The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not** — The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine. → §DD56
 - 📋 **DD68** (deps: —) **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — Only a short fixture path keeps the two rules from colliding, and the repair a red line-length assertion argues for is the split path DD52 was reverted over. → §DD68
 
@@ -22,12 +22,11 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD54** (deps: —) **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — A namespace is the spelling every file in the tree repeats, so renaming it after the machine-facing names leaves two products inside one build for as long as that takes. → §DD54
-- 📋 **DD57** (deps: DD54, DD55) **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed. → §DD57
+- 📋 **DD57** (deps: DD54 ✅, DD55) **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed. → §DD57
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD58** (deps: DD54) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58
+- 📋 **DD58** (deps: DD54 ✅) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58
 - 📋 **DD63** (deps: DD29 ✅) **No verb on this surface creates anything, so the session stamp has nothing to stamp** — agent-budget.json already reserves a ceiling for do compose up, and DD29's label is reachable only from tests until a do verb creates something. → §DD63
 - 📋 **DD64** (deps: —) **The test that gates every cost claim can go red for a reason that is not cost** — AgentBudgetTests went red once in a full run and never again in 23; the only non-deterministic assertion in it is the daemon's recorded request count. → §DD64
 - 📋 **DD65** (deps: DD30 ✅) **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — agent-budget.json sets surface.exists false and names read context, doctor, logs and verify as not existing; all four shipped and are now measurable. → §DD65

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>FreeWilly.Preflight.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- The tray's icon drawing is GDI+, and asserting on the pixels needs the same framework the
+         tray builds against. WinForms is in-box for a windows target, so this costs no package. -->
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FreeWilly.Core\FreeWilly.Core.csproj" />
+    <ProjectReference Include="..\..\src\FreeWilly.Tray\FreeWilly.Tray.csproj" />
+  </ItemGroup>
+
+</Project>

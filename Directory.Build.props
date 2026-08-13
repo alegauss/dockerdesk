@@ -12,9 +12,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Product>DockerDesk</Product>
-    <Company>DockerDesk contributors</Company>
-    <Copyright>Copyright (c) DockerDesk contributors</Copyright>
+    <Product>FreeWilly</Product>
+    <Company>FreeWilly contributors</Company>
+    <Copyright>Copyright (c) FreeWilly contributors</Copyright>
     <!-- The single source of truth for the version (DD14). It travels into the .exe, and
          build\installer.iss reads it back off the published file with GetStringFileInfo rather than
          stating it a second time â€” so a release is one number changed in one place. BuildVersion

@@ -8,4 +8,4 @@ REM one .exe - and it is not on PATH, deliberately: one name on PATH is one name
 REM
 REM Every argument is passed through untouched, including quotes, which is what %* does and what
 REM "%*" would break.
-"%~dp0..\DockerDesk.exe" %*
+"%~dp0..\FreeWilly.exe" %*

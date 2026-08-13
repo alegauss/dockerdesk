@@ -1,4 +1,4 @@
-// The app icon, rasterised from docs/logo.svg into src/DockerDesk.Tray/DockerDesk.ico.
+// The app icon, rasterised from docs/logo.svg into src/FreeWilly.Tray/FreeWilly.ico.
 //
 // Not part of any build: the .ico is committed, because a build that needs Node and the site's
 // dependencies to produce a Windows resource is a build that fails on a machine with only the .NET
@@ -65,6 +65,6 @@ const entries = sizes.map((size, index) => {
   return entry;
 });
 
-const out = join(root, "src", "DockerDesk.Tray", "DockerDesk.ico");
+const out = join(root, "src", "FreeWilly.Tray", "FreeWilly.ico");
 writeFileSync(out, Buffer.concat([header, ...entries, ...pngs]));
 console.log(`${out}  ${sizes.length} sizes, ${offset} bytes`);

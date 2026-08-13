@@ -3,9 +3,9 @@
 ; Build, from the repository root:
 ;   build\build-installer.cmd
 ; or by hand:
-;   dotnet publish src\DockerDesk.Tray -c Release
+;   dotnet publish src\FreeWilly.Tray -c Release
 ;   "%LocalAppData%\Programs\Inno Setup 6\ISCC.exe" build\installer.iss
-; Output: dist\DockerDesk-Setup.exe
+; Output: dist\FreeWilly-Setup.exe
 ;
 ; Every relative path below resolves against THIS file's directory (build\), so the ones pointing
 ; at the repository root are "..\"-relative.
@@ -13,8 +13,8 @@
 #define MyAppName "DockerDesk"
 #define MyAppPublisher "DockerDesk contributors"
 #define MyAppUrl "https://github.com/alegauss/dockerdesk"
-#define MyAppExeName "DockerDesk.exe"
-#define MyPublishDir "..\src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish"
+#define MyAppExeName "FreeWilly.exe"
+#define MyPublishDir "..\src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"
 
 ; Read straight off the published .exe, which got it from <Version> in Directory.Build.props. There
 ; is no second version to bump here, and a PackagingTests case holds that string to "x.y.z" with no
@@ -54,9 +54,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
-SetupIconFile=..\src\DockerDesk.Tray\DockerDesk.ico
+SetupIconFile=..\src\FreeWilly.Tray\FreeWilly.ico
 OutputDir=..\dist
-OutputBaseFilename=DockerDesk-Setup
+OutputBaseFilename=FreeWilly-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

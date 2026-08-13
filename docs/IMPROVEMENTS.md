@@ -153,30 +153,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD54 The tree spells the old name in four projects and three namespaces
-
-`DockerDesk` is the tree's own spelling, not Docker's: four project files
-(`DockerDesk.slnx`, `DockerDesk.Core.csproj`, `DockerDesk.Tray.csproj`,
-`DockerDesk.Preflight.Tests.csproj`), three `RootNamespace` declarations, the
-`AssemblyName` that produces `DockerDesk.exe`, `DockerDesk.ico`, and the `Product`,
-`Company` and `Copyright` in `Directory.Build.props` that travel into the published
-binary. Ninety-odd namespace and using lines follow from those three declarations and
-change with them.
-
-Nothing here is state on a user's machine, which is what makes it the first task rather
-than the risky one: a directory rename, a namespace rewrite, and `build\build.cmd`,
-`build\build-installer.cmd`, `check.yml` and `release.yml` following the paths. The test
-harness comes with it — `dockerdesk-vm.env` and the five `DOCKERDESK_` variables
-`scripts/vm.ps1` reads.
-
-What must not move: no type in the tree is named after the product. `DockerApi`,
-`DockerEvent`, `DockerContextProbe` and `RivalEngineProbe` name Docker or the thing they
-probe, and `docker_engine` is the pipe the Docker CLI connects to by protocol, not a
-name this project chose. Renaming any of them would be a second, wrong rename hiding
-inside this one. `DistributionName`, `%LOCALAPPDATA%\DockerDesk` and the installer's own
-identity are left to the tasks that follow this one in the set, because each of those is
-a migration of state on somebody's machine rather than a spelling in a build.
-
 ### §DD57 The installer is one identity and six spellings
 
 `build\installer.iss` states the product six times and identifies it once. `AppId` on

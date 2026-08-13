@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>FreeWilly.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The pinned versions and digests travel inside the assembly, so a build carries its own
+         answer and "latest" is never resolved at run time. -->
+    <EmbeddedResource Include="Engine\engine-manifest.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The console decoder is the one internal worth a test: wsl.exe writes UTF-16LE, and getting
+         that wrong reads as "WSL is not installed" on a machine where it is. -->
+    <InternalsVisibleTo Include="FreeWilly.Preflight.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Win32_ComputerSystem.HypervisorPresent and Win32_Processor.VirtualizationFirmwareEnabled
+         are the two properties Task Manager's own "Virtualization" row reads, and WMI is the
+         documented way to reach them without an elevated token. -->
+    <PackageReference Include="System.Management" Version="9.0.9" />
+  </ItemGroup>
+
+</Project>

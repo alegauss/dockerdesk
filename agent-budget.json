@@ -12,7 +12,7 @@
   ],
 
   "method": {
-    "tokens": "characters / 4, rounded up (DockerDesk.Core.Agent.TokenEstimate)",
+    "tokens": "characters / 4, rounded up (FreeWilly.Core.Agent.TokenEstimate)",
     "calls": "one per request the daemon received, counted by the fake daemon itself",
     "caveat": [
       "The token figure is an approximation and not a count from any model's tokenizer. It is used",

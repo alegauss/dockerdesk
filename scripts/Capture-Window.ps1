@@ -1,10 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Copies a DockerDesk window off the screen to a PNG - the fallback, for what a render cannot see.
+  Copies a FreeWilly window off the screen to a PNG - the fallback, for what a render cannot see.
 
 .DESCRIPTION
-  `DockerDesk.exe --capture-window <out.png> [tab]` is the preferred way to photograph a window, and
+  `FreeWilly.exe --capture-window <out.png> [tab]` is the preferred way to photograph a window, and
   this script is not it. That verb renders the window's own visual tree off-screen, where there is
   nothing else in the frame; this one copies the pixels that are actually on the screen inside the
   window's rectangle, which is a different and more dangerous thing.
@@ -20,7 +20,7 @@
   pid so the next wrong capture reports itself:
 
     1. the window handle belongs to the process this script launched;
-    2. no other DockerDesk window is open, unless -IgnoreOtherInstances says to allow it;
+    2. no other FreeWilly window is open, unless -IgnoreOtherInstances says to allow it;
     3. the window has no system backdrop, so it is not transmitting what is behind it;
     4. no foreign window in front of it overlaps the rectangle about to be copied;
     5. what came back is not a single flat colour.
@@ -80,11 +80,11 @@
 .PARAMETER WaitMs
   Milliseconds to wait for the window to appear and draw. Default 8000, and the number is measured:
   a cold start of the single-file self-contained .exe took longer than 2500ms to put its window up on
-  this machine, and the run refused with "no DockerDesk window" on an application that was fine. The
+  this machine, and the run refused with "no FreeWilly window" on an application that was fine. The
   wait is a deadline polled every 200ms, so a warm start still returns as soon as the window exists.
 
 .PARAMETER IgnoreOtherInstances
-  Allow the capture to proceed with another DockerDesk window open. Assertion (2) exists because a
+  Allow the capture to proceed with another FreeWilly window open. Assertion (2) exists because a
   capture once returned a picture of another instance's window, so this is opt-in and named in the
   output when used.
 
@@ -107,7 +107,7 @@ $ErrorActionPreference = 'Stop'
 
 $repo = Split-Path -Parent $PSScriptRoot
 if (-not $Exe) {
-    $Exe = Join-Path $repo 'src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe'
+    $Exe = Join-Path $repo 'src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe'
 }
 if (-not $Out) { $Out = Join-Path $repo 'docs\_preview\window.png' }
 
@@ -182,7 +182,7 @@ public static class Win {
 # (DD61). These are what a menu, a balloon tip and a WinForms popup are drawn as.
 $script:PopupClasses = @('#32768', 'tooltips_class32')
 
-function Get-DockerDeskWindows {
+function Get-FreeWillyWindows {
     param([int] $OwnerPid = 0)
     $wanted = @()
     foreach ($h in [Win]::ZOrder()) {
@@ -190,12 +190,12 @@ function Get-DockerDeskWindows {
         [void][Win]::GetWindowThreadProcessId($h, [ref] $owner)
         $proc = Get-Process -Id $owner -ErrorAction SilentlyContinue
         if (-not $proc) { continue }
-        if ($proc.ProcessName -ne 'DockerDesk') { continue }
+        if ($proc.ProcessName -ne 'FreeWilly') { continue }
 
         $class = [Win]::ClassOf($h)
         $title = [Win]::TextOf($h)
         $popup = ($script:PopupClasses -contains $class) -or ($class -like 'WindowsForms10.Window*')
-        if (($title -notlike '*DockerDesk*') -and -not $popup) { continue }
+        if (($title -notlike '*FreeWilly*') -and -not $popup) { continue }
 
         # Z order is front first, so a menu that is open is found before the shell under it — which is
         # what makes "capture the popup" the default whenever there is one.
@@ -228,7 +228,7 @@ $deadline = (Get-Date).AddMilliseconds($WaitMs)
 $mine = $null
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 200
-    $all = Get-DockerDeskWindows -OwnerPid $proc.Id
+    $all = Get-FreeWillyWindows -OwnerPid $proc.Id
     $mine = @($all | Where-Object { $_.Mine })
     if ($mine.Count -gt 0) { break }
 }
@@ -243,18 +243,18 @@ function Stop-Launched {
 
 # (1) the window belongs to the process this script launched
 if (-not $mine -or @($mine).Count -eq 0) {
-    Write-Host "no DockerDesk window from pid $($proc.Id) within ${WaitMs}ms. Nothing was written."
+    Write-Host "no FreeWilly window from pid $($proc.Id) within ${WaitMs}ms. Nothing was written."
     Stop-Launched
     exit 1
 }
 $target = @($mine)[0]
 
 # (2) no other instance's window
-$others = @(Get-DockerDeskWindows -OwnerPid $proc.Id | Where-Object { -not $_.Mine })
+$others = @(Get-FreeWillyWindows -OwnerPid $proc.Id | Where-Object { -not $_.Mine })
 if ($others.Count -gt 0) {
     $named = ($others | ForEach-Object { "pid $($_.Pid) '$($_.Title)'" }) -join '; '
     if (-not $IgnoreOtherInstances) {
-        Write-Host "another DockerDesk window is open ($named). Nothing was written."
+        Write-Host "another FreeWilly window is open ($named). Nothing was written."
         Write-Host 'A capture once returned a picture of another instance. Pass -IgnoreOtherInstances to allow it.'
         Stop-Launched
         exit 1
@@ -271,7 +271,7 @@ if ($target.Backdrop -ge 2) {
     Write-Host 'A translucent backdrop composites what is behind the window, so the pixels inside its'
     Write-Host 'rectangle are partly somebody else''s content. No overlap check can see that: the'
     Write-Host 'intruder is not in front of the window, it is showing through it.'
-    Write-Host "Use: DockerDesk.exe --capture-window <out.png> [tab] - it renders the window's own"
+    Write-Host "Use: FreeWilly.exe --capture-window <out.png> [tab] - it renders the window's own"
     Write-Host 'visual tree off-screen, where nothing else can be in the frame.'
     Write-Host 'This script is for a popup, which a render cannot reach and which has no backdrop.'
     Stop-Launched
@@ -332,7 +332,7 @@ if ($intruders.Count -gt 0) {
     Write-Host "$($intruders.Count) window(s) in front of it overlap the copy rectangle. Nothing was written."
     $intruders | ForEach-Object { Write-Host ("  {0} (pid {1}, {2}) '{3}' covers {4}" -f $_.Process, $_.Pid, $_.Class, $_.Title, $_.Covers) }
     Write-Host 'Cropping around an intruder would be a picture of something nobody asked for.'
-    Write-Host "Prefer: DockerDesk.exe --capture-window <out.png> - it renders off-screen and cannot photograph anything else."
+    Write-Host "Prefer: FreeWilly.exe --capture-window <out.png> - it renders off-screen and cannot photograph anything else."
     Stop-Launched
     exit 1
 }
@@ -356,7 +356,7 @@ if ($seen.Count -le 1) {
     $bmp.Dispose()
     Write-Host "the copy came back as one flat colour, so the screen is not rendering anything a copy can read."
     Write-Host 'Nothing was written. This is a locked or non-rendering session, not a window defect.'
-    Write-Host "Use: DockerDesk.exe --capture-window <out.png> - a render needs no desktop at all."
+    Write-Host "Use: FreeWilly.exe --capture-window <out.png> - a render needs no desktop at all."
     Stop-Launched
     exit 1
 }

@@ -1,0 +1,142 @@
+<!-- The one window, and it is a list of containers, because that is what the tool is opened for.
+     The chrome borrows claude-tray's. The values live in Ui/Palette.cs and the converter in
+     Ui/Theme.xaml (DD34); what is left here is what is this window's own, plus the two things that
+     measurably cannot move — ThemeMode and the BasedOn button style, both of which render
+     differently from application scope. See Ui/Theme.cs. -->
+<Window x:Class="FreeWilly.Tray.Ui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:FreeWilly.Tray.Ui"
+        x:ClassModifier="internal"
+        Title="FreeWilly"
+        Width="1040" Height="560"
+        MinWidth="880" MinHeight="360"
+        WindowStartupLocation="CenterScreen"
+        ThemeMode="System"
+        FontFamily="{x:Static ui:Palette.Body}">
+
+    <Window.Resources>
+        <!-- A port that is published opens in a browser; one that is only exposed is plain text.
+             Same cell, two behaviours, and the difference has to be visible without a caption. -->
+        <Style x:Key="Header" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <!-- BasedOn is load-bearing, not tidiness: a keyed style replaces the implicit one outright,
+             so without this the row buttons fall back to the pre-Fluent chrome and render as light
+             grey rectangles on a dark window. It cannot move to Theme.xaml, and that was measured:
+             ThemeMode puts Fluent in the WINDOW's resources, so the same BasedOn resolved at
+             application scope finds the pre-Fluent Button and quietly reintroduces the trap. -->
+        <Style x:Key="RowAction" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+
+        <!-- A destination in the strip. Window chrome, so it is quiet: secondary text, an accent
+             underline under the selected one, and a subtle hover fill. Borrowed from claude-tray's
+             NavDest, whose reasoning applies unchanged. -->
+        <Style x:Key="NavDest" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="3" />
+                            </Grid.RowDefinitions>
+                            <Border x:Name="Hit" Grid.Row="0" Background="Transparent"
+                                    CornerRadius="6" Padding="16,9">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border x:Name="Bar" Grid.Row="1" Margin="10,0" CornerRadius="2"
+                                    Visibility="Hidden"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hit" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- One per list. Here rather than in Theme.xaml for the reason RowAction is: a keyed style
+             replaces the implicit one outright, so without BasedOn it falls back to the pre-Fluent
+             chrome — which the first capture showed as a white rectangle on a dark window. Fluent
+             lives in this window's resources because ThemeMode puts it there (DD34). -->
+        <Style x:Key="FilterBox" TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Width" Value="200" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20,16,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><!-- the engine, in words -->
+            <RowDefinition Height="Auto" /><!-- the nav strip -->
+            <RowDefinition Height="*" />   <!-- the selected page -->
+        </Grid.RowDefinitions>
+
+        <!-- The engine's own state, in words. Everything below is a view of this thing. -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse x:Name="EngineDot" Width="10" Height="10" VerticalAlignment="Center" />
+                <TextBlock x:Name="EngineLabel" Margin="8,0,0,0" FontSize="14"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </StackPanel>
+            <!-- The terms, where the choice is made. A visitor who cannot establish them in the
+                 first ten seconds assumes the same trap they came here to escape. -->
+            <Button Content="About" Click="ShowAbout" HorizontalAlignment="Right"
+                    Style="{StaticResource RowAction}" Margin="0" />
+        </Grid>
+        <!-- The nav strip, borrowed from claude-tray rather than left as TabItem headers: quiet text
+             with an accent underline under the selected one. Two apps by the same author that look
+             unrelated read as two unfinished apps, and a TabControl also tears its content down on
+             every switch, which is the opposite of what a page kept alive is for.
+
+             RadioButtons rather than hand-toggled Borders: one destination is selected at a time by
+             construction, and the group is arrow-key navigable for free. No IsChecked in the markup —
+             ticking one navigates, and during InitializeComponent there is nothing to navigate to. -->
+        <Border Grid.Row="1" Margin="0,0,0,4"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            <StackPanel x:Name="Strip" Orientation="Horizontal" HorizontalAlignment="Left">
+                <RadioButton x:Name="NavContainers" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Containers"
+                             Tag="Containers" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavImages" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Images"
+                             Tag="Images" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavVolumes" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Volumes"
+                             Tag="Volumes" Checked="Destination_Checked" />
+            </StackPanel>
+        </Border>
+
+        <!-- Every page that has been visited stays here, collapsed: a scroll position and a list
+             already read survive switching away, and a page nobody opened is never built. -->
+        <Grid x:Name="DestinationHost" Grid.Row="2" />
+    </Grid>
+</Window>

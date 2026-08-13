@@ -1,0 +1,236 @@
+using FreeWilly.Core.Agent;
+using FreeWilly.Core.Api;
+using FreeWilly.Tray.Cli;
+using Xunit;
+
+namespace FreeWilly.Preflight.Tests;
+
+/// <summary>
+/// <c>read verify</c> through the surface: what it probes, what it refuses to probe, and the wait
+/// that replaces a sleep loop (DD30).
+/// </summary>
+public sealed class AgentVerifyTests
+{
+    private static string Path(string endpoint) => $"/{DockerApi.ApiVersion}/{endpoint}";
+
+    /// <summary>A probe that answers from a script and counts what it was asked.</summary>
+    private sealed class ScriptedProbe(params bool[] accepts) : IServiceProbe
+    {
+        private int _attempt;
+
+        internal int Connects { get; private set; }
+
+        internal int Requests { get; private set; }
+
+        internal List<int> Asked { get; } = [];
+
+        internal string? Path { get; private set; }
+
+        public PortAnswer Connect(int hostPort, string containerPort, TimeSpan timeout)
+        {
+            Connects++;
+            Asked.Add(hostPort);
+
+            // The last entry repeats, so a script of one value is a probe with a fixed opinion.
+            var accepted = accepts.Length == 0 || accepts[Math.Min(_attempt++, accepts.Length - 1)];
+            return new PortAnswer(hostPort, containerPort, accepted, 3,
+                accepted ? null : "ConnectionRefused");
+        }
+
+        public RequestAnswer Get(int hostPort, string path, TimeSpan timeout)
+        {
+            Requests++;
+            Path = path;
+            Asked.Add(hostPort);
+            return new RequestAnswer($"http://127.0.0.1:{hostPort}{path}", 200, 7, null);
+        }
+    }
+
+    private const string RunningWithOnePort = """
+        [{"Id":"aaaaaaaaaaaa0000","Names":["/shop-api-1"],"Image":"shop/api:latest","State":"running",
+          "Status":"Up 4 minutes","Ports":[]}]
+        """;
+
+    private const string InspectOnePort = """
+        {"Id":"aaaaaaaaaaaa0000","Name":"/shop-api-1","State":{"Status":"running"},
+         "HostConfig":{"PortBindings":{"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"8080"}]}},
+         "Mounts":[]}
+        """;
+
+    private const string InspectTwoPorts = """
+        {"Id":"aaaaaaaaaaaa0000","Name":"/shop-api-1","State":{"Status":"running"},
+         "HostConfig":{"PortBindings":{"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"8080"}],
+                                       "5432/tcp":[{"HostIp":"0.0.0.0","HostPort":"5432"}]}},
+         "Mounts":[]}
+        """;
+
+    private const string ExitedContainer = """
+        [{"Id":"aaaaaaaaaaaa0000","Names":["/shop-api-1"],"Image":"shop/api:latest","State":"exited",
+          "Status":"Exited (137) 12 seconds ago","Ports":[]}]
+        """;
+
+    private const string InspectExited = """
+        {"Id":"aaaaaaaaaaaa0000","Name":"/shop-api-1","State":{"Status":"exited","ExitCode":137},
+         "HostConfig":{"PortBindings":{"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"8080"}]}},
+         "Mounts":[]}
+        """;
+
+    private static FakeDockerDaemon Daemon(string containers, string inspect) =>
+        new FakeDockerDaemon()
+            .Fails(Path("_ping"), "200 OK", "OK")
+            .Json(Path("containers/json?all=1"), containers)
+            .Json(Path("containers/aaaaaaaaaaaa0000/json"), inspect);
+
+    private static int Verify(
+        FakeDockerDaemon daemon, IServiceProbe probe, string[] arguments, TextWriter output)
+    {
+        using var api = new DockerApi(daemon.PipeName);
+        return AgentSurface.ReadVerify(api, arguments, output, probe, gap: TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task A_port_that_accepts_is_a_pass_and_an_exit_code()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var probe = new ScriptedProbe(true);
+        var output = new StringWriter();
+
+        var code = Verify(daemon, probe, ["shop-api-1"], output);
+
+        Assert.Equal(0, code);
+        Assert.Equal(1, probe.Connects);
+        Assert.Equal([8080], probe.Asked);
+        Assert.Contains("It answers.", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_port_that_refuses_fails_and_names_the_bind()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var output = new StringWriter();
+
+        var code = Verify(daemon, new ScriptedProbe(false), ["shop-api-1"], output);
+
+        Assert.Equal(1, code);
+        Assert.Contains("127.0.0.1 rather than 0.0.0.0", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Nothing_is_probed_for_a_container_that_is_not_running()
+    {
+        await using var daemon = Daemon(ExitedContainer, InspectExited);
+        var probe = new ScriptedProbe(true);
+        var output = new StringWriter();
+
+        var code = Verify(daemon, probe, ["shop-api-1"], output);
+
+        // The port is still published, and whatever took it would have accepted. Reporting that as
+        // this service is the confidently wrong answer the verb exists to prevent.
+        Assert.Equal(1, code);
+        Assert.Equal(0, probe.Connects);
+        Assert.Contains("nothing was probed", output.ToString(), StringComparison.Ordinal);
+    }
+
+    // ---- the readiness primitive ---------------------------------------------------------------
+
+    [Fact]
+    public async Task Wait_returns_the_moment_it_answers()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+
+        // Refused, refused, then accepted: a starting service, which is the whole case for --wait.
+        var probe = new ScriptedProbe(false, false, true);
+        var output = new StringWriter();
+
+        var code = Verify(daemon, probe, ["shop-api-1", "--wait", "--timeout", "30s"], output);
+
+        Assert.Equal(0, code);
+        Assert.Equal(3, probe.Connects);
+        Assert.Contains("It answers.", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Waiting_without_asking_for_it_probes_once()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var probe = new ScriptedProbe(false, true);
+        var output = new StringWriter();
+
+        // No --wait, so a refusal is the answer rather than the first of several attempts.
+        Assert.Equal(1, Verify(daemon, probe, ["shop-api-1"], output));
+        Assert.Equal(1, probe.Connects);
+    }
+
+    [Fact]
+    public async Task A_wait_that_runs_out_says_which_part_did_not_pass()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var probe = new ScriptedProbe(false);
+        var output = new StringWriter();
+
+        // Zero seconds: the deadline has passed by the first check, so this is one attempt and a
+        // timeout rather than a test that waits.
+        var code = Verify(daemon, probe, ["shop-api-1", "--wait", "--timeout", "0"], output);
+
+        Assert.Equal(1, code);
+
+        // "fails saying which part did not" - a sleep loop written by the caller ends knowing only
+        // that time ran out.
+        Assert.Contains("Still not answering after 0s: port", output.ToString(), StringComparison.Ordinal);
+    }
+
+    // ---- the request ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task One_published_port_needs_no_port_in_the_request()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var probe = new ScriptedProbe(true);
+
+        var code = Verify(daemon, probe, ["shop-api-1", "--request", "/healthz"], new StringWriter());
+
+        Assert.Equal(0, code);
+        Assert.Equal(1, probe.Requests);
+        Assert.Equal("/healthz", probe.Path);
+    }
+
+    [Fact]
+    public async Task Several_published_ports_are_named_rather_than_guessed()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectTwoPorts);
+        var probe = new ScriptedProbe(true);
+        var output = new StringWriter();
+
+        var code = Verify(daemon, probe, ["shop-api-1", "--request", "/healthz"], output);
+
+        // Picking the lowest would answer confidently about the wrong service, which is the failure
+        // this verb exists to remove.
+        Assert.Equal(2, code);
+        Assert.Equal(0, probe.Requests);
+    }
+
+    [Fact]
+    public async Task A_request_can_name_its_own_port()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectTwoPorts);
+        var probe = new ScriptedProbe(true);
+
+        var code = Verify(
+            daemon, probe, ["shop-api-1", "--request", ":5432/healthz"], new StringWriter());
+
+        Assert.Equal(0, code);
+        Assert.Equal("/healthz", probe.Path);
+        Assert.Contains(5432, probe.Asked);
+    }
+
+    [Fact]
+    public async Task A_timeout_that_is_not_a_number_is_refused_before_anything_is_probed()
+    {
+        await using var daemon = Daemon(RunningWithOnePort, InspectOnePort);
+        var probe = new ScriptedProbe(true);
+
+        Assert.Equal(2, Verify(daemon, probe, ["shop-api-1", "--timeout", "soon"], new StringWriter()));
+        Assert.Equal(0, probe.Connects);
+        Assert.Empty(daemon.Requested);
+    }
+}

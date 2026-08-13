@@ -1,7 +1,7 @@
 @echo off
 REM ==========================================================================
 REM build-installer.cmd - publishes the .exe, then wraps it in the Inno Setup
-REM installer (DD14). Output: dist\DockerDesk-Setup.exe
+REM installer (DD14). Output: dist\FreeWilly-Setup.exe
 REM ==========================================================================
 setlocal
 
@@ -48,7 +48,7 @@ if errorlevel 1 (
 
 echo.
 echo === Done ===
-echo dist\DockerDesk-Setup.exe
+echo dist\FreeWilly-Setup.exe
 echo.
 
 endlocal

@@ -17,7 +17,7 @@
 .roadkeep/
 
 # === Test-guest credentials ===
-# `dockerdesk-vm.env` in this directory holds the VM encryption password and the guest login that
+# `freewilly-vm.env` in this directory holds the VM encryption password and the guest login that
 # `scripts/vm.ps1` drives the Windows test guest with. It lives here for convenience and this line
 # is the only thing keeping it out of a commit, so two limits are worth stating: `git add -f`
 # stages it anyway, and `git clean -xdf` deletes it without asking. Keep the credential in it one

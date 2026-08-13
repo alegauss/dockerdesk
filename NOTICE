@@ -1,12 +1,12 @@
-DockerDesk
-Copyright DockerDesk contributors
+FreeWilly
+Copyright FreeWilly contributors
 
-This product includes software developed by the DockerDesk contributors,
+This product includes software developed by the FreeWilly contributors,
 licensed under the Apache License, Version 2.0 (see LICENSE).
 
 THIRD-PARTY COMPONENTS
 
-DockerDesk itself is Apache-2.0 and free at any headcount. The engine it installs is
+FreeWilly itself is Apache-2.0 and free at any headcount. The engine it installs is
 upstream software under its own terms, listed below. Those files are not redistributed
 here: they are downloaded from their official locations at install time, against the
 versions and digests this build pins.

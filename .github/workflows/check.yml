@@ -48,12 +48,12 @@ jobs:
       # Release, because that is the configuration the single-file self-contained properties are
       # conditioned on — a Debug build proves nothing about the thing that gets shipped.
       - name: Publish the one .exe
-        run: dotnet publish src\DockerDesk.Tray -c Release --nologo
+        run: dotnet publish src\FreeWilly.Tray -c Release --nologo
 
       - name: It is one file, and only one
         run: |
-          $dir = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish"
-          $exe = Join-Path $dir "DockerDesk.exe"
+          $dir = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"
+          $exe = Join-Path $dir "FreeWilly.exe"
           if (-not (Test-Path $exe)) { throw "publish produced no $exe" }
           # The claim DD14 rests on. A stray .dll here means the bundle stopped being
           # self-contained and the installer would ship an .exe that cannot start on a clean
@@ -67,7 +67,7 @@ jobs:
 
       - name: It starts, and says what it is
         run: |
-          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $exe = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
           # A windowed executable with its output redirected writes to the handle it was given;
           # PowerShell gives it a pipe, which is the same path the installer and scripts use.
           $version = (& $exe --version | Out-String).Trim()
@@ -79,7 +79,7 @@ jobs:
 
       - name: The engine plan reaches nothing and still answers
         run: |
-          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $exe = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
           $plan = (& $exe --plan | Out-String)
           if ($LASTEXITCODE -ne 0) { throw "--plan exited $LASTEXITCODE" }
           # The pinned digests travel inside the assembly, so this is also the check that the
@@ -91,7 +91,7 @@ jobs:
 
       - name: The preflight runs on a machine that is not the developer's
         run: |
-          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $exe = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
           # Asserted on having *run*, not on having passed. A hosted runner is a machine this
           # product would refuse, and rightly — it has no WSL2 and no nested virtualization. What
           # is worth knowing is that every probe reached a verdict there instead of throwing, which

@@ -1,0 +1,105 @@
+<!-- The volumes list. A volume is the one thing here that does not come back, so this page is the
+     loudest of the three about what a removal takes with it (DD35). -->
+<UserControl x:Class="FreeWilly.Tray.Ui.Pages.VolumesPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:FreeWilly.Tray.Ui"
+             x:ClassModifier="internal">
+<Grid Margin="0,10,0,0">
+  <Grid.RowDefinitions>
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="*" />
+  </Grid.RowDefinitions>
+
+  <Grid Grid.Row="0" Margin="10,0,10,10">
+    <TextBlock x:Name="VolumeTotalsLine" VerticalAlignment="Center" FontSize="13"
+               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <TextBox x:Name="VolumeFilter" Style="{DynamicResource FilterBox}" Margin="0,0,10,0"
+               TextChanged="FilterChanged" ToolTip="Narrow by name or what mounts it" />
+      <TextBlock x:Name="VolumeOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
+                 FontSize="12" TextWrapping="Wrap" MaxWidth="420"
+                 Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+      <!-- Anonymous only. A named volume is somebody's database, and the endpoint's
+           `all=true` that would take those is not sent and not offered. -->
+      <Button x:Name="PruneVolumes" Content="Prune anonymous" Click="PruneAnonymous"
+              Style="{DynamicResource RowAction}" />
+    </StackPanel>
+  </Grid>
+
+  <Grid Grid.Row="1" x:Name="VolumeHeaderRow" Margin="10,0,10,6">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="2.4*" />
+      <ColumnDefinition Width="0.8*" />
+      <ColumnDefinition Width="2*" />
+      <ColumnDefinition Width="120" />
+    </Grid.ColumnDefinitions>
+    <Button Grid.Column="0" Tag="NAME" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="NAME" x:Name="NameHeading" />
+    <Button Grid.Column="1" Tag="SIZE" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="SIZE" x:Name="SizeHeading" />
+    <Button Grid.Column="2" Tag="MOUNTED BY" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="MOUNTED BY" x:Name="MountedByHeading" />
+  </Grid>
+
+  <ListView Grid.Row="2" x:Name="Volumes" BorderThickness="0"
+            Background="Transparent"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <ListView.ItemContainerStyle>
+      <Style TargetType="ListViewItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="10,8" />
+      </Style>
+    </ListView.ItemContainerStyle>
+    <ListView.ItemTemplate>
+      <DataTemplate>
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <!-- Same as VolumeHeaderRow's; a test asserts it. -->
+              <ColumnDefinition Width="2.4*" />
+              <ColumnDefinition Width="0.8*" />
+              <ColumnDefinition Width="2*" />
+              <ColumnDefinition Width="120" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Name}"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock Grid.Column="1" Text="{Binding SizeText}"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <!-- "nothing mounts it" is the row somebody is looking for. -->
+            <TextBlock Grid.Column="2" Text="{Binding Holders}"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <StackPanel Grid.Column="3" Orientation="Horizontal">
+              <Button Content="Delete" Tag="{Binding}" Click="RemoveVolume"
+                      Style="{DynamicResource RowAction}"
+                      Visibility="{Binding IsIdle, Converter={StaticResource Shown}}" />
+              <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                         Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
+                     FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
+                     Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
+        </StackPanel>
+      </DataTemplate>
+    </ListView.ItemTemplate>
+  </ListView>
+
+  <StackPanel Grid.Row="2" x:Name="VolumesEmpty" VerticalAlignment="Center"
+              HorizontalAlignment="Center" Visibility="Collapsed">
+    <TextBlock x:Name="VolumesEmptyHeadline" FontSize="20" HorizontalAlignment="Center"
+               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+    <TextBlock x:Name="VolumesEmptyDetail" Margin="0,8,0,0" FontSize="13"
+               HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="440"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+  </StackPanel>
+</Grid>
+</UserControl>

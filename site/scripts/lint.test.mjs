@@ -42,3 +42,22 @@ test("no source fetches a third-party font at page load", () => {
   const offenders = all.filter((f) => readFileSync(f, "utf8").includes("fonts.googleapis.com"));
   assert.deepEqual(offenders.map((f) => f.replace(siteDir + "/", "")), []);
 });
+
+// The ocean loops by translating one whole repeat of its crests, so a period that does not
+// divide that repeat puts a visible seam through the water once per cycle — every few
+// seconds, forever. The arithmetic is the whole of the illusion, so it is asserted rather
+// than trusted to whoever next retunes the swell.
+test("every wave period closes on the repeat the drift translates by (DD52)", () => {
+  const src = readFileSync(join(siteDir, "src", "components", "ui", "Waves.tsx"), "utf8");
+  const span = Number(/const SPAN = (\d+)/.exec(src)?.[1]);
+  assert.ok(span > 0, "Waves.tsx no longer declares SPAN");
+  // the drift animation moves by 50% of a band drawn at 200% — one repeat is half the span
+  const repeat = span / 2;
+  const periods = [...src.matchAll(/period: (\d+)/g)].map((m) => Number(m[1]));
+  assert.ok(periods.length >= 3, "expected a period per wave layer");
+  assert.deepEqual(
+    periods.filter((p) => repeat % p !== 0),
+    [],
+    `every period must divide ${repeat}`,
+  );
+});

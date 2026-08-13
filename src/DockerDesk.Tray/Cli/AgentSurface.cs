@@ -76,6 +76,8 @@ public static class AgentSurface
             "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
         new(AgentNamespace.Read, "doctor", "read doctor",
             "<name> — why one container is not answering, as a verdict and a remedy"),
+        new(AgentNamespace.Read, "logs", "read logs",
+            "<name> [--since t:..] [--level x] [--dedup] [--budget n] [--out path]"),
         new(AgentNamespace.Read, "ps", "read ps",
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Do, "engine", "do engine",
@@ -169,6 +171,7 @@ public static class AgentSurface
         {
             "context" => ReadContext(engine, rest, output),
             "doctor" => ReadDoctor(engine, rest, output),
+            "logs" => ReadLogs(engine, rest, output),
             "ps" => ReadPs(engine, rest, output),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
@@ -353,6 +356,159 @@ public static class AgentSurface
         {
             output.WriteLine($"engine  unreachable  {exception.Message}");
             return NotReady;
+        }
+    }
+
+    /// <summary>
+    /// A container's log, with a cursor, a level, a dedup and a ceiling (DD27).
+    /// </summary>
+    /// <remarks>
+    /// <c>--out</c> is the argument that matters most and is the least obvious. Writing the log to a
+    /// file turns an unbounded read into a Grep: against a stream the caller pays for every line, and
+    /// against a file it pays for the lines that match. A ten-megabyte log becomes affordable rather
+    /// than merely truncated.
+    ///
+    /// <para>It writes, and it is still a read. <c>read</c> promises not to mutate <b>the engine</b>,
+    /// and a file at a path the caller named in the same breath is not a mutation of anything they did
+    /// not ask for. The two guards say so: every request to the daemon is a GET, and a read verb touches
+    /// no path except the one it was given.</para>
+    /// </remarks>
+    private static int ReadLogs(IEngineReads engine, string[] rest, TextWriter output)
+    {
+        string? target = null;
+        string? outPath = null;
+        var query = new LogQuery(BudgetTokens: LogDigest.DefaultBudgetTokens);
+
+        for (var i = 0; i < rest.Length; i++)
+        {
+            var argument = rest[i];
+            switch (argument)
+            {
+                case "--dedup":
+                    query = query with { Dedup = true };
+                    continue;
+                case "--since" or "--level" or "--budget" or "--out":
+                    if (i + 1 >= rest.Length)
+                    {
+                        return Refuse($"{argument} needs a value after it");
+                    }
+
+                    var value = rest[++i];
+                    switch (argument)
+                    {
+                        case "--since":
+                            if (!LogDigest.TryParseCursor(value, out var since, out var why))
+                            {
+                                return Refuse(why!);
+                            }
+
+                            query = query with { Since = since };
+                            continue;
+                        case "--level":
+                            if (!LogDigest.TryParseLevel(value, out var level))
+                            {
+                                return Refuse(
+                                    $"{value} is not a level: trace, debug, info, warn, error or fatal");
+                            }
+
+                            query = query with { MinimumLevel = level };
+                            continue;
+                        case "--budget":
+                            if (!int.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, out var budget)
+                                || budget <= 0)
+                            {
+                                return Refuse($"{value} is not a token budget");
+                            }
+
+                            query = query with { BudgetTokens = budget };
+                            continue;
+                        default:
+                            outPath = value;
+                            continue;
+                    }
+
+                default:
+                    if (argument.StartsWith('-'))
+                    {
+                        return Refuse($"unexpected argument {argument}");
+                    }
+
+                    if (target is not null)
+                    {
+                        return Refuse($"unexpected argument {argument}: read logs takes one name");
+                    }
+
+                    target = argument;
+                    continue;
+            }
+        }
+
+        if (!Core.Agent.Address.TryParse(target, out var address, out var refusal))
+        {
+            return Refuse(refusal);
+        }
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                output.WriteLine("engine  stopped  nothing is answering the pipe");
+                return NotReady;
+            }
+
+            var containers = engine.ContainersAsync().GetAwaiter().GetResult();
+            if (Match(containers, address) is not { } container)
+            {
+                return Refuse($"no container named {address} on this engine");
+            }
+
+            List<LogChunk> chunks = [];
+            using (var stream = engine.LogsAsync(
+                container.Id, tail: 2000, follow: false, timestamps: true, since: query.Since)
+                .GetAwaiter().GetResult())
+            {
+                var frames = new LogFrames(stream, framed: true);
+                while (frames.ReadAsync().GetAwaiter().GetResult() is { } chunk)
+                {
+                    chunks.Add(chunk);
+                }
+            }
+
+            var lines = LogDigest.Split(chunks);
+
+            if (outPath is null)
+            {
+                output.Write(LogDigest.Render(lines, query).Text);
+                return Ok;
+            }
+
+            // To the file goes everything the filters kept, with no ceiling: the ceiling exists because
+            // a payload is read by something paying per token, and a file is not.
+            var whole = LogDigest.Render(lines, query with { BudgetTokens = null });
+            var full = Path.GetFullPath(outPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllText(full, whole.Text);
+
+            output.WriteLine(
+                $"wrote {full}  {whole.Lines.ToString(System.Globalization.CultureInfo.InvariantCulture)} line(s)"
+                + $"  {new FileInfo(full).Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} bytes");
+            output.WriteLine("Grep it: the matching lines cost tokens, the rest does not.");
+            if (whole.Cursor is not null)
+            {
+                output.WriteLine("cursor  " + whole.Cursor);
+            }
+
+            return Ok;
+        }
+        catch (DockerApiException exception)
+        {
+            output.WriteLine($"engine  unreachable  {exception.Message}");
+            return NotReady;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException)
+        {
+            return Refuse($"could not write {outPath}: {exception.Message}");
         }
     }
 

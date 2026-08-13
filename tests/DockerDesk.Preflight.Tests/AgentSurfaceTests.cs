@@ -47,7 +47,19 @@ public sealed class AgentSurfaceTests
         ["context"] = [],
         ["ps"] = [],
         ["doctor"] = ["shop-api-1"],
+        ["logs"] = ["shop-api-1"],
     };
+
+    /// <summary>The daemon every read verb in the registry can be driven against.</summary>
+    private static FakeDockerDaemon Daemon() => new FakeDockerDaemon()
+        .Fails(Path("_ping"), "200 OK", "OK")
+        .Json(Path("version"), """{"Version":"29.7.2","ApiVersion":"1.55","MinAPIVersion":"1.24","Os":"linux","Arch":"amd64"}""")
+        .Json(Path("containers/json?all=1"), TwoContainers)
+        .Json(Path("containers/aaaaaaaaaaaa0000/json"), """{"Id":"aaaaaaaaaaaa0000","State":{"Status":"exited","ExitCode":137}}""")
+        .Json(Path("images/json?all=0"), "[]")
+        .Json(Path("volumes"), """{"Volumes":[]}""")
+        .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0&timestamps=0"), "200 OK", "")
+        .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=2000&follow=0&timestamps=1"), "200 OK", "");
 
     [Fact]
     public async Task Every_read_verb_issues_only_GET_requests()
@@ -69,7 +81,8 @@ public sealed class AgentSurfaceTests
                 .Json(Path("containers/aaaaaaaaaaaa0000/json"), """{"Id":"aaaaaaaaaaaa0000","State":{"Status":"exited","ExitCode":137}}""")
                 .Json(Path("images/json?all=0"), "[]")
                 .Json(Path("volumes"), """{"Volumes":[]}""")
-                .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0"), "200 OK", "");
+                .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0&timestamps=0"), "200 OK", "")
+                .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=2000&follow=0&timestamps=1"), "200 OK", "");
             using var api = new DockerApi(daemon.PipeName);
             var output = new StringWriter();
 
@@ -77,6 +90,66 @@ public sealed class AgentSurfaceTests
 
             Assert.NotEmpty(daemon.Requested);
             Assert.All(daemon.Requested, line => Assert.StartsWith("GET ", line, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public async Task No_read_verb_writes_a_file_it_was_not_given_a_path_for()
+    {
+        // The second half of the promise, added with DD27. `read` promises not to mutate the engine, and
+        // `read logs --out` writes a file on purpose - so the guard is not "writes nothing" but "writes
+        // nothing the caller did not name". The GET-only guard cannot see a filesystem write at all,
+        // which is why this one exists beside it.
+        var scratch = Directory.CreateTempSubdirectory("dockerdesk-read-guard");
+        var was = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(scratch.FullName);
+
+            foreach (var verb in AgentSurface.All.Where(v => v.Namespace == AgentNamespace.Read))
+            {
+                await using var daemon = Daemon();
+                using var api = new DockerApi(daemon.PipeName);
+
+                AgentSurface.Read(verb, api, DrivenWith[verb.Name], new StringWriter());
+
+                var written = scratch.GetFileSystemInfos();
+                Assert.True(
+                    written.Length == 0,
+                    $"{verb} wrote {string.Join(", ", written.Select(f => f.Name))} without being given "
+                    + "a path. A read may write where it was told to and nowhere else.");
+            }
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(was);
+            scratch.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task The_one_verb_that_writes_writes_only_where_it_was_told()
+    {
+        var scratch = Directory.CreateTempSubdirectory("dockerdesk-out-guard");
+        try
+        {
+            var target = System.IO.Path.Combine(scratch.FullName, "nested", "api.log");
+            await using var daemon = Daemon();
+            using var api = new DockerApi(daemon.PipeName);
+            var output = new StringWriter();
+
+            var code = AgentSurface.Read(
+                Verb("read", "logs"), api, ["shop-api-1", "--out", target], output);
+
+            Assert.Equal(0, code);
+            Assert.True(File.Exists(target));
+            // And the payload is the path rather than the log, which is the whole inversion.
+            Assert.Contains("wrote ", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("Grep it", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
         }
     }
 

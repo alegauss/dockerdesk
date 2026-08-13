@@ -33,7 +33,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD27** (deps: DD25 ✅) **A container log is read unbounded, so a restart loop is paid for eight times in identical traces** — Logs are the largest token sink here and the read has no cursor, no level, no dedup and no ceiling, so the cost is the size of the file rather than of the answer. → §DD27
 - 📋 **DD28** (deps: DD24 ✅, DD16 ✅, DD20 ✅) **Port is already allocated does not say what holds the port, and the answer is not in Docker at all** — The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete. → §DD28
 - 📋 **DD29** (deps: DD24 ✅) **What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing** — Prune is scoped to the whole machine and is the one command nobody delegates, so leftovers stay rather than risk a volume the session did not create. → §DD29
 - 📋 **DD30** (deps: DD26 ✅) **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle. → §DD30

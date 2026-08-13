@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 7,
-      "shipped": 4,
+      "open": 6,
+      "shipped": 5,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 23,
-    "shipped": 38,
+    "open": 22,
+    "shipped": 39,
     "retired": 0
   },
   "open": [
@@ -194,16 +194,6 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD54",
         "DD55"
-      ]
-    },
-    {
-      "id": "DD27",
-      "status": "📋",
-      "block": "G",
-      "symptom": "A container log is read unbounded, so a restart loop is paid for eight times in identical traces",
-      "why": "Logs are the largest token sink here and the read has no cursor, no level, no dedup and no ceiling, so the cost is the size of the file rather than of the answer.",
-      "deps": [
-        "DD25 ✅"
       ]
     },
     {
@@ -498,6 +488,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD27",
+      "status": "✅",
+      "block": "G",
+      "symptom": "A container log is read unbounded, so a restart loop is paid for eight times in identical traces",
+      "why": "read logs takes a cursor, a level, a dedup that turned 634 estimated tokens into 95, a ceiling it never cuts in silence, and an --out that turns the read into a Grep.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -594,5 +592,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD27"
+  "next": "DD28"
 };

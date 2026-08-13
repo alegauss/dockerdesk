@@ -1,6 +1,7 @@
 import { hero, heroSession, repoUrl } from "../../lib/site-content";
 import { Rich } from "../ui/Rich";
 import { HeroSession } from "../HeroSession";
+import { Waves } from "../ui/Waves";
 
 export function Hero() {
   return (
@@ -44,6 +45,7 @@ export function Hero() {
           ))}
         </div>
       </div>
+      <Waves />
     </header>
   );
 }

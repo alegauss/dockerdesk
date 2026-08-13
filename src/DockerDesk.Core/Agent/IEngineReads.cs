@@ -67,6 +67,8 @@ public interface IEngineReads
     /// <param name="id">The container.</param>
     /// <param name="tail">How many lines of history to open with.</param>
     /// <param name="follow">Whether to keep the stream open for new output.</param>
+    /// <param name="timestamps">Whether each line is prefixed with the time the daemon wrote it.</param>
+    /// <param name="since">Only output written after this.</param>
     /// <param name="cancellation">Cancellation.</param>
     /// <returns>The response body.</returns>
     /// <remarks>
@@ -75,5 +77,10 @@ public interface IEngineReads
     /// making the general read cheap is its own task (DD27).
     /// </remarks>
     Task<Stream> LogsAsync(
-        string id, int tail = 2000, bool follow = true, CancellationToken cancellation = default);
+        string id,
+        int tail = 2000,
+        bool follow = true,
+        bool timestamps = false,
+        DateTimeOffset? since = null,
+        CancellationToken cancellation = default);
 }

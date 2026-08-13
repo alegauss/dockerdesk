@@ -1,8 +1,10 @@
 import { footer } from "../lib/site-content";
+import { Waves } from "./ui/Waves";
 
 export function Footer() {
   return (
     <footer>
+      <Waves className="waves--footer" />
       <div className="wrap">
         <div className="foot-grid">
           <a className="foot-brand" href="/dockerdesk/">

@@ -336,29 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD27 Logs get a cursor, a dedup and a ceiling, and then become a file
-
-Logs are the largest token sink in this domain and the one with no analogue anywhere
-else: a container that restarts eight times writes the same stack trace eight times, and
-`--tail` is the only instrument, so the caller either truncates blind or pays for all of
-it.
-
-Four arguments close it. `--since <cursor>` reads the delta, using the cursor DD25 hands
-out. `--level` filters. `--dedup` collapses an identical repeat to a count — `× 47` is
-the answer, and forty-seven copies of it is the same answer at forty-seven times the
-price. `--budget <n>` truncates **with a cursor and never in silence**, since a payload
-that quietly drops the end reads exactly like a log that ended.
-
-The fifth argument is the one that matters most and is the least obvious. `--out <path>`
-writes the log to disk instead of returning it. An agent's cheapest and most reliable
-tools are `Grep` and `Read` over a file: against a stream it pays for every line, and
-against a file it pays for the lines that match. A ten-megabyte log becomes affordable
-rather than merely truncated, and the ceiling stops being a guess about which end held
-the answer.
-
-That inversion is a law and not a trick. Where a payload is unbounded and the question
-is narrow, the file is the interface and the stream is the fallback.
-
 ### §DD28 Every refusal carries the Windows fact that explains it
 
 `port is already allocated` is the refusal an agent cannot act on. The daemon knows a

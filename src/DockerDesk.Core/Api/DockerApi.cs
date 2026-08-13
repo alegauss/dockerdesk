@@ -287,16 +287,34 @@ public sealed class DockerApi : IDisposable, Agent.IEngineReads
     /// <param name="id">The container's id.</param>
     /// <param name="tail">How many lines of history to open with.</param>
     /// <param name="follow">Whether to keep the stream open for new output.</param>
+    /// <param name="timestamps">
+    /// Whether the daemon prefixes each line with an RFC3339 stamp. What a log cursor is made of.
+    /// </param>
+    /// <param name="since">Only output written after this, to the second the endpoint works in.</param>
     /// <param name="cancellation">Cancellation. Closing it is how the stream ends.</param>
     /// <returns>The response body, framed unless the container has a TTY.</returns>
     public Task<Stream> LogsAsync(
-        string id, int tail = 2000, bool follow = true, CancellationToken cancellation = default)
+        string id,
+        int tail = 2000,
+        bool follow = true,
+        bool timestamps = false,
+        DateTimeOffset? since = null,
+        CancellationToken cancellation = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentOutOfRangeException.ThrowIfNegative(tail);
+
+        // since is seconds, which is the only unit the endpoint takes, and it is inclusive of the
+        // second it names - so a cursor read back would repeat the last line. The digest filters on the
+        // exact timestamp it was given for that reason; this only narrows what has to be read.
+        var window = since is { } at
+            ? $"&since={at.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : "";
+
         return StreamAsync(
             $"containers/{Uri.EscapeDataString(id)}/logs"
-            + $"?stdout=1&stderr=1&tail={tail}&follow={(follow ? 1 : 0)}",
+            + $"?stdout=1&stderr=1&tail={tail}&follow={(follow ? 1 : 0)}"
+            + $"&timestamps={(timestamps ? 1 : 0)}{window}",
             cancellation);
     }
 

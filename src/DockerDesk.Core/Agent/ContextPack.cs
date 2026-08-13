@@ -63,6 +63,16 @@ public sealed record ContextFacts(
 /// </remarks>
 public static class ContextPack
 {
+    /// <summary>
+    /// The prefix on this pack's cursor, so a log cursor is never confused with it (DD27).
+    /// </summary>
+    /// <remarks>
+    /// Named rather than spelled twice. This one fingerprints the machine's state and is stable across
+    /// truncation; <see cref="LogDigest.CursorPrefix"/> marks a position in a log. They look alike, so
+    /// the refusal that tells a caller which they pasted reads this constant.
+    /// </remarks>
+    public const string CursorPrefixForRefusal = "c:";
+
     /// <summary>The compose label carrying the project.</summary>
     public const string ProjectLabel = "com.docker.compose.project";
 
@@ -403,6 +413,6 @@ public static class ContextPack
     {
         var material = string.Join("\n", [engine, .. rows, disk]);
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(material));
-        return "c:" + Convert.ToHexStringLower(digest)[..6];
+        return CursorPrefixForRefusal + Convert.ToHexStringLower(digest)[..6];
     }
 }

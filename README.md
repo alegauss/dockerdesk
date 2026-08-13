@@ -77,8 +77,31 @@ DockerDesk's other operator is a coding agent, and the split that matters to one
 dockerdesk read context       the whole machine in one budgeted payload
 dockerdesk read doctor <name> why one container is not answering
 dockerdesk read ps            every container, one line each — mutates nothing
+dockerdesk read logs <name>   --since --level --dedup --budget --out
 dockerdesk do   engine start  brings the engine up
 ```
+
+`read logs` is the one with a contract, because logs are the largest token sink here. A
+container that restarted eight times writes the same trace eight times: **634 estimated
+tokens deduped to 95**, and `× 8` is the same answer at an eighth of the price. It is
+bounded by default, truncates **with a cursor and never in silence**, and `--level error`
+keeps every line whose level it could not read — a stack trace's continuation lines say
+nothing about severity, and dropping them would leave you an error with no trace.
+
+`--out <path>` is the argument that matters most and is the least obvious:
+
+```
+dockerdesk read logs shop-api-1 --out .dockerdesk/logs/api.log
+  wrote D:\shop\.dockerdesk\logs\api.log  1284 line(s)  91043 bytes
+  Grep it: the matching lines cost tokens, the rest does not.
+  cursor  t:2026-08-13T09:16:01.884Z
+```
+
+A ten-megabyte log becomes affordable rather than merely truncated. It writes, and it is
+still a `read`: the promise is that a read does not mutate **the engine**, and a file at a
+path you named in the same breath is not a mutation of anything you did not ask for. Two
+guards hold it — every daemon request is a `GET`, and a read verb touches no path other
+than the one it was given.
 
 `read doctor` closes a join that five commands used to leave to the caller, and returns
 conclusions rather than fields:

@@ -48,6 +48,13 @@
   --glow-1: rgba(46, 155, 214, 0.1);
   --glow-2: rgba(46, 155, 214, 0.05);
 
+  /* the ocean, back layer to front. These are the three blues the mark is drawn in, read off
+     build/logo-source.png rather than picked to match it — the page's water is the logo's. */
+  --wave-1: #91cddd;
+  --wave-2: #62b9cd;
+  --wave-3: #3da7b7;
+  --wave-foam: #ffffff;
+
   --radius: 18px;
   --maxw: 1120px;
 
@@ -81,6 +88,13 @@
     --glow-1: rgba(46, 155, 214, 0.22);
     --glow-2: rgba(46, 155, 214, 0.1);
 
+    /* the same water at night: the mark's hues, taken down until they sit on #08131b
+       without glowing — a wave is scenery, and scenery that outshines the copy is a bug */
+    --wave-1: #2f6d7c;
+    --wave-2: #275c6b;
+    --wave-3: #1e4b59;
+    --wave-foam: #5fa8b8;
+
     color-scheme: dark;
   }
 }
@@ -110,6 +124,11 @@
   --nav-bg: rgba(8, 19, 27, 0.74);
   --glow-1: rgba(46, 155, 214, 0.22);
   --glow-2: rgba(46, 155, 214, 0.1);
+
+  --wave-1: #2f6d7c;
+  --wave-2: #275c6b;
+  --wave-3: #1e4b59;
+  --wave-foam: #5fa8b8;
 
   color-scheme: dark;
 }
@@ -318,9 +337,15 @@ nav .wrap {
 
 /* ---------- hero ---------- */
 .hero {
-  padding: 84px 0 60px;
+  /* the bottom padding is the ocean's room: the water closes the hero, and the pills would
+     otherwise stand in it */
+  padding: 84px 0 152px;
   text-align: center;
   position: relative;
+}
+.hero .wrap {
+  position: relative;
+  z-index: 1;
 }
 .badge {
   display: inline-flex;
@@ -431,6 +456,132 @@ nav .wrap {
   }
   50% {
     transform: translateY(-12px);
+  }
+}
+
+/* ============================================================================
+   The ocean — the mark is an orca cresting a wave, so the hero closes into water
+   and the footer opens out of it. The geometry is in components/ui/Waves.tsx; the
+   colour, the depth order and the speeds are here, because that is what is tuned.
+
+   Nothing in this block reflows: every animation is a transform on its own layer,
+   and the band is masked rather than ended on a line, so the water dissolves into
+   the page instead of drawing a horizon across it.
+   ============================================================================ */
+.waves {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 168px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0 72%, transparent 100%);
+}
+/* the outer element rises and falls, the inner one travels — see the note in Waves.tsx */
+.wave-swell {
+  position: absolute;
+  inset: 0;
+  animation: wave-swell 9s ease-in-out infinite;
+  will-change: transform;
+}
+.wave-drift {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  width: 200%;
+  height: 100%;
+  will-change: transform;
+}
+.wave-foam {
+  fill: none;
+  stroke: var(--wave-foam);
+  /* the band is stretched to fit (preserveAspectRatio="none"), which would scale a stroke
+     by a different factor in each axis and leave a crest that is thick where it climbs */
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+/* Back to front: paler, slower and moving the other way behind; nearer, deeper and quicker
+   in front. The opposing directions are what stops three parallel lines reading as one. */
+.wave-back {
+  animation-duration: 11s;
+}
+.wave-back .wave-water {
+  fill: var(--wave-1);
+  opacity: 0.5;
+}
+.wave-back .wave-drift {
+  animation: wave-drift-right 43s linear infinite;
+}
+.wave-mid {
+  animation-duration: 8.5s;
+}
+.wave-mid .wave-water {
+  fill: var(--wave-2);
+  opacity: 0.68;
+}
+.wave-mid .wave-drift {
+  animation: wave-drift-left 31s linear infinite;
+}
+.wave-front {
+  animation-duration: 7s;
+}
+.wave-front .wave-water {
+  fill: var(--wave-3);
+  opacity: 0.85;
+}
+.wave-front .wave-drift {
+  animation: wave-drift-left 22s linear infinite;
+}
+
+/* 50% of a band drawn at 200% is exactly one repeat of the crest, so the loop has no seam */
+@keyframes wave-drift-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes wave-drift-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes wave-swell {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -7px, 0);
+  }
+}
+
+/* the footer sits in the same sea, quieter: it closes the page, it does not open it */
+.waves--footer {
+  top: 0;
+  bottom: auto;
+  height: 104px;
+  opacity: 0.72;
+}
+@media (max-width: 600px) {
+  .hero {
+    padding-bottom: 112px;
+  }
+  .waves {
+    height: 120px;
+  }
+  .waves--footer {
+    height: 78px;
   }
 }
 
@@ -975,9 +1126,16 @@ figcaption code {
 
 /* ---------- footer ---------- */
 footer {
-  border-top: 1px solid var(--line);
-  padding: 46px 0 38px;
+  /* no border-top: the water is the seam now, and a rule drawn a few pixels above it reads
+     as a divider someone forgot to take out */
+  padding: 96px 0 38px;
   margin-top: 30px;
+  position: relative;
+  overflow: hidden;
+}
+footer .wrap {
+  position: relative;
+  z-index: 1;
 }
 .foot-grid {
   display: flex;
@@ -1040,7 +1198,9 @@ footer {
     transition: none;
   }
   .hero-icon,
-  .dot {
+  .dot,
+  .wave-swell,
+  .wave-drift {
     animation: none;
   }
   html {

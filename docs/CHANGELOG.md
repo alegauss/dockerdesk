@@ -46,6 +46,7 @@
 - ✅ **DD24** **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — read and do are separate argv namespaces so one allowlist line grants every read, and a test drives each read verb and requires every request it made to be a GET.
 - ✅ **DD25** **Learning what this machine is running costs five commands, and it repeats in full every session** — One read context answers the whole machine at 102 estimated tokens against 5718 for the three list reads it replaces, and an OOM row closes the canonical question in the first call.
 - ✅ **DD26** **Why a container is not answering is a join across five commands, and inspect is read for four fields** — One read doctor joins the five commands and returns a verdict and a remedy per row over the preflight's own model, including the port fact only Windows can answer.
+- ✅ **DD27** **A container log is read unbounded, so a restart loop is paid for eight times in identical traces** — read logs takes a cursor, a level, a dedup that turned 634 estimated tokens into 95, a ceiling it never cuts in silence, and an --out that turns the read into a Grep.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

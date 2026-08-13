@@ -14,8 +14,8 @@
   the same shape as the product's own preflight, on purpose: two reports about one machine that
   read differently are two things to learn.
 
-  `doctor` and `preflight` only read. Nothing here reverts a snapshot or writes to the guest
-  unless you ask for it by name, because a revert discards whatever the guest currently holds.
+  `doctor` and `preflight` only read. `revert` is the one action that destroys something, so it
+  names the snapshot it will restore and what that discards, and does nothing without -Yes.
 
 .PARAMETER Action
   doctor    every reachability fact, as a report (default)
@@ -23,10 +23,16 @@
   engine    the same for an engine mode; -Command carries it, default --plan
   run       run one command in the guest and print its output
   start     power the guest on and wait for its agent
+  revert    put the guest back on a snapshot; -Command names it, -Yes is required
   screenshot capture the guest's screen to a PNG; -Command is the path, default under TEMP
 
 .PARAMETER Command
   For -Action run: the command line to execute in the guest.
+  For -Action revert: which snapshot, needed only where the guest has more than one.
+
+.PARAMETER Yes
+  Required by -Action revert. Without it the revert is described and refused, because a revert
+  throws away everything the guest has done since the snapshot was taken.
 
 .PARAMETER Vmx
   Path to the guest's .vmx. Overrides DOCKERDESK_VMX.
@@ -54,10 +60,12 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('doctor', 'preflight', 'run', 'start', 'engine', 'screenshot')]
+    [ValidateSet('doctor', 'preflight', 'run', 'start', 'engine', 'revert', 'screenshot')]
     [string] $Action = 'doctor',
 
     [string] $Command,
+
+    [switch] $Yes,
 
     [string] $Vmx
 )
@@ -223,6 +231,73 @@ function Get-OneLine {
     return $flat.Substring(0, $Limit) + '...'
 }
 
+function Read-SnapshotNames {
+    <#
+      The names out of a `listSnapshots` answer. One place, because the doctor reports them and
+      `revert` picks one out of them, and two parsers of the same output are two chances to disagree
+      about what the guest has.
+
+      Nested snapshots come back indented and are addressed by `parent/child`; this returns them as
+      written, so a name that is ambiguous is one vmrun refuses rather than one this guesses at.
+
+      Wrap the call in @() — PowerShell unrolls an array on return, so a guest with exactly one
+      snapshot hands back a bare string, and under StrictMode `.Count` on it is a terminating error.
+      Which is the one guest shape this is most often run against.
+    #>
+    param([string] $Output)
+    return @($Output -split "`r?`n" |
+        Where-Object { $_.Trim() -and $_ -notmatch '^Total snapshots' } |
+        ForEach-Object { $_.Trim() })
+}
+
+function Resolve-Guest {
+    <#
+      The preamble every action that touches the guest needs: the settings file, vmrun, and which
+      .vmx. It was written out three times and is about to be four, and the copy in `screenshot`
+      had already drifted — it never checked that DOCKERDESK_VMX was set at all, so a missing one
+      reached vmrun as a blank argument and came back as a vmrun usage message.
+    #>
+    Import-EnvFile | Out-Null
+    $script:VmRun = Find-VmRun
+    if (-not $script:VmRun) { throw 'vmrun.exe was not found on this host' }
+    if ($Vmx) { $env:DOCKERDESK_VMX = $Vmx }
+    if (-not $env:DOCKERDESK_VMX) { throw 'DOCKERDESK_VMX is not set' }
+    if (-not (Test-Path -LiteralPath $env:DOCKERDESK_VMX)) {
+        throw "DOCKERDESK_VMX points at $env:DOCKERDESK_VMX, which does not exist"
+    }
+    return $env:DOCKERDESK_VMX
+}
+
+function Test-GuestRunning {
+    param([Parameter(Mandatory)] [string] $VmxPath)
+    $running = Invoke-VmRun -Arguments @('list')
+    return ($running.Output -match [regex]::Escape([IO.Path]::GetFileName($VmxPath)))
+}
+
+function Wait-ForTools {
+    <#
+      Waits for the guest's agent, because "powered on" and "can run a program" are a minute or more
+      apart. Ten minutes, not five: measured on this guest, the agent took longer than five to come
+      up after the WSL components were installed, and the script gave up on a machine that was fine.
+    #>
+    param([Parameter(Mandatory)] [string] $VmxPath)
+
+    $deadline = (Get-Date).AddMinutes(10)
+    while ((Get-Date) -lt $deadline) {
+        $tools = Invoke-VmRun -Arguments @('checkToolsState', $VmxPath)
+        $state = Get-OneLine $tools.Output 40
+        if ($state -eq 'running') {
+            Write-Host 'VMware Tools is running'
+            return 0
+        }
+        Write-Host "waiting for VMware Tools ($state)"
+        Start-Sleep -Seconds 10
+    }
+
+    Write-Host 'VMware Tools did not come up within 10 minutes'
+    return 1
+}
+
 # ---------------------------------------------------------------------------------------------
 # The checks
 # ---------------------------------------------------------------------------------------------
@@ -303,10 +378,10 @@ function Test-Reachability {
     Add-Row -Title 'VM encryption' -Verdict 'ok' -Detail 'the VM opens'
 
     # --- a snapshot to go back to ---------------------------------------------------------
-    $names = @($snapshots.Output -split "`r?`n" |
-        Where-Object { $_.Trim() -and $_ -notmatch '^Total snapshots' } |
-        ForEach-Object { $_.Trim() })
+    $names = @(Read-SnapshotNames $snapshots.Output)
     if ($names.Count -gt 0) {
+        # No remedy: a green row does not print one, and there is nothing to fix. What to do with
+        # these names is `-Action revert`, which the help says and DD53 added.
         Add-Row -Title 'snapshot' -Verdict 'ok' -Detail ("$($names.Count): " + ($names -join ', '))
     }
     else {
@@ -566,38 +641,104 @@ function Start-Guest {
       `vmrun start` line, and it is unusable here for one reason: it would put the encryption
       password on a command line.
     #>
-    Import-EnvFile | Out-Null
-    $script:VmRun = Find-VmRun
-    if (-not $script:VmRun) { throw 'vmrun.exe was not found on this host' }
-    if ($Vmx) { $env:DOCKERDESK_VMX = $Vmx }
-    if (-not $env:DOCKERDESK_VMX) { throw 'DOCKERDESK_VMX is not set' }
+    $vmxPath = Resolve-Guest
 
-    $running = Invoke-VmRun -Arguments @('list')
-    if ($running.Output -match [regex]::Escape([IO.Path]::GetFileName($env:DOCKERDESK_VMX))) {
+    if (Test-GuestRunning $vmxPath) {
         Write-Host 'already running'
     }
     else {
-        $start = Invoke-VmRun -Arguments @('start', $env:DOCKERDESK_VMX, 'nogui')
+        $start = Invoke-VmRun -Arguments @('start', $vmxPath, 'nogui')
         if (-not $start.Ok) { throw "starting the guest failed: $(Get-OneLine $start.Output)" }
         Write-Host 'started'
     }
 
-    # Ten minutes, not five: measured on this guest, the agent took longer than five to come up
-    # after the WSL components were installed, and the script gave up on a machine that was fine.
-    $deadline = (Get-Date).AddMinutes(10)
-    while ((Get-Date) -lt $deadline) {
-        $tools = Invoke-VmRun -Arguments @('checkToolsState', $env:DOCKERDESK_VMX)
-        $state = Get-OneLine $tools.Output 40
-        if ($state -eq 'running') {
-            Write-Host 'VMware Tools is running'
-            return 0
-        }
-        Write-Host "waiting for VMware Tools ($state)"
-        Start-Sleep -Seconds 10
+    return (Wait-ForTools $vmxPath)
+}
+
+function Invoke-Revert {
+    <#
+      Puts the guest back on a snapshot — the one thing this harness documented and did not do
+      (DD53).
+
+      The reason it is worth an action rather than a note in a runbook: every red row in the
+      product's preflight is specified against a particular machine state, and a state is spent the
+      moment something changes it. DD18 was measured on a guest that had never had WSL, `wsl
+      --version` hung there, and the row cost fifteen seconds. The fix was verified against the same
+      guest — which by then reported `WSL 2.7.11.0`, because earlier work had installed it. The one
+      machine the defect existed on no longer had it, and `Snapshot 1` was sitting in the doctor's
+      own output the whole time.
+
+      It refuses rather than prompts. This is run by scripts and by agents as often as by a person,
+      and a prompt is either answered blind or hangs forever; -Yes is a decision that survives being
+      read back in a transcript. What it prints without -Yes is the whole of what would happen.
+    #>
+    $vmxPath = Resolve-Guest
+
+    $snapshots = Invoke-VmRun -Arguments @('listSnapshots', $vmxPath)
+    if (-not $snapshots.Ok) {
+        Write-Host "vmrun could not read the snapshots: $(Get-OneLine $snapshots.Output)"
+        Write-Host 'Run scripts\vm.ps1 -Action doctor — it says which of the reasons this is.'
+        return 1
     }
 
-    Write-Host 'VMware Tools did not come up within 5 minutes'
-    return 1
+    $names = @(Read-SnapshotNames $snapshots.Output)
+    if ($names.Count -eq 0) {
+        Write-Host 'this guest has no snapshots, so there is nothing to go back to'
+        Write-Host 'Take one on a clean guest first, from VMware Workstation.'
+        return 1
+    }
+
+    if ($Command) {
+        $target = @($names | Where-Object { $_ -eq $Command })
+        if ($target.Count -eq 0) {
+            Write-Host "this guest has no snapshot called '$Command'. It has: $($names -join ', ')"
+            return 1
+        }
+        $snapshot = $target[0]
+    }
+    elseif ($names.Count -eq 1) {
+        $snapshot = $names[0]
+    }
+    else {
+        # Never chosen for you. Reverting to the wrong one of several destroys the same work as
+        # reverting to the right one, and takes the machine somewhere nobody asked for as well.
+        Write-Host "this guest has $($names.Count) snapshots: $($names -join ', ')"
+        Write-Host 'Name one with -Command "<snapshot>".'
+        return 1
+    }
+
+    $powered = if (Test-GuestRunning $vmxPath) { 'running' } else { 'powered off' }
+
+    Write-Host ''
+    Write-Host "revert  $([IO.Path]::GetFileName($vmxPath))"
+    Write-Host "  to    $snapshot"
+    Write-Host "  now   the guest is $powered"
+    Write-Host '  cost  everything the guest has done since that snapshot was taken, including any'
+    Write-Host '        installed engine, any WSL distribution, and anything staged under'
+    Write-Host "        $script:GuestStage"
+    Write-Host ''
+
+    if (-not $Yes) {
+        Write-Host 'Nothing was changed. Add -Yes to do it.'
+        return 2
+    }
+
+    $revert = Invoke-VmRun -Arguments @('revertToSnapshot', $vmxPath, $snapshot)
+    if (-not $revert.Ok) {
+        Write-Host "reverting failed: $(Get-OneLine $revert.Output)"
+        return 1
+    }
+    Write-Host "reverted to $snapshot"
+
+    # A snapshot taken with the guest powered off leaves it powered off, so the next action would
+    # meet "the guest is not running" and a remedy naming a raw vmrun line. Saying which of the two
+    # happened here is one line and saves that round trip.
+    if (Test-GuestRunning $vmxPath) {
+        return (Wait-ForTools $vmxPath)
+    }
+
+    Write-Host 'The guest is powered off. Start it with: scripts\vm.ps1 -Action start'
+    return 0
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -610,14 +751,14 @@ switch ($Action) {
     'start' {
         exit (Start-Guest)
     }
+    'revert' {
+        exit (Invoke-Revert)
+    }
     'screenshot' {
         # The one answer no exit code carries. A guest whose agent never comes up is either booting,
         # waiting at a prompt, or showing an error, and those are indistinguishable from here —
         # `checkToolsState` says "installed" for all three. So look at the screen.
-        Import-EnvFile | Out-Null
-        $script:VmRun = Find-VmRun
-        if (-not $script:VmRun) { throw 'vmrun.exe was not found on this host' }
-        if ($Vmx) { $env:DOCKERDESK_VMX = $Vmx }
+        $null = Resolve-Guest
         $shot = if ($Command) { $Command } else { Join-Path $env:TEMP 'dockerdesk-guest.png' }
         if (Test-Path -LiteralPath $shot) { Remove-Item -LiteralPath $shot -Force }
 

@@ -81,27 +81,6 @@ admits that a screen copy of a translucent window is not a thing worth making sa
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD53 The guest drifts, and nothing takes it back
-
-`scripts/vm.ps1` line 14 says the guest "can be reverted to a clean snapshot between
-destructive runs", and line 18 says nothing reverts a snapshot "unless you ask for it by
-name". There is no name to ask: the `ValidateSet` on line 57 offers `doctor`,
-`preflight`, `run`, `start`, `engine` and `screenshot`, and none of them reverts.
-
-Measured while shipping DD18. That row was specified against a fresh Windows 11 guest,
-build 26200, that never had WSL — `wsl --version` hung there and the row cost fifteen
-seconds. Running the fix against the same guest reported `WSL 2.7.11.0, kernel
-6.18.33.2`: WSL had been installed there by earlier work, so the one machine the defect
-existed on no longer had it, and the exit-50 path shipped verified by unit tests alone.
-`Snapshot 1` was sitting right there in the doctor's own output.
-
-What this needs is a `revert` action that names the snapshot it is going to discard and
-refuses without confirmation, since a revert throws away whatever the guest holds. The
-harness already reads the snapshot list for the doctor, so the fact it needs is one it
-already has. The reason this is worth a task rather than a footnote is that DD19 and
-DD20 are both specified against particular machine states too, and each one is
-verifiable exactly once until this exists.
-
 ### §DD54 The tree spells the old name in four projects and three namespaces
 
 `DockerDesk` is the tree's own spelling, not Docker's: four project files

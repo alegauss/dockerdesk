@@ -250,6 +250,27 @@ ask. Separating them makes the rule one line:
 "allow": ["Bash(dockerdesk read:*)"]
 ```
 
+A surface nobody discovers is one nobody uses, so the install ships how it is found — and
+**proposes it, never writes it**. Two files land in `%LOCALAPPDATA%\DockerDesk\agent\`: a
+skill naming the verbs and the one rule that matters, and the allowlist line above. The
+after-install page prints the two commands. Nothing here touches your `.claude` directory,
+which is where a tool editing your configuration unasked would be least forgivable, and a
+test asserts the installer script names no such path.
+
+The skill **names verbs and defers** — every sentence explaining what one does lives in
+`--help`, which is one copy and the one you already have. Two descriptions of a surface
+drift, and the one loaded every session drifts unnoticed, so a test holds the skill's verb
+list equal to the registry: a verb that ships without appearing there fails the build.
+
+```
+dockerdesk read context --as brief --out .dockerdesk/brief.md
+```
+
+writes what a session should start knowing, generated from the live machine rather than
+hand-maintained and rotting. It writes where it was told and nowhere else, refuses to
+replace a file that is already there unless you pass `--force`, and carries no timestamp —
+so re-running it on an unchanged machine produces no diff at all.
+
 **`read` is a promise, not a prefix.** A verb under it that writes is a defect, and two
 things keep that honest: a read verb is handed a handle with no start, remove or prune on
 it, and a test drives every registered read verb and requires every request it made to be

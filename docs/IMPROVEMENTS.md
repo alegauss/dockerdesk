@@ -242,30 +242,6 @@ admits that a screen copy of a translucent window is not a thing worth making sa
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD32 Shipping the surface includes shipping how it is found
-
-A surface nobody discovers is one nobody uses, and the discovery cost is otherwise paid
-once per session forever: an agent meeting a machine reaches for `docker` because that
-is what it knows is there.
-
-So the install ships how it is found. Three artefacts, none of them large. A skill
-carrying the verb list and the one rule that matters — reach for `dockerdesk read`
-before `docker` — since a skill is loaded on demand and costs nothing on the turns it is
-not needed. An allowlist entry proposed at install time, `Bash(dockerdesk read:*)`,
-which is the line that makes DD24 pay: the split is worth nothing until a settings file
-expresses it. And a `read context --as brief` that writes a project's own file from the
-live machine, so what a session starts knowing is generated rather than hand-maintained
-and rotting.
-
-The install proposes and never writes: a tool that edits a user's agent configuration
-without asking has broken the rule that nothing here surprises you, and the allowlist is
-exactly the file where that would be least forgivable.
-
-What this must not become is a second place where the surface is described. The skill
-names verbs and defers; every sentence explaining what a verb does lives in `--help`,
-which is one copy and is the one a caller already has. Two descriptions of one surface
-drift, and the one loaded every session is the one that drifts unnoticed.
-
 ### §DD53 The guest drifts, and nothing takes it back
 
 `scripts/vm.ps1` line 14 says the guest "can be reverted to a clean snapshot between

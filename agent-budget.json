@@ -91,6 +91,13 @@
       "read ports": 120,
       "read ps": 320,
       "do engine": 40,
+      "$read context": [
+        "200, and DD32's `--as brief` is deliberately outside it at 216 measured. Same rule as",
+        "`read logs --out`: the ceiling exists because a payload is read by something paying per token,",
+        "and the brief is a file written once at setup - it embeds the pack, which is still under its",
+        "own 200, plus the prose that says how the surface is reached. The gated shape is the payload",
+        "an agent re-reads, and that one is unchanged."
+      ],
       "read context": 200,
       "$read doctor": [
         "Raised from 260 to 280 while DD26 shipped, and this is what the tokens bought: a diagnosis in",

@@ -26,7 +26,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD32** (deps: DD24 ✅, DD14 ✅) **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches. → §DD32
 - 📋 **DD53** (deps: —) **The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts** — A row measured on a bare Windows is unverifiable the moment that guest has WSL, and reverting is the one thing the harness documents and does not do. → §DD53
 - 📋 **DD54** (deps: —) **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — A namespace is the spelling every file in the tree repeats, so renaming it after the machine-facing names leaves two products inside one build for as long as that takes. → §DD54
 - 📋 **DD57** (deps: DD54, DD55) **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed. → §DD57

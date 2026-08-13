@@ -1,0 +1,23 @@
+{
+  "//": [
+    "DD32. The line that makes DockerDesk's read/do split pay. Nothing installs this for you:",
+    "an allowlist is where a tool editing your configuration without asking would be least",
+    "forgivable, so the install ships the line and you decide.",
+    "",
+    "Merge the `allow` entry into your own .claude/settings.json — per project, or into",
+    "%USERPROFILE%\\.claude\\settings.json for every project on this machine. If you already",
+    "have a permissions.allow array, add the one string to it rather than replacing the file.",
+    "",
+    "`read` is a promise and not a prefix: every verb under it is handed a handle with no start,",
+    "no remove and no prune on it, and a test drives every registered read verb and requires",
+    "every request it made to be a GET. That is what makes one line safe to grant.",
+    "",
+    "`do` is deliberately absent. Starting an engine or removing what a session created is worth",
+    "an approval, and granting it here would undo the reason the split exists."
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(dockerdesk read:*)"
+    ]
+  }
+}

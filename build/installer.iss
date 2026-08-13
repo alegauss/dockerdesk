@@ -95,6 +95,14 @@ Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversio
 ; resolve at all. A forwarder rather than a second PATH entry: one name on PATH, one thing to remove.
 Source: "dockerdesk.cmd"; DestDir: "{app}\bin"; Flags: ignoreversion; Tasks: pathentry
 
+; DD32. How the surface is found, shipped beside it: a skill naming the verbs and the one rule, and
+; the allowlist line that makes the read/do split pay. Laid down in {app}\agent and nowhere else -
+; this install never touches a user's .claude directory, because an agent configuration is exactly
+; the file where a tool writing without asking would be least forgivable. The after-install page
+; prints the two commands and the user decides.
+Source: "agent\SKILL.md"; DestDir: "{app}\agent"; Flags: ignoreversion
+Source: "agent\settings-snippet.json"; DestDir: "{app}\agent"; Flags: ignoreversion
+
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"

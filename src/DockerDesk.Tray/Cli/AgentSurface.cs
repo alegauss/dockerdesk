@@ -75,7 +75,7 @@ public static class AgentSurface
         new(AgentNamespace.Read, "changes", "read changes",
             "[--since t:..] what moved on this machine; [--session id] only what I made"),
         new(AgentNamespace.Read, "context", "read context",
-            "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
+            "the whole machine in one budgeted payload; --as brief [--out path] for a project file"),
         new(AgentNamespace.Read, "doctor", "read doctor",
             "<name> — why one container is not answering, as a verdict and a remedy"),
         new(AgentNamespace.Read, "logs", "read logs",
@@ -319,15 +319,56 @@ public static class AgentSurface
     private static int ReadContext(IEngineReads engine, string[] rest, TextWriter output)
     {
         var json = false;
-        foreach (var argument in rest)
-        {
-            if (string.Equals(argument, "--json", StringComparison.Ordinal))
-            {
-                json = true;
-                continue;
-            }
+        var brief = false;
+        var force = false;
+        string? outPath = null;
 
-            return Refuse($"unexpected argument {argument}: read context takes --json or nothing");
+        for (var i = 0; i < rest.Length; i++)
+        {
+            switch (rest[i])
+            {
+                case "--json":
+                    json = true;
+                    continue;
+                case "--force":
+                    force = true;
+                    continue;
+                case "--as" or "--out":
+                    if (i + 1 >= rest.Length)
+                    {
+                        return Refuse($"{rest[i]} needs a value after it");
+                    }
+
+                    if (string.Equals(rest[i], "--out", StringComparison.Ordinal))
+                    {
+                        outPath = rest[++i];
+                        continue;
+                    }
+
+                    var shape = rest[++i];
+                    if (!string.Equals(shape, "brief", StringComparison.Ordinal))
+                    {
+                        return Refuse($"--as takes brief, not {shape}");
+                    }
+
+                    brief = true;
+                    continue;
+                default:
+                    return Refuse($"unexpected argument {rest[i]}: read context takes --json, "
+                        + "--as brief, --out and --force");
+            }
+        }
+
+        if (outPath is not null && !brief)
+        {
+            // Named rather than assumed: --out on its own would be a redirect somebody could write
+            // with `>`, and quietly accepting it would teach an argument that does nothing.
+            return Refuse("--out writes the brief: pass --as brief with it, or redirect with >");
+        }
+
+        if (json && brief)
+        {
+            return Refuse("--as brief and --json are two formats: pick one");
         }
 
         try
@@ -336,6 +377,20 @@ public static class AgentSurface
             {
                 // State stated rather than probed: the engine line says it is down, so the caller does
                 // not spend a call finding out.
+                //
+                // A brief is still written. Most of what it carries is how this surface is reached,
+                // which is true whether the engine is up or not, and somebody setting a project up
+                // before starting the engine is the ordinary case rather than the odd one. The exit
+                // code still says the machine section came from a stopped engine.
+                if (brief)
+                {
+                    // A refusal about the arguments keeps its own exit code. Reporting "engine not
+                    // ready" for a file that already exists would send a script down the wrong branch
+                    // over a problem that has nothing to do with the engine.
+                    var wrote = WriteBrief(Down("stopped"), outPath, force, output);
+                    return wrote == Ok ? NotReady : wrote;
+                }
+
                 output.Write(Show(Down("stopped"), json));
                 return NotReady;
             }
@@ -360,7 +415,7 @@ public static class AgentSurface
             }
 
             var client = new Core.Preflight.Windows.WindowsMachineFacts().DockerClient;
-            output.Write(Show(new ContextFacts(
+            var facts = new ContextFacts(
                 EngineState: "running",
                 Distribution: EnginePaths.DistributionName,
                 ApiVersion: version.ApiVersion,
@@ -370,14 +425,70 @@ public static class AgentSurface
                 Containers: containers,
                 Diagnoses: diagnoses,
                 Images: engine.ImagesAsync().GetAwaiter().GetResult(),
-                VolumeCount: engine.VolumesAsync().GetAwaiter().GetResult().Count),
-                json));
-            return Ok;
+                VolumeCount: engine.VolumesAsync().GetAwaiter().GetResult().Count);
+
+            if (!brief)
+            {
+                output.Write(Show(facts, json));
+                return Ok;
+            }
+
+            return WriteBrief(facts, outPath, force, output);
         }
         catch (DockerApiException exception)
         {
-            output.Write(Show(Down($"unreachable: {exception.Message}"), json));
+            var down = Down($"unreachable: {exception.Message}");
+            if (brief)
+            {
+                var wrote = WriteBrief(down, outPath, force, output);
+                return wrote == Ok ? NotReady : wrote;
+            }
+
+            output.Write(Show(down, json));
             return NotReady;
+        }
+    }
+
+    /// <summary>
+    /// The brief, to stdout or to exactly the path it was given (DD32).
+    /// </summary>
+    /// <remarks>
+    /// The same rule <c>read logs --out</c> established: a read does not mutate <b>the engine</b>, and a
+    /// file at a path the caller named in the same breath is not a mutation of anything it did not ask
+    /// for. What is added here is the refusal to clobber — a brief is generated and the file it would
+    /// land on might not be, and a tool that ate something somebody wrote to save them a flag has made
+    /// the wrong trade. <c>--force</c> is the flag.
+    /// </remarks>
+    private static int WriteBrief(ContextFacts facts, string? outPath, bool force, TextWriter output)
+    {
+        var brief = AgentBrief.Render(facts, [.. All.Select(verb => verb.ToString())]);
+
+        if (outPath is null)
+        {
+            output.Write(brief);
+            return Ok;
+        }
+
+        try
+        {
+            var full = Path.GetFullPath(outPath);
+            if (File.Exists(full) && !force)
+            {
+                return Refuse(
+                    $"{full} already exists. Pass --force to replace it, or --out somewhere else.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllText(full, brief);
+            output.WriteLine(
+                $"wrote {full}  {brief.ReplaceLineEndings("\n").TrimEnd('\n').Split('\n').Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} line(s)");
+            output.WriteLine("Re-run it when the machine changes: it is generated, not maintained.");
+            return Ok;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException)
+        {
+            return Refuse($"could not write {outPath}: {exception.Message}");
         }
     }
 

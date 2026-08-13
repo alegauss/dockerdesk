@@ -13,3 +13,31 @@ in sight, click the chevron and drag the DockerDesk icon onto the taskbar once
 
 Until you do, nothing is missing: the state is in the icon's tooltip on hover,
 and the window is one click away from its menu.
+
+
+If a coding agent uses this machine
+
+DockerDesk ships a surface built for one, and two files that make it findable
+are now in the install directory. Neither has been copied anywhere: your agent
+configuration is yours, and an allowlist is the last file a tool should edit
+without asking.
+
+  agent\SKILL.md               names the verbs and the one rule that matters
+  agent\settings-snippet.json  the line that makes the read/do split pay
+
+To use them, copy the skill where your agent looks for one:
+
+  mkdir "%USERPROFILE%\.claude\skills\dockerdesk"
+  copy "%LOCALAPPDATA%\DockerDesk\agent\SKILL.md" ^
+       "%USERPROFILE%\.claude\skills\dockerdesk\"
+
+and add this one line to the "allow" array in your .claude\settings.json:
+
+  "Bash(dockerdesk read:*)"
+
+That grants every read verb and no write. `dockerdesk read` mutates nothing -
+two guards in the build hold that - which is what makes one line safe to grant
+where a rule over `docker` would have permitted deleting a volume.
+
+Inside a project, `dockerdesk read context --as brief --out .dockerdesk\brief.md`
+writes what a session should start knowing, generated from the live machine.

@@ -37,11 +37,19 @@ internal static class WindowCapture
     /// <returns>The process exit code.</returns>
     internal static int Run(string[] args)
     {
-        if (args.Length is 0 or > 2)
+        if (args.Length == 0)
         {
             return Complain(
                 "takes an output path and optionally a tab, "
                 + $"e.g. {CommandLine.ExecutableName} {CommandLine.CaptureWindowVerb} window.png Images");
+        }
+
+        if (args.Length > 2)
+        {
+            // Naming the argument, not just the arity: a refusal that does not say what it failed to
+            // understand leaves the caller to guess which of their words was wrong.
+            return Complain(
+                $"unexpected argument {args[2]} — this takes an output path and optionally a tab");
         }
 
         // A path that looks like a flag is a caller who forgot the path, and writing a file called

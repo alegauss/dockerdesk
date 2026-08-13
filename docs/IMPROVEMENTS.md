@@ -336,31 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD23 The measurement is the first deliverable, not a footnote
-
-The constitution this block implements is `docs/specs/DD23-agent-first-dockerdesk.md`,
-and every figure in its accounting table is an estimate: 30–60k tokens and 15–30 calls
-for a canonical diagnosis, against a target of 2–5k and five. An estimate is what a
-design is argued from. It is not what a build can refuse.
-
-So this lands first, and it lands as two artefacts. A benchmark drives the canonical
-task — bring a stack up, find why one service is not answering — twice: once through
-`docker` the way an agent reaches it today, once through whatever surface exists, and it
-reports the ratio in calls and in estimated tokens. A budget file holds a ceiling per
-response shape, read by that test, so a build that made the surface more expensive fails
-instead of mentioning it.
-
-Raising a ceiling stays allowed. It is a deliberate, reviewable act, and the commit that
-raises one says what the tokens bought. What the file prevents is the raise nobody
-argued for.
-
-Two things it must not become. It is not a performance suite: wall-clock is a different
-question with a different answer, and mixing them means neither number is trusted. And
-it must not measure only a well-formed script — a benchmark over calls that are all
-correct cannot see the argument an agent gets wrong, and an unknown flag accepted in
-silence is the expensive case: a refusal costs one round trip, while a silently dropped
-argument costs a wrong outcome nobody notices.
-
 ### §DD24 Read and write, separated where a permission rule can see them
 
 The head this needs is a console binary beside `dockerdesk-preflight`, which already

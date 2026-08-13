@@ -33,8 +33,7 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD23** (deps: DD14 ✅, DD15 ✅) **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote. → §DD23
-- 📋 **DD24** (deps: DD23) **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and every read stops to ask you. → §DD24
+- 📋 **DD24** (deps: DD23 ✅) **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and every read stops to ask you. → §DD24
 - 📋 **DD25** (deps: DD24) **Learning what this machine is running costs five commands, and it repeats in full every session** — Discovery is answered by a truncating human-readable table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines. → §DD25
 - 📋 **DD26** (deps: DD24) **Why a container is not answering is a join across five commands, and inspect is read for four fields** — One inspect is three to six hundred lines of JSON paid in full, and the join that turns those fields into a conclusion has no command at all. → §DD26
 - 📋 **DD27** (deps: DD25) **A container log is read unbounded, so a restart loop is paid for eight times in identical traces** — Logs are the largest token sink here and the read has no cursor, no level, no dedup and no ceiling, so the cost is the size of the file rather than of the answer. → §DD27

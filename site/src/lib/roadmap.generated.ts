@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 11,
-      "shipped": 0,
+      "open": 10,
+      "shipped": 1,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 27,
-    "shipped": 34,
+    "open": 26,
+    "shipped": 35,
     "retired": 0
   },
   "open": [
@@ -197,24 +197,13 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD23",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim",
-      "why": "A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote.",
-      "deps": [
-        "DD14 ✅",
-        "DD15 ✅"
-      ]
-    },
-    {
       "id": "DD24",
       "status": "📋",
       "block": "G",
       "symptom": "Reading a container and deleting a volume are one allowlist decision, so every read costs an approval",
       "why": "The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and every read stops to ask you.",
       "deps": [
-        "DD23"
+        "DD23 ✅"
       ]
     },
     {
@@ -507,6 +496,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD23",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim",
+      "why": "A benchmark measures the canonical task at 11711 estimated tokens over six calls, and agent-budget.json is the ceiling it reads, so a response that grew fails a build.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -603,5 +600,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD23"
+  "next": "DD24"
 };

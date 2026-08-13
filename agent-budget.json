@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json.schemastore.org/base.json",
+
+  "about": [
+    "DD23. Ceilings on what the agent surface costs, read by AgentBudgetTests, so a build that made",
+    "a response more expensive fails instead of mentioning it. Raising a ceiling stays allowed - it",
+    "is a deliberate, reviewable act, and the commit that raises one says what the tokens bought.",
+    "What this file prevents is the raise nobody argued for.",
+    "",
+    "Not a performance budget. Wall-clock is a different question with a different answer, and a",
+    "suite that mixes them is one where neither number is trusted. There is no time here."
+  ],
+
+  "method": {
+    "tokens": "characters / 4, rounded up (DockerDesk.Core.Agent.TokenEstimate)",
+    "calls": "one per request the daemon received, counted by the fake daemon itself",
+    "caveat": [
+      "The token figure is an approximation and not a count from any model's tokenizer. It is used",
+      "because it needs no tokenizer, so it is the same number on every machine and in CI, and a",
+      "ratio between two payloads measured the same wrong way is still a ratio."
+    ]
+  },
+
+  "fixtures": {
+    "provenance": [
+      "Constructed to the shapes the Engine API documents, not captured from a live daemon: no",
+      "engine was answering either pipe on the machine that wrote this, and a measurement that",
+      "needs a running Docker cannot gate a build - check.yml has no Docker at all.",
+      "So these are honest about what they are: the SHAPE of what docker returns, at a realistic",
+      "size, served over a real named pipe through the real client."
+    ],
+    "sizes": {
+      "note": "Banded in both directions on purpose. A fixture somebody shrinks would make the baseline look cheaper, which is the same defect as a surface that grew.",
+      "tolerance": 0.15
+    }
+  },
+
+  "baseline": {
+    "task": "bring the stack up and say why the api container is not answering",
+    "about": [
+      "What the canonical task costs through the transport an agent reaches today: a container list",
+      "re-read as state moves, a full inspect read for four fields, and a tail of logs carrying the",
+      "same trace repeatedly. Measured, and it replaces the constitution's 30-60k estimate for these",
+      "reads - it is not the whole 30-60k, which also counted interruptions and a second session."
+    ],
+    "measured": {
+      "calls": 6,
+      "tokens": 11711
+    },
+    "shapes": {
+      "about": [
+        "Per response, so a future verb can be judged against the shape it replaces. The list is",
+        "counted three times in the total because the canonical task re-reads it as state moves,",
+        "which is what makes re-discovery the largest driver here: 5718 of 11711, ahead of",
+        "the log tail at 4170 and the whole inspect at 1603."
+      ],
+      "containers.list": 1906,
+      "container.inspect": 1603,
+      "container.logs.tail200": 4170,
+      "network.inspect": 220
+    },
+    "caveat": [
+      "This is the Engine API's compact payload, which is the transport this project's own surface",
+      "is built on. `docker inspect` PRINTS indented JSON - the 300 to 600 lines the constitution",
+      "counts - so an agent going through the CLI pays several times this for the same entity.",
+      "Read this as a floor for today's cost, not a ceiling."
+    ]
+  },
+
+  "surface": {
+    "exists": false,
+    "about": [
+      "The shaped side of the ratio. `read context`, `read doctor`, `read logs` and `read verify` are",
+      "DD24-DD31 and do not exist yet, so there is no number here and one is not invented. The",
+      "benchmark says so rather than reporting a ratio against nothing.",
+      "",
+      "These are the acceptance criteria from the constitution's section 3.1, written down here so",
+      "the first verb that lands is checked against what it was budgeted for."
+    ],
+    "target": {
+      "calls": 5,
+      "tokens": 5000
+    },
+    "shapes": {
+      "read context": 200,
+      "read doctor": 260,
+      "read logs": 400,
+      "do compose up": 140,
+      "read verify": 110
+    }
+  },
+
+  "refusal": {
+    "about": [
+      "The expensive case, and the one a benchmark over well-formed calls cannot see. A refusal costs",
+      "one round trip; an argument silently dropped costs a wrong outcome nobody notices. So every",
+      "verb is driven with an argument it does not have, and the refusal is required to be both cheap",
+      "and loud: a non-zero exit and a message naming what was not understood."
+    ],
+    "maxCalls": 1,
+    "maxTokens": 500
+  }
+}

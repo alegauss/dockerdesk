@@ -42,6 +42,8 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
+- ✅ **DD23** **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A benchmark measures the canonical task at 11711 estimated tokens over six calls, and agent-budget.json is the ceiling it reads, so a response that grew fails a build.
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 - ✅ **DD40** **The site is one hand-written page, dark-only, with every claim typed into the markup that displays it** — The landing page renders from a Vite React Tailwind workspace: copy in one content module the sections iterate, and the theme follows the OS.

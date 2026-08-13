@@ -91,7 +91,14 @@
       "read ps": 320,
       "do engine": 40,
       "read context": 200,
-      "read doctor": 260,
+      "$read doctor": [
+        "Raised from 260 to 280 while DD26 shipped, and this is what the tokens bought: a diagnosis in",
+        "which every row fails - state, memory, restarts, health, ports and two mounts - renders at 273.",
+        "The first attempt was 397, and the remedies were explaining themselves rather than naming an",
+        "action; tightening them to one sentence each got it to 273. The remaining 273 is seven",
+        "conclusions and six actions, against five commands and roughly 20k tokens of fields."
+      ],
+      "read doctor": 280,
       "read logs": 400,
       "do compose up": 140,
       "read verify": 110

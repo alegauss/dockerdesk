@@ -75,9 +75,28 @@ DockerDesk's other operator is a coding agent, and the split that matters to one
 
 ```
 dockerdesk read context       the whole machine in one budgeted payload
+dockerdesk read doctor <name> why one container is not answering
 dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk do   engine start  brings the engine up
 ```
+
+`read doctor` closes a join that five commands used to leave to the caller, and returns
+conclusions rather than fields:
+
+```
+  [FAIL]  memory    the kernel killed it for exceeding 512M
+           -> Raise it above 512M, or hold less.
+  [FAIL]  ports     :8080→8080/tcp nothing listening
+           -> Port 8080 is published and nothing on Windows holds it: it is not running,
+              or its process never bound.
+  [FAIL]  mounts    /app ← C:\Users\dev\shop\api MISSING, /data ← volume:shop_data
+```
+
+The rows are the preflight's own — a fact, a verdict and the one action that changes it —
+so nothing new has to be learned to read them. The ports row is the one Docker structurally
+cannot answer: the daemon knows what was published and only Windows knows whether anything
+holds the socket. A mount this tool did not map is reported **unchecked** rather than broken,
+because a false "does not resolve" is worse than no answer.
 
 `read context` is the one that replaces a session's first five calls:
 
@@ -148,7 +167,10 @@ Requires the .NET 10 SDK and Windows; the installer also needs
 [Inno Setup 6](https://jrsoftware.org/isdl.php), found machine-wide, per-user or on the
 PATH. The version is stated once, in
 [Directory.Build.props](Directory.Build.props) — the installer reads it back off the
-built `.exe` rather than repeating it. The app icon is committed; `build\icon.mjs`
-regenerates it from `docs/logo.svg` and is not part of the build. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
+built `.exe` rather than repeating it. The mark and the app icon are committed, and
+neither is part of the build: `build\trace-logo.mjs` traces
+[`build/logo-source.png`](build/logo-source.png) into `docs/logo.svg` and the
+tray-sized `docs/icon.svg`, and `build\icon.mjs` rasterises those two into the `.ico`
+— below 48 pixels from the simplified one. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
 roadmap, changelog and rationale under `docs/` are written — they are governed by a tool
 and a hand edit is refused.

@@ -32,6 +32,23 @@ public sealed class AgentSurfaceTests
 
     // ---- the promise ---------------------------------------------------------------------------
 
+    /// <summary>
+    /// Arguments that actually make each read verb do its work.
+    /// </summary>
+    /// <remarks>
+    /// A verb driven with no arguments refuses before it reaches the daemon, and a guard that asserts
+    /// "every request was a GET" over zero requests asserts nothing. This was found the moment
+    /// `read doctor` was registered: it needs a name, refused without one, and the guard went green
+    /// having proved nothing about it. So the table is here, and a read verb added without an entry
+    /// fails rather than being silently skipped.
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> DrivenWith = new(StringComparer.Ordinal)
+    {
+        ["context"] = [],
+        ["ps"] = [],
+        ["doctor"] = ["shop-api-1"],
+    };
+
     [Fact]
     public async Task Every_read_verb_issues_only_GET_requests()
     {
@@ -40,14 +57,23 @@ public sealed class AgentSurfaceTests
         // that mutates fails the moment it is registered.
         foreach (var verb in AgentSurface.All.Where(v => v.Namespace == AgentNamespace.Read))
         {
+            Assert.True(
+                DrivenWith.TryGetValue(verb.Name, out var arguments),
+                $"{verb} has no entry in DrivenWith, so this guard would skip it. Add arguments that "
+                + "make it reach the daemon.");
+
             await using var daemon = new FakeDockerDaemon()
-                .Json(Path("_ping"), "OK")
-                .Raw(Path("_ping"), "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
-                .Json(Path("containers/json?all=1"), TwoContainers);
+                .Fails(Path("_ping"), "200 OK", "OK")
+                .Json(Path("version"), """{"Version":"29.7.2","ApiVersion":"1.55","MinAPIVersion":"1.24","Os":"linux","Arch":"amd64"}""")
+                .Json(Path("containers/json?all=1"), TwoContainers)
+                .Json(Path("containers/aaaaaaaaaaaa0000/json"), """{"Id":"aaaaaaaaaaaa0000","State":{"Status":"exited","ExitCode":137}}""")
+                .Json(Path("images/json?all=0"), "[]")
+                .Json(Path("volumes"), """{"Volumes":[]}""")
+                .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0"), "200 OK", "");
             using var api = new DockerApi(daemon.PipeName);
             var output = new StringWriter();
 
-            AgentSurface.Read(verb, api, [], output);
+            AgentSurface.Read(verb, api, arguments, output);
 
             Assert.NotEmpty(daemon.Requested);
             Assert.All(daemon.Requested, line => Assert.StartsWith("GET ", line, StringComparison.Ordinal));
@@ -66,7 +92,8 @@ public sealed class AgentSurfaceTests
         // failed the moment the context pack needed three more reads, which is the point of writing it
         // this way rather than as a count.
         Assert.Equal(
-            ["ContainersAsync", "ImagesAsync", "InspectAsync", "PingAsync", "VersionAsync", "VolumesAsync"],
+            ["ContainersAsync", "ImagesAsync", "InspectAsync", "LogsAsync", "PingAsync",
+             "VersionAsync", "VolumesAsync"],
             reachable.OrderBy(n => n, StringComparer.Ordinal));
         foreach (var forbidden in new[] { "Start", "Stop", "Remove", "Prune", "Restart", "Run" })
         {
@@ -151,7 +178,7 @@ public sealed class AgentSurfaceTests
     public async Task Containers_come_back_one_line_each_in_a_deterministic_order()
     {
         await using var daemon = new FakeDockerDaemon()
-            .Raw(Path("_ping"), "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
+            .Fails(Path("_ping"), "200 OK", "OK")
             .Json(Path("containers/json?all=1"), TwoContainers);
         using var api = new DockerApi(daemon.PipeName);
         var output = new StringWriter();

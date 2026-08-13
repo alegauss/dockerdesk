@@ -62,4 +62,43 @@ public sealed class Wsl : IWsl
         var rest = full[2..].Replace('\\', '/').TrimStart('/');
         return $"/mnt/{drive}/{rest}";
     }
+
+    /// <summary>
+    /// The Windows path a distribution path came from, where it came from one.
+    /// </summary>
+    /// <param name="distributionPath">A path as the distribution spells it.</param>
+    /// <returns>The Windows path, or <see langword="null"/> where this is not a mapped drive at all.</returns>
+    /// <remarks>
+    /// The reverse of <see cref="ToDistributionPath"/>, and it answers null rather than guessing. A path
+    /// inside the distribution's own filesystem — <c>/var/lib/docker/volumes/…</c> — has no Windows
+    /// equivalent, and neither does another engine's convention: Docker Desktop mounts the host under
+    /// <c>/run/desktop/mnt/host/c</c>, which this deliberately does not recognise. Reporting "does not
+    /// resolve" about a path this tool never mapped would be a false diagnosis, which is worse than no
+    /// diagnosis (DD26).
+    /// </remarks>
+    public static string? ToWindowsPath(string? distributionPath)
+    {
+        if (string.IsNullOrWhiteSpace(distributionPath))
+        {
+            return null;
+        }
+
+        const string prefix = "/mnt/";
+        if (!distributionPath.StartsWith(prefix, StringComparison.Ordinal)
+            || distributionPath.Length < prefix.Length + 2
+            || !char.IsAsciiLetter(distributionPath[prefix.Length]))
+        {
+            return null;
+        }
+
+        var after = distributionPath[(prefix.Length + 1)..];
+        if (after.Length > 0 && after[0] != '/')
+        {
+            // /mnt/certificates is a directory inside the distribution, not drive C with a long name.
+            return null;
+        }
+
+        var drive = char.ToUpperInvariant(distributionPath[prefix.Length]);
+        return drive + ":" + (after.Length == 0 ? "\\" : after.Replace('/', '\\'));
+    }
 }

@@ -1,3 +1,4 @@
+using System.IO;
 using DockerDesk.Core.Api;
 
 namespace DockerDesk.Core.Agent;
@@ -61,4 +62,18 @@ public interface IEngineReads
     /// machine with data on it, which a pack built to replace five cheap calls cannot spend.
     /// </remarks>
     Task<IReadOnlyList<VolumeSummary>> VolumesAsync(CancellationToken cancellation = default);
+
+    /// <summary>A container's log, as the daemon frames it.</summary>
+    /// <param name="id">The container.</param>
+    /// <param name="tail">How many lines of history to open with.</param>
+    /// <param name="follow">Whether to keep the stream open for new output.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The response body.</returns>
+    /// <remarks>
+    /// A read, and the largest one there is: the log is the biggest token sink on this surface, which is
+    /// why the doctor takes a bounded tail of one stream rather than the whole thing (DD26) and why
+    /// making the general read cheap is its own task (DD27).
+    /// </remarks>
+    Task<Stream> LogsAsync(
+        string id, int tail = 2000, bool follow = true, CancellationToken cancellation = default);
 }

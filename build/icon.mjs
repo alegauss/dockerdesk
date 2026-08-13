@@ -23,7 +23,8 @@ const { Resvg } = await import(
   pathToFileURL(join(root, "site", "node_modules", "@resvg", "resvg-js", "index.js")).href
 );
 
-const svg = readFileSync(join(root, "docs", "logo.svg"), "utf8");
+const mark = readFileSync(join(root, "docs", "logo.svg"), "utf8");
+const small = readFileSync(join(root, "docs", "icon.svg"), "utf8");
 
 // Every size Windows asks for: 16 and 24 in the Explorer list, 32 in the title bar and Alt+Tab, 48
 // on the desktop, 64 and 128 in the larger Explorer views, 256 for the Add/Remove Programs entry
@@ -31,7 +32,12 @@ const svg = readFileSync(join(root, "docs", "logo.svg"), "utf8");
 // blurry-icon look, and the whole file is under 100 KB.
 const sizes = [16, 24, 32, 48, 64, 128, 256];
 
+// An .ico is a file of separate pictures, not one picture resampled, which is the whole reason it
+// carries every size: the small entries can be a *different drawing*. Below 48 the mark's three
+// cyan tones average into one and its eye closes, so those entries come from docs/icon.svg, which
+// is the same artwork traced with the wave as one tone and the eye grown to survive the size.
 const pngs = sizes.map((size) => {
+  const svg = size < 48 ? small : mark;
   const rendered = new Resvg(svg, { fitTo: { mode: "width", value: size } });
   return rendered.render().asPng();
 });

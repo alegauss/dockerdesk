@@ -336,29 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD26 The diagnostic join, over the verdict model the preflight already has
-
-Asking why a container is not answering costs `ps -a`, `logs`, `inspect`, `port` and
-`network inspect`, and the join across them is done in the caller's head. The expensive
-one is `inspect`: three to six hundred lines of JSON, paid in full, read for
-`State.ExitCode`, `State.OOMKilled`, `HostConfig.PortBindings` and `Mounts`.
-
-One command does the join and returns the conclusion: state and exit code, whether the
-kernel killed it and against which limit, restart count over a window, health, the
-declared ports beside whether the host port is actually listening, the mounts beside
-whether each resolves, and the last lines that went to stderr rather than the whole log.
-
-It is not a new framework. The preflight already carries exactly this vocabulary — a
-row, a verdict, and a remedy — assembled by `PreflightInspection` and rendered for a
-person or as JSON by `DockerDesk.Preflight`, with an exit code that means something.
-This is that model pointed at a container instead of at a machine, which is reuse of a
-concept the repository has already paid for.
-
-The verdict is the deliverable, not the field dump. A command that returns forty facts
-and no conclusion has moved the join rather than closed it, and the caller pays for the
-thirty-six it did not need. Where there is no conclusion to draw, saying so is also a
-conclusion, and it costs less than the fields would have.
-
 ### §DD27 Logs get a cursor, a dedup and a ceiling, and then become a file
 
 Logs are the largest token sink in this domain and the one with no analogue anywhere

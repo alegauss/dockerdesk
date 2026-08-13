@@ -77,7 +77,7 @@
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
   .nav-left{display:flex;align-items:center;gap:14px;flex:0 0 auto}
   .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;white-space:nowrap}
-  .brand img{width:32px;height:32px;border-radius:8px;flex:0 0 auto}
+  .brand img{height:32px;width:auto;flex:0 0 auto}
   /* parent-brand backlink: this site is one of the alegauss tools */
   .parent{
     display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
@@ -144,8 +144,8 @@
   .pill b{color:var(--text)}
 
   /* floating hero icon */
-  .hero-icon{width:96px;height:96px;border-radius:22px;margin:0 auto 30px;display:block;
-    box-shadow:0 24px 60px -16px rgba(46,155,214,.6);animation:float 5s ease-in-out infinite}
+  .hero-icon{height:104px;width:auto;margin:0 auto 30px;display:block;
+    filter:drop-shadow(0 18px 30px rgba(54,51,68,.45));animation:float 5s ease-in-out infinite}
   @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 
   /* ---------- section ---------- */
@@ -318,7 +318,7 @@
   footer{border-top:1px solid var(--line);padding:46px 0 38px;margin-top:30px}
   .foot-grid{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
   .foot-brand{display:flex;align-items:center;gap:12px;font-weight:800}
-  .foot-brand img{width:30px;height:30px;border-radius:8px}
+  .foot-brand img{height:30px;width:auto}
   .foot-links{display:flex;gap:24px;flex-wrap:wrap}
   .foot-links a{color:var(--muted);font-size:.9rem;transition:color .2s}
   .foot-links a:hover{color:var(--azure)}

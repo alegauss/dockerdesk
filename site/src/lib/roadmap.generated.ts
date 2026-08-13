@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 8,
-      "shipped": 3,
+      "open": 7,
+      "shipped": 4,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 24,
-    "shipped": 37,
+    "open": 23,
+    "shipped": 38,
     "retired": 0
   },
   "open": [
@@ -197,16 +197,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD26",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Why a container is not answering is a join across five commands, and inspect is read for four fields",
-      "why": "One inspect is three to six hundred lines of JSON paid in full, and the join that turns those fields into a conclusion has no command at all.",
-      "deps": [
-        "DD24 ✅"
-      ]
-    },
-    {
       "id": "DD27",
       "status": "📋",
       "block": "G",
@@ -245,7 +235,7 @@ export const roadmap: RoadmapData = {
       "symptom": "Nothing proves a service is reachable: a running container with a bound port can answer nothing",
       "why": "An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle.",
       "deps": [
-        "DD26"
+        "DD26 ✅"
       ]
     },
     {
@@ -500,6 +490,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD26",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Why a container is not answering is a join across five commands, and inspect is read for four fields",
+      "why": "One read doctor joins the five commands and returns a verdict and a remedy per row over the preflight's own model, including the port fact only Windows can answer.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -596,5 +594,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD26"
+  "next": "DD27"
 };

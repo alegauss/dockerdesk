@@ -21,13 +21,28 @@ public static class ReportText
 
     /// <summary>Render the whole report, ending in a newline.</summary>
     /// <param name="report">The report.</param>
+    /// <param name="heading">
+    /// The first line. Defaults to the machine preflight's, because that is what this renderer was
+    /// written for; a report about something else has to say so or the text is about the wrong subject.
+    /// </param>
+    /// <param name="summary">
+    /// The closing line. Defaults to <see cref="Summary(PreflightReport)"/>, which talks about an
+    /// install — the wrong sentence for a report that was never about one.
+    /// </param>
     /// <returns>The text to print.</returns>
-    public static string Render(PreflightReport report)
+    /// <remarks>
+    /// The two parameters are DD26. Pointing this renderer at a container reused the vocabulary as
+    /// intended and inherited the machine's framing with it: a container diagnosis came back headed
+    /// "what this machine can host" and closed with "Nothing has been copied to disk", which was read
+    /// off a real capture and is a report describing the wrong thing.
+    /// </remarks>
+    public static string Render(
+        PreflightReport report, string? heading = null, string? summary = null)
     {
         ArgumentNullException.ThrowIfNull(report);
 
         var text = new StringBuilder();
-        text.AppendLine("DockerDesk preflight — what this machine can host");
+        text.AppendLine(heading ?? "DockerDesk preflight — what this machine can host");
         text.AppendLine();
 
         // ASCII tags in a fixed-width column: the report is the first thing a user sees, and it is
@@ -56,7 +71,7 @@ public static class ReportText
         }
 
         text.AppendLine();
-        text.AppendLine(Summary(report));
+        text.AppendLine(summary ?? Summary(report));
         return text.ToString();
     }
 

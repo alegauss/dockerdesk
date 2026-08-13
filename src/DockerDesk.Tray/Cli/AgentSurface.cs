@@ -74,6 +74,8 @@ public static class AgentSurface
     [
         new(AgentNamespace.Read, "context", "read context",
             "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
+        new(AgentNamespace.Read, "doctor", "read doctor",
+            "<name> — why one container is not answering, as a verdict and a remedy"),
         new(AgentNamespace.Read, "ps", "read ps",
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Do, "engine", "do engine",
@@ -166,6 +168,7 @@ public static class AgentSurface
         return verb.Name switch
         {
             "context" => ReadContext(engine, rest, output),
+            "doctor" => ReadDoctor(engine, rest, output),
             "ps" => ReadPs(engine, rest, output),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
@@ -260,6 +263,163 @@ public static class AgentSurface
         Diagnoses: new Dictionary<string, ContainerInspect>(StringComparer.Ordinal),
         Images: [],
         VolumeCount: 0);
+
+    /// <summary>
+    /// Why one container is not answering (DD26).
+    /// </summary>
+    /// <remarks>
+    /// The join a caller used to do in its own head, closed rather than moved: one call, and what comes
+    /// back is a verdict and a remedy per row rather than the forty fields the five commands would have
+    /// cost. The rows are <see cref="Core.Preflight.PreflightCheck"/>, so the vocabulary is the one the
+    /// preflight already established and the renderer is the one it already has.
+    /// </remarks>
+    private static int ReadDoctor(IEngineReads engine, string[] rest, TextWriter output)
+    {
+        var json = false;
+        string? target = null;
+        foreach (var argument in rest)
+        {
+            if (string.Equals(argument, "--json", StringComparison.Ordinal))
+            {
+                json = true;
+            }
+            else if (argument.StartsWith('-'))
+            {
+                return Refuse($"unexpected argument {argument}: read doctor takes a name and --json");
+            }
+            else if (target is null)
+            {
+                target = argument;
+            }
+            else
+            {
+                return Refuse($"unexpected argument {argument}: read doctor takes one name");
+            }
+        }
+
+        if (!Core.Agent.Address.TryParse(target, out var address, out var refusal))
+        {
+            return Refuse(refusal);
+        }
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                output.WriteLine("engine  stopped  nothing is answering the pipe");
+                return NotReady;
+            }
+
+            var containers = engine.ContainersAsync().GetAwaiter().GetResult();
+            var summary = Match(containers, address);
+
+            ContainerInspect? inspect = null;
+            if (summary is not null)
+            {
+                try
+                {
+                    inspect = engine.InspectAsync(summary.Id).GetAwaiter().GetResult();
+                }
+                catch (DockerApiException)
+                {
+                    // It went away between the list and the inspect. The rows still say what the list
+                    // knew, which is more useful than a failure.
+                }
+            }
+
+            var report = ContainerDoctor.Diagnose(new DoctorFacts(
+                Address: address,
+                Summary: summary,
+                Inspect: inspect,
+                ListeningHostPorts: new HostPorts().Listening(),
+                StandardError: summary is null ? [] : StandardErrorTail(engine, summary.Id),
+                Now: DateTimeOffset.UtcNow));
+
+            output.Write(json
+                ? System.Text.Json.JsonSerializer.Serialize(
+                    report, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
+                    + Environment.NewLine
+                : Core.Preflight.ReportText.Render(
+                    report,
+                    heading: $"dockerdesk read doctor {address}",
+                    summary: report.CanHostEngine
+                        ? "Nothing here is wrong with this container."
+                        : $"{report.Blockers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)} finding(s). The remedy on each row is the action."));
+
+            // The exit code carries the conclusion, so a script does not have to read the text.
+            return report.CanHostEngine ? Ok : Failed;
+        }
+        catch (DockerApiException exception)
+        {
+            output.WriteLine($"engine  unreachable  {exception.Message}");
+            return NotReady;
+        }
+    }
+
+    /// <summary>The container this address names, by name and never by id.</summary>
+    private static ContainerSummary? Match(
+        IReadOnlyList<ContainerSummary> containers, Core.Agent.Address address)
+    {
+        if (address.Kind == Core.Agent.AddressKind.Service)
+        {
+            return containers.FirstOrDefault(c =>
+                c.Labels is not null
+                && c.Labels.TryGetValue(ContextPack.ProjectLabel, out var project)
+                && c.Labels.TryGetValue(ContextPack.ServiceLabel, out var service)
+                && string.Equals(project, address.Project, StringComparison.Ordinal)
+                && string.Equals(service, address.Name, StringComparison.Ordinal));
+        }
+
+        return containers.FirstOrDefault(c =>
+                   string.Equals(c.DisplayName, address.Name, StringComparison.Ordinal))
+               ?? containers.FirstOrDefault(c =>
+                   c.Id.StartsWith(address.Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>How many stderr lines a diagnosis carries.</summary>
+    /// <remarks>
+    /// Five. A restart loop writes the same trace every time, so the tenth copy costs tokens and says
+    /// nothing; making a log read cheap in general — dedup, a cursor, a level — is DD27.
+    /// </remarks>
+    private const int StandardErrorLines = 5;
+
+    /// <summary>The last few lines the container wrote to stderr, newest last.</summary>
+    private static IReadOnlyList<string> StandardErrorTail(IEngineReads engine, string id)
+    {
+        try
+        {
+            using var stream = engine
+                .LogsAsync(id, tail: 200, follow: false).GetAwaiter().GetResult();
+            var frames = new LogFrames(stream, framed: true);
+            var lines = new List<string>();
+            while (frames.ReadAsync().GetAwaiter().GetResult() is { } chunk)
+            {
+                if (chunk.Stream != LogStream.StdErr)
+                {
+                    continue;
+                }
+
+                foreach (var line in chunk.Text.Split('\n'))
+                {
+                    var trimmed = line.TrimEnd('\r');
+                    if (trimmed.Length > 0)
+                    {
+                        lines.Add(trimmed);
+                    }
+                }
+            }
+
+            return lines.Count <= StandardErrorLines
+                ? lines
+                : lines[^StandardErrorLines..];
+        }
+        catch (Exception exception) when (exception is DockerApiException or IOException
+            or InvalidOperationException)
+        {
+            // A log this tool could not read is a row that is absent, not a diagnosis that failed.
+            return [];
+        }
+    }
 
     /// <summary>
     /// Every container, one line each.

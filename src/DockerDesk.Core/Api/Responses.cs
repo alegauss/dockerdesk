@@ -264,6 +264,14 @@ public sealed record ContainerInspect
     /// <summary>The limits it was created with.</summary>
     [JsonPropertyName("HostConfig")]
     public ContainerHostConfig HostConfig { get; init; } = new();
+
+    /// <summary>What it has mounted, and where from.</summary>
+    [JsonPropertyName("Mounts")]
+    public IReadOnlyList<ContainerMount> Mounts { get; init; } = [];
+
+    /// <summary>What it is called, as the daemon spells it, with a leading slash.</summary>
+    [JsonPropertyName("Name")]
+    public string Name { get; init; } = "";
 }
 
 /// <summary>A container's state, as inspect reports it.</summary>
@@ -294,6 +302,52 @@ public sealed record ContainerState
     /// <summary>When it stopped, as the daemon spells it.</summary>
     [JsonPropertyName("FinishedAt")]
     public string FinishedAt { get; init; } = "";
+
+    /// <summary>When it last started, which is the window a restart count is read over.</summary>
+    [JsonPropertyName("StartedAt")]
+    public string StartedAt { get; init; } = "";
+
+    /// <summary>Its health, where a healthcheck was declared.</summary>
+    [JsonPropertyName("Health")]
+    public ContainerHealth? Health { get; init; }
+}
+
+/// <summary>A container's health, where one was declared.</summary>
+public sealed record ContainerHealth
+{
+    /// <summary>starting, healthy or unhealthy.</summary>
+    [JsonPropertyName("Status")]
+    public string Status { get; init; } = "";
+
+    /// <summary>How many checks have failed in a row.</summary>
+    [JsonPropertyName("FailingStreak")]
+    public int FailingStreak { get; init; }
+}
+
+/// <summary>One mount a container carries.</summary>
+public sealed record ContainerMount
+{
+    /// <summary>bind, volume or tmpfs.</summary>
+    [JsonPropertyName("Type")]
+    public string Type { get; init; } = "";
+
+    /// <summary>
+    /// Where it comes from: a path inside the distribution for a bind, a name for a volume.
+    /// </summary>
+    [JsonPropertyName("Source")]
+    public string Source { get; init; } = "";
+
+    /// <summary>The volume's name, for a volume mount.</summary>
+    [JsonPropertyName("Name")]
+    public string? Name { get; init; }
+
+    /// <summary>Where it lands inside the container.</summary>
+    [JsonPropertyName("Destination")]
+    public string Destination { get; init; } = "";
+
+    /// <summary>Whether the container may write to it.</summary>
+    [JsonPropertyName("RW")]
+    public bool ReadWrite { get; init; }
 }
 
 /// <summary>The part of a container's host configuration this tool reads.</summary>
@@ -306,6 +360,29 @@ public sealed record ContainerHostConfig
     /// </remarks>
     [JsonPropertyName("Memory")]
     public long Memory { get; init; }
+
+    /// <summary>
+    /// What it asked the host to publish, by container port.
+    /// </summary>
+    /// <remarks>
+    /// The declared side of the port question. Whether anything is listening on the host is a
+    /// different fact, read from Windows rather than from the daemon, and the two disagreeing is the
+    /// whole reason this row exists.
+    /// </remarks>
+    [JsonPropertyName("PortBindings")]
+    public IReadOnlyDictionary<string, IReadOnlyList<PortPublish>?>? PortBindings { get; init; }
+}
+
+/// <summary>One host endpoint a container port was published to.</summary>
+public sealed record PortPublish
+{
+    /// <summary>The host address, empty for every address.</summary>
+    [JsonPropertyName("HostIp")]
+    public string HostIp { get; init; } = "";
+
+    /// <summary>The host port, as a string, which is how the daemon spells it.</summary>
+    [JsonPropertyName("HostPort")]
+    public string HostPort { get; init; } = "";
 }
 
 /// <summary>A container, as the list endpoint reports it.</summary>

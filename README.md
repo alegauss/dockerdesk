@@ -17,9 +17,11 @@ the engine's state, and one window for containers, images and volumes.
 - **An owned distribution.** The engine lives in a WSL2 distribution called `dockerdesk`
   that this tool created. An `apt upgrade` or a `wsl --unregister` you ran for another
   reason cannot take the engine with it, and the uninstall is one command.
-- **A tray icon you can read at a glance.** Shape carries the state and colour only
-  reinforces it, so it survives a taskbar, a colour-blind reader and a black-and-white
-  screenshot.
+- **A tray icon you can read at a glance — once Windows shows it.** Shape carries the
+  state and colour only reinforces it, so it survives a taskbar, a colour-blind reader
+  and a black-and-white screenshot. Windows 11 files an icon it has not seen before into
+  the overflow behind the chevron, and nothing here promotes itself out of there: drag it
+  onto the taskbar once and Windows remembers. Until then the state is on hover.
 - **One window.** Containers with their ports as links, their logs de-framed and
   followed, and a shell in the terminal you already have. Images sorted by size with
   dangling and in-use named. Volumes with what mounts them, because a volume is the one

@@ -8,7 +8,7 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 1,
+      "open": 3,
       "shipped": 8,
       "retired": 0
     },
@@ -22,8 +22,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "C",
       "title": "C — The window (claude-tray's elements)",
-      "open": 8,
-      "shipped": 2,
+      "open": 7,
+      "shipped": 3,
       "retired": 0
     },
     {
@@ -43,14 +43,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "F",
       "title": "F — Installer and distribution (free, Apache 2.0)",
-      "open": 2,
+      "open": 4,
       "shipped": 3,
       "retired": 0
     },
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 10,
+      "open": 11,
       "shipped": 0,
       "retired": 0
     },
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 21,
-    "shipped": 32,
+    "open": 25,
+    "shipped": 33,
     "retired": 0
   },
   "open": [
@@ -77,12 +77,24 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
-      "id": "DD21",
+      "id": "DD55",
       "status": "📋",
-      "block": "C",
-      "symptom": "The tray icon was not in the visible notification area while the tray was running, so the glance costs a click",
-      "why": "Windows 11 puts a new icon in the overflow by default, and a state indicator behind a chevron is not the thing the tray was built to be.",
-      "deps": []
+      "block": "A",
+      "symptom": "The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them",
+      "why": "Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable.",
+      "deps": [
+        "DD54"
+      ]
+    },
+    {
+      "id": "DD56",
+      "status": "📋",
+      "block": "A",
+      "symptom": "The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not",
+      "why": "The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine.",
+      "deps": [
+        "DD55"
+      ]
     },
     {
       "id": "DD22",
@@ -164,6 +176,25 @@ export const roadmap: RoadmapData = {
       "symptom": "The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts",
       "why": "A row measured on a bare Windows is unverifiable the moment that guest has WSL, and reverting is the one thing the harness documents and does not do.",
       "deps": []
+    },
+    {
+      "id": "DD54",
+      "status": "📋",
+      "block": "F",
+      "symptom": "Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file",
+      "why": "A namespace is the spelling every file in the tree repeats, so renaming it after the machine-facing names leaves two products inside one build for as long as that takes.",
+      "deps": []
+    },
+    {
+      "id": "DD57",
+      "status": "📋",
+      "block": "F",
+      "symptom": "The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one",
+      "why": "Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed.",
+      "deps": [
+        "DD54",
+        "DD55"
+      ]
     },
     {
       "id": "DD23",
@@ -268,6 +299,16 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD24"
       ]
+    },
+    {
+      "id": "DD58",
+      "status": "📋",
+      "block": "G",
+      "symptom": "The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally",
+      "why": "An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one.",
+      "deps": [
+        "DD54"
+      ]
     }
   ],
   "ledger": [
@@ -365,6 +406,14 @@ export const roadmap: RoadmapData = {
       "block": "C",
       "symptom": "There is no window: a user cannot see which containers exist, their state, or the ports they publish",
       "why": "A WPF window lists containers with their ports as links, refreshed by the event stream, and says something designed when it is empty.",
+      "deps": []
+    },
+    {
+      "id": "DD21",
+      "status": "✅",
+      "block": "C",
+      "symptom": "The tray icon was not in the visible notification area while the tray was running, so the glance costs a click",
+      "why": "The icon registers and Windows files it into the overflow, so the install says where it went and how to keep it in sight, and nothing here promotes itself.",
       "deps": []
     },
     {
@@ -528,5 +577,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD21"
+  "next": "DD22"
 };

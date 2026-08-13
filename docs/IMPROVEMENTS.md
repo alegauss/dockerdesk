@@ -20,33 +20,55 @@ the shape that avoids the problem rather than working around it, and it needs th
 to stop being a single joined string — which is a change to what a row carries, not to
 how a row is printed.
 
+### §DD55 The distribution name and the app root are state, not spelling
+
+Two names in `EnginePaths` are the only ones the rename cannot simply overwrite.
+`DistributionName` is `"dockerdesk"` (line 14), and the parameterless constructor roots
+everything under `%LOCALAPPDATA%\DockerDesk` (line 28). Both are state on a machine
+rather than text in a build: the distribution holds every image, container and volume
+the user created, and `distro`, `downloads` and `bin` hang off that root — `bin` being
+the directory the installer put on `PATH`.
+
+A build that simply spells them `freewilly` and `%LOCALAPPDATA%\FreeWilly` starts an
+empty engine beside a full one, reports nothing installed on a machine that has
+everything, and leaves behind a distribution no uninstaller now knows about. The comment
+over `DistributionName` already states why the name is owned and fixed: it makes the
+uninstall exactly one command. The rename has to keep that sentence true across the
+transition.
+
+So the deliverable is the migration, not the constant: detect the old distribution and
+the old root, and either move them or adopt them in place, once and idempotently, with
+the old names spelled in one place so the next reader sees them as legacy rather than
+current. `dockerdesk-engine.exe`, which the tray looks for beside itself, is the third
+name in this set and moves with it. Whether an adopted distribution keeps its old WSL
+name forever or is re-imported under the new one is the decision this task makes and
+records.
+
+### §DD56 The rival probe loses the collision it was written against and gains a real one
+
+`RivalEngineProbe` carries a rule that exists for one reason: this tool's own
+distribution is called `dockerdesk`, and a substring test for "docker" would make the
+engine report itself as a rival. The comment on line 65 says exactly that, and
+`RivalEngineProbeTests` line 141 spells the pair — `dockerdesk` and `docker-desktop` are
+one substring rule apart — with an assertion that `Judge` finds nothing on a machine
+whose only distribution is `dockerdesk`.
+
+`freewilly` contains no "docker", so the collision the rule was written against
+disappears and that assertion starts proving nothing. Deleting both is the obvious move
+and the wrong one, because DD55's migration creates the case that replaces it: a machine
+that ran an older build has a `dockerdesk` distribution on it, and after the rename that
+distribution is no longer this tool's own by name. A probe that reads it as an
+unidentified rival engine tells the user to uninstall the thing they are running.
+
+What this needs is for the old name to stay known to the probe as this project's former
+distribution rather than as a competitor, and for the test to assert that rather than
+the substring accident it currently asserts. The `dockerdesk-absent-` and
+`dockerdesk-test-` prefixes across four test files are fixture names, carry no such
+meaning, and are DD54's mechanical sweep rather than this task's.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
-
-### §DD21 A new tray icon does not get the visible row
-
-The tray's whole argument is that answering "is Docker up?" costs a glance. Windows 11
-does not grant that to a new icon: unless a user has promoted it, a freshly registered
-notification icon goes into the overflow behind the chevron, where a glance costs a
-click first.
-
-Observed with `NotifyIcon.Visible` true and the process alive: a capture of the
-notification area showed the icons already promoted on this machine and not this one.
-What it does not settle is which of two things happened — the icon went to the overflow,
-the documented default, or it never registered. This is one observation, not a
-diagnosis.
-
-Both possibilities are worth the same first step: confirm where the icon actually went,
-on a machine that has never seen this application. The test guest is exactly that
-machine and has never had a tray icon promoted, which the development machine cannot
-say.
-
-If it is the overflow, there is a decision behind it and not a fix. Promoting itself is
-what Docker Desktop does, and it is also what every user resents when six installers
-each decide their icon deserves the visible row. Either leave it in the overflow and say
-so in the installer, or promote once at first run and never again. What is not an option
-is a section that promises a glance while a new user gets a chevron.
 
 ### §DD22 A window is verified by rendering it, not by copying the screen
 
@@ -266,6 +288,53 @@ harness already reads the snapshot list for the doctor, so the fact it needs is 
 already has. The reason this is worth a task rather than a footnote is that DD19 and
 DD20 are both specified against particular machine states too, and each one is
 verifiable exactly once until this exists.
+
+### §DD54 The tree spells the old name in four projects and three namespaces
+
+`DockerDesk` is the tree's own spelling, not Docker's: four project files
+(`DockerDesk.slnx`, `DockerDesk.Core.csproj`, `DockerDesk.Tray.csproj`,
+`DockerDesk.Preflight.Tests.csproj`), three `RootNamespace` declarations, the
+`AssemblyName` that produces `DockerDesk.exe`, `DockerDesk.ico`, and the `Product`,
+`Company` and `Copyright` in `Directory.Build.props` that travel into the published
+binary. Ninety-odd namespace and using lines follow from those three declarations and
+change with them.
+
+Nothing here is state on a user's machine, which is what makes it the first task rather
+than the risky one: a directory rename, a namespace rewrite, and `build\build.cmd`,
+`build\build-installer.cmd`, `check.yml` and `release.yml` following the paths. The test
+harness comes with it — `dockerdesk-vm.env` and the five `DOCKERDESK_` variables
+`scripts/vm.ps1` reads.
+
+What must not move: no type in the tree is named after the product. `DockerApi`,
+`DockerEvent`, `DockerContextProbe` and `RivalEngineProbe` name Docker or the thing they
+probe, and `docker_engine` is the pipe the Docker CLI connects to by protocol, not a
+name this project chose. Renaming any of them would be a second, wrong rename hiding
+inside this one. `DistributionName`, `%LOCALAPPDATA%\DockerDesk` and the installer's own
+identity are left to the tasks that follow this one in the set, because each of those is
+a migration of state on somebody's machine rather than a spelling in a build.
+
+### §DD57 The installer is one identity and six spellings
+
+`build\installer.iss` states the product six times and identifies it once. `AppId` on
+line 25 is `{{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}` — the old name is inside the GUID
+itself — and Inno Setup treats that string, and only that string, as the product's
+identity. Keep it and every future setup upgrades the old entry under a new label;
+change it and a machine carrying the old build ends up with two entries in Add/Remove
+Programs, two Run-key values, and one uninstaller that deletes the other's executable.
+
+The rest is spelling that follows: `MyAppName`, `MyAppPublisher`, `MyAppExeName`,
+`MyPublishDir`, `SetupIconFile`, `DefaultDirName={localappdata}\DockerDesk`, the
+`OutputBaseFilename` that produces `DockerDesk-Setup.exe`, the Run-key `ValueName`, the
+`DistroName` the uninstaller unregisters, and the two message boxes that name the
+product back to the user. `release.yml` names the setup artefact, and
+`dist\DockerDesk-0.1.0.exe` is in the tree already.
+
+The decision this task makes and records is whether an old installation is upgraded in
+place or asked to uninstall first. Either is defensible, and the choice is coupled to
+DD55's: the uninstaller's own prompt offers to keep the engine root so that reinstalling
+picks it up, which is the path a rename breaks quietly. What is not defensible is
+shipping a setup that leaves two products behind, since the version this replaces was
+published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
@@ -513,4 +582,74 @@ What would change the answer is evidence of such a caller, and then this lands a
 surface acquires two sets of semantics. Capped at six tools, with the schema total held
 by the same budget file DD23 gates, and a raise argued in the commit that makes it.
 
+### §DD58 The invocation name is quoted in a file this project does not own
+
+The surface an agent drives is invoked by name, and the name is quoted in a place this
+project does not own. `CommandLine.ExecutableName` is `"DockerDesk.exe"`, the published
+surface documents `dockerdesk read context`, `dockerdesk read doctor api`, `dockerdesk
+read logs api` and `dockerdesk do compose up`, and beside them stands the allowlist
+entry `Bash(dockerdesk read:*)` — a literal prefix match that a user pasted into their
+own `settings.json`.
+
+That is what separates this from a rename inside the tree. An allowlist pattern cannot
+be migrated from here, so a session whose entry says `dockerdesk` starts asking for
+approval on every read the moment the executable answers to something else — which is
+exactly the cost DD24 and DD32 exist to remove. The name therefore has to be settled
+before DD32 writes an install-time settings entry, or DD32 writes the wrong string into
+the one file the install was finally allowed to touch.
+
+The open question is the name itself. `freewilly read logs api --dedup --budget 1500`
+puts nine characters of prefix on a line an agent emits constantly and a user reads
+inside an approval prompt, and a shorter head — `willy`, or an abbreviation — is worth
+weighing against a command that matches the product. Whichever is chosen, one spelling
+has to serve the executable, the documented invocations and the allowlist pattern
+together, because a pattern that disagrees with the executable matches nothing.
+
 ## Block H — The public surface (the site a reader and an agent both read)
+
+### §DD59 The published surface is a path, not just prose
+
+The site does not merely name the product, it is served from a path that contains it.
+Every route in `site-content.ts` is `/dockerdesk/…`, the canonical URL is
+`https://alegauss.github.io/dockerdesk/`, `repoUrl` is
+`https://github.com/alegauss/dockerdesk`, and the base path is what GitHub Pages derives
+from the repository name. Renaming the repository moves every published URL at once, and
+nothing serves the old ones: GitHub's redirect covers the repository, not a Pages path a
+reader or an `llms.txt` consumer already recorded.
+
+Inside the site, the title, the hero, the compare page and the terminal transcripts all
+say DockerDesk, and `logo.svg`, `og.svg` and `llms.txt` exist in three copies each
+(`site/public`, `site/dist`, `site/dist-server`) of which only `public` is authored.
+`package.json` names the workspace `dockerdesk-site`, and `vite.config.ts` and
+`prerender.mjs` carry the base path that the prerender's own route-pair assertion
+checks. `README.md`, `CONTRIBUTING.md` and `NOTICE` name the product to a reader
+arriving from the repository, and `docs/` still holds the previously published
+`index.html`, `sitemap.xml` and `robots.txt` that Pages served before DD50 moved the
+build.
+
+The repository rename is not a write this project can make, so sequencing is the whole
+risk: the base path and the repository name have to change in the same window, or the
+published site returns 404 on every route it has.
+
+### §DD60 The old name in the governed files leaves by verb or not at all
+
+Fifteen lines of governed prose name the product: one in `ROADMAP.md` — the non-goal
+beginning "A model, prompts or API keys", which says DockerDesk is the substrate an
+external agent drives — five in `CHANGELOG.md`, and nine in `IMPROVEMENTS.md`. The guard
+denies an `Edit` to every one of them, so each moves through the verb that owns it:
+`restate` or `amend` for a task line, `section` for rationale prose, `record` for a
+ledger entry, `non-goal amend` for the bullet.
+
+The count only shrinks from here, which is an argument for doing this late rather than
+first: a `ship` drops the rationale section it retires, so an old name inside an
+unshipped section leaves with its task. Doing it at all is the point, though, because
+`CHANGELOG.md` is the ledger a reader consults for what this product has done, and a
+ledger naming a product nobody can find is the one file where the stale name actively
+misleads.
+
+Outside `docs/`, `.claude/skills/dockerdesk-roadmap-docs/` is a directory name that
+`.claude/settings.json` and every invocation of the skill spell out, and the skill's own
+prose names the project throughout. What does not change is `roadkeep.toml`'s `prefix =
+"DD"`: renumbering the ids would rewrite every dependency, every section anchor and
+every pushed commit message that cites one, to say the same thing in two different
+letters.

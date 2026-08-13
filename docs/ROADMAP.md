@@ -5,12 +5,13 @@
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
 - 💭 **DD52** (deps: —) **The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path** — Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped. → §DD52
+- 📋 **DD55** (deps: DD54) **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable. → §DD55
+- 📋 **DD56** (deps: DD55) **The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not** — The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine. → §DD56
 
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD21** (deps: —) **The tray icon was not in the visible notification area while the tray was running, so the glance costs a click** — Windows 11 puts a new icon in the overflow by default, and a state indicator behind a chevron is not the thing the tray was built to be. → §DD21
 - 📋 **DD22** (deps: —) **Verifying a window copies the screen, so a capture twice photographed private content that was in front of it** — Rendering the window off-screen photographs nothing else, and claude-tray already carries both that verb and an overlap-checked screen copy for what a render cannot reach. → §DD22
 - 📋 **DD34** (deps: —) **The two windows redeclare their chrome and one red is spelled four times, so a meaning has four definitions** — A style that lives in whichever window needed it first drifts silently, and claude-tray declares the colours whose value is not a free choice once, converting at each edge. → §DD34
 - 📋 **DD35** (deps: DD34) **Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files** — claude-tray's shell owns only the chrome and each destination its own header and footer; here every list repeats the header, empty-state and refresh stanza in full. → §DD35
@@ -27,6 +28,8 @@
 
 - 📋 **DD32** (deps: DD24, DD14 ✅) **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches. → §DD32
 - 📋 **DD53** (deps: —) **The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts** — A row measured on a bare Windows is unverifiable the moment that guest has WSL, and reverting is the one thing the harness documents and does not do. → §DD53
+- 📋 **DD54** (deps: —) **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — A namespace is the spelling every file in the tree repeats, so renaming it after the machine-facing names leaves two products inside one build for as long as that takes. → §DD54
+- 📋 **DD57** (deps: DD54, DD55) **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed. → §DD57
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
@@ -40,8 +43,12 @@
 - 📋 **DD30** (deps: DD26) **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle. → §DD30
 - 📋 **DD31** (deps: DD25, DD7 ✅) **Every session re-derives the whole machine, because nothing states what moved since the last one** — The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first. → §DD31
 - 💭 **DD33** (deps: DD24) **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does. → §DD33
+- 📋 **DD58** (deps: DD54) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58
 
 ## Block H — The public surface (the site a reader and an agent both read)
+
+- 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59
+- 📋 **DD60** (deps: —) **Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them** — The guard denies the edit, so each one moves through the verb that owns it, and a ledger naming a product nobody can find is where a stale name actively misleads. → §DD60
 
 ## Non-goals
 
@@ -66,3 +73,6 @@
 - **A second Docker CLI** The agent surface answers the joins the Engine API cannot
   make; what docker already answers well is not re-wrapped, so there is no build, no
   push and no registry credentials here.
+- **Renumbering the DD task prefix** The rename stops at the product. Every id appears
+  in a dependency, a section anchor, a shipped ledger entry and a pushed commit message,
+  so a two-letter prefix change rewrites all of it to say exactly the same thing.

@@ -62,6 +62,13 @@ SolidCompression=yes
 WizardStyle=modern
 LicenseFile=..\LICENSE
 
+; DD21. Measured: launching the tray creates a NotifyIconSettings entry with IsPromoted absent, so
+; the icon registers and Windows 11 files it into the overflow — the documented default for an icon
+; the shell has not seen before. This tool does not promote itself out of it, so the install has to
+; say where the icon went rather than leave somebody hunting for a state indicator that was promised
+; as a glance. Shown as its own page, and skipped automatically in a silent install.
+InfoAfterFile=after-install.txt
+
 ; The tray may be running from a previous install. Restart Manager closes it without forcing a
 ; reboot; RestartApplications=no because nothing here needs the machine restarted.
 CloseApplications=yes

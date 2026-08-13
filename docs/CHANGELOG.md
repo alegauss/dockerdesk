@@ -20,6 +20,7 @@
 
 - ✅ **DD6** **Answering is Docker up? costs opening a window, and starting the engine costs a command line** — A tray icon carries the engine state as a shape, and its menu starts the engine in a process that outlives the tray or stops it.
 - ✅ **DD7** **There is no window: a user cannot see which containers exist, their state, or the ports they publish** — A WPF window lists containers with their ports as links, refreshed by the event stream, and says something designed when it is empty.
+- ✅ **DD21** **The tray icon was not in the visible notification area while the tray was running, so the glance costs a click** — The icon registers and Windows files it into the overflow, so the install says where it went and how to keep it in sight, and nothing here promotes itself.
 
 ## Block D — Container operations (what a user came to do)
 

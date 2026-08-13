@@ -1,0 +1,15 @@
+DockerDesk is installed.
+
+One thing Windows does that is worth knowing before you go looking for it: a
+notification icon it has not seen before goes into the overflow, behind the
+chevron next to the clock. DockerDesk's icon is there now, and not on the
+taskbar.
+
+Nothing here changes that for you. Windows keeps that choice per user and per
+application, and six installers each deciding their own icon deserves the
+visible row is the reason it works that way at all. To keep the engine's state
+in sight, click the chevron and drag the DockerDesk icon onto the taskbar once
+- Windows remembers it from then on.
+
+Until you do, nothing is missing: the state is in the icon's tooltip on hover,
+and the window is one click away from its menu.

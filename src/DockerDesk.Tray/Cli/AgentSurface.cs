@@ -72,6 +72,8 @@ public static class AgentSurface
     /// </remarks>
     public static readonly IReadOnlyList<AgentVerb> All =
     [
+        new(AgentNamespace.Read, "changes", "read changes",
+            "[--session id] — what this session created, by its label and never by a timestamp"),
         new(AgentNamespace.Read, "context", "read context",
             "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
         new(AgentNamespace.Read, "doctor", "read doctor",
@@ -84,6 +86,8 @@ public static class AgentSurface
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Do, "engine", "do engine",
             "start | stop — bring the engine up or take it down"),
+        new(AgentNamespace.Do, "reclaim", "do reclaim",
+            "--session [id] [--volumes] [--confirm k:..] — remove exactly what this session made"),
     ];
 
     /// <summary>The verb these arguments name, or null.</summary>
@@ -171,6 +175,7 @@ public static class AgentSurface
 
         return verb.Name switch
         {
+            "changes" => ReadChanges(engine, rest, output),
             "context" => ReadContext(engine, rest, output),
             "doctor" => ReadDoctor(engine, rest, output),
             "logs" => ReadLogs(engine, rest, output),
@@ -178,6 +183,63 @@ public static class AgentSurface
             "ps" => ReadPs(engine, rest, output),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
+    }
+
+    /// <summary>
+    /// What this session created, said by its label (DD29).
+    /// </summary>
+    /// <remarks>
+    /// The read half of the undo. It answers from <see cref="SessionLabel.Key"/> and never from a
+    /// creation time: a timestamp window would sweep in whatever the user happened to start that
+    /// afternoon, and being wrong about that in a listing whose next line is a delete is the failure
+    /// mode this whole task exists to remove.
+    /// </remarks>
+    private static int ReadChanges(IEngineReads engine, string[] rest, TextWriter output)
+    {
+        var json = false;
+        string? session = null;
+        for (var i = 0; i < rest.Length; i++)
+        {
+            switch (rest[i])
+            {
+                case "--json":
+                    json = true;
+                    continue;
+                case "--session":
+                    if (i + 1 < rest.Length && !rest[i + 1].StartsWith('-'))
+                    {
+                        session = rest[++i];
+                    }
+
+                    continue;
+                default:
+                    return Refuse(
+                        $"unexpected argument {rest[i]}: read changes takes --session and --json");
+            }
+        }
+
+        session ??= SessionLabel.Resolve();
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                return RefuseWith(CannotConnect(), json, output);
+            }
+
+            var plan = Reclaim.Plan(
+                session,
+                engine.ContainersAsync().GetAwaiter().GetResult(),
+                engine.VolumesAsync().GetAwaiter().GetResult(),
+                includeVolumes: true);
+
+            output.Write(json ? Reclaim.RenderJson(plan) : Reclaim.RenderChanges(plan));
+            return Ok;
+        }
+        catch (DockerApiException)
+        {
+            return RefuseWith(CannotConnect(), json, output);
+        }
     }
 
     /// <summary>
@@ -756,8 +818,155 @@ public static class AgentSurface
     private static int RunDo(AgentVerb verb, string[] rest) => verb.Name switch
     {
         "engine" => DoEngine(rest),
+        "reclaim" => DoReclaimHere(rest),
         _ => Refuse($"{verb} is registered and not implemented"),
     };
+
+    /// <summary>The reclaim against this machine's engine.</summary>
+    private static int DoReclaimHere(string[] rest)
+    {
+        using var api = new DockerApi();
+        return DoReclaim(api, rest, Console.Out);
+    }
+
+    /// <summary>
+    /// Remove exactly what one session created, once somebody has seen the list (DD29).
+    /// </summary>
+    /// <remarks>
+    /// Two calls by design. The first prints the plan and a token computed over it; the second carries
+    /// that token back, and matches only if the list is still the one that was printed. A container that
+    /// arrived in between changes the token, so the second call refuses and names what would go now
+    /// rather than quietly taking something nobody approved.
+    ///
+    /// <para>The removal is forced, because the plan said which of them were running and the caller
+    /// confirmed that list. A confirm that then failed on the one container the caller could see was
+    /// running would have moved the work back to them for no safety at all — the safety is the list.</para>
+    /// </remarks>
+    /// <param name="engine">The engine, on a handle that can remove and cannot start.</param>
+    /// <param name="rest">Everything after the two words.</param>
+    /// <param name="output">Where the plan goes.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int DoReclaim(IEngineRemovals engine, string[] rest, TextWriter output)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(rest);
+        ArgumentNullException.ThrowIfNull(output);
+
+        var json = false;
+        var volumes = false;
+        string? session = null;
+        string? confirm = null;
+
+        for (var i = 0; i < rest.Length; i++)
+        {
+            switch (rest[i])
+            {
+                case "--json":
+                    json = true;
+                    continue;
+                case "--volumes":
+                    volumes = true;
+                    continue;
+                case "--session":
+                    // The value is optional: bare, it means the session this process is already in.
+                    if (i + 1 < rest.Length && !rest[i + 1].StartsWith('-'))
+                    {
+                        session = rest[++i];
+                    }
+
+                    continue;
+                case "--confirm":
+                    if (i + 1 >= rest.Length)
+                    {
+                        return Refuse("--confirm needs the token the plan printed");
+                    }
+
+                    confirm = rest[++i];
+                    continue;
+                default:
+                    return Refuse(
+                        $"unexpected argument {rest[i]}: do reclaim takes --session, --volumes, "
+                        + "--confirm and --json");
+            }
+        }
+
+        if (confirm is not null && !confirm.StartsWith(Reclaim.TokenPrefix, StringComparison.Ordinal))
+        {
+            // Named rather than compared, because the two other prefixes on this surface are a context
+            // cursor and a log cursor, and a caller that pasted one of those is one word from correct.
+            return Refuse(
+                $"{confirm} is not a confirm token: they start with {Reclaim.TokenPrefix} and are "
+                + "printed by `dockerdesk do reclaim --session`");
+        }
+
+        session ??= SessionLabel.Resolve();
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                return RefuseWith(CannotConnect(), json, output);
+            }
+
+            var plan = Reclaim.Plan(
+                session,
+                engine.ContainersAsync().GetAwaiter().GetResult(),
+                engine.VolumesAsync().GetAwaiter().GetResult(),
+                volumes);
+
+            if (confirm is null)
+            {
+                output.Write(json ? Reclaim.RenderJson(plan) : Reclaim.Render(plan));
+                return Ok;
+            }
+
+            if (!Reclaim.Confirms(plan, confirm))
+            {
+                var problem = Reclaim.Stale(plan, confirm);
+                output.Write(json ? problem.ToJson() : problem.ToText());
+                if (!json && plan.Removing.Count > 0)
+                {
+                    output.Write(Reclaim.Render(plan));
+                }
+
+                return Failed;
+            }
+
+            // Containers first: a volume this session's own container still mounts is refused by the
+            // daemon, and the container is on its way out anyway.
+            var failures = 0;
+            foreach (var item in plan.Removing)
+            {
+                try
+                {
+                    if (string.Equals(item.Kind, Reclaim.Container, StringComparison.Ordinal))
+                    {
+                        engine.RemoveContainerAsync(item.Name, force: true).GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        engine.RemoveVolumeAsync(item.Name).GetAwaiter().GetResult();
+                    }
+
+                    output.WriteLine($"removed  {item.Kind.PadRight(10)}{item.Name}");
+                }
+                catch (DockerApiException exception)
+                {
+                    // Reported and carried on: one volume the daemon would not release is not a reason
+                    // to leave the other nine behind, and a partial reclaim that says which part failed
+                    // is actionable.
+                    failures++;
+                    output.WriteLine($"FAILED   {item.Kind.PadRight(10)}{item.Name}  {exception.Message}");
+                }
+            }
+
+            return failures == 0 ? Ok : Failed;
+        }
+        catch (DockerApiException)
+        {
+            return RefuseWith(CannotConnect(), json, output);
+        }
+    }
 
     /// <summary>Start or stop the engine, through the same code the tray and the flags use.</summary>
     private static int DoEngine(string[] rest)

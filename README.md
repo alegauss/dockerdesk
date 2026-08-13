@@ -79,7 +79,9 @@ dockerdesk read doctor <name> why one container is not answering
 dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk read logs <name>   --since --level --dedup --budget --out
 dockerdesk read ports [port]  what holds a host port, which Docker cannot say
+dockerdesk read changes       what this session created, by its label
 dockerdesk do   engine start  brings the engine up
+dockerdesk do   reclaim       remove exactly that, and nothing else
 ```
 
 `port is already allocated` is the refusal an agent cannot act on: the daemon knows a bind
@@ -155,6 +157,36 @@ container not responding* — `OOM limit=512M` — with no second call. Order is
 the payload caches and a diff means something, the ceiling is hard and a truncated payload
 **says how many rows went** rather than cutting silently, and the cursor fingerprints the
 machine rather than the text. `--json` is there for callers that parse.
+
+What an agent created is indistinguishable from what you created, so the only cleanup on
+offer is `prune` — scoped to the whole machine, unable to tell this afternoon's
+scaffolding from the database you have been filling since March, and therefore the one
+command nobody delegates. Everything created through `do` is stamped
+`dockerdesk.session=<id>`, `read changes` answers from that label and never from a
+timestamp, and the undo is scoped to it:
+
+```
+$ dockerdesk do reclaim --session repro-17
+session  repro-17
+would remove  2 container(s)
+  container shop-api-1              exited  shop/api:latest
+  container shop-db-1               running  postgres:16-alpine
+KEEPING  1 volume(s)  a container comes back from its image; a volume comes back from nothing
+  volume    shop-data               not mounted
+  --volumes takes them too, and changes the token below.
+confirm  dockerdesk do reclaim --session repro-17 --confirm k:6e80b8
+```
+
+The session is `DOCKERDESK_SESSION`, because every call is a separate process and an id
+minted per invocation would put every object in a session of its own. Unset, the id is
+derived from the working directory and **says so** — `dir:f00bf3` — so a scope that is
+really "this folder, forever" is not mistaken for a piece of work.
+
+**The token is computed over that list.** The second call matches only if the list is
+still the one printed, so a container that arrived in between makes the confirm refuse
+and name what would go now, rather than quietly taking something nobody approved.
+Volumes are the exception this is loudest about, and `--volumes` changes the token — a
+token issued for the containers cannot be replayed to take the data with them.
 
 `docker ps` and `docker rm -f -v` are the same string to an allowlist, so a rule either
 grants the whole verb namespace — which permits deleting a volume — or every call stops to

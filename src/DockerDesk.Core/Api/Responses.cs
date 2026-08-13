@@ -108,6 +108,16 @@ public sealed record VolumeSummary
     /// <summary>Its size, when something measured it.</summary>
     [JsonPropertyName("UsageData")]
     public VolumeUsage? UsageData { get; init; }
+
+    /// <summary>
+    /// What was stamped on it when it was created.
+    /// </summary>
+    /// <remarks>
+    /// Read for one of them: <see cref="Agent.SessionLabel.Key"/>, which is what makes a scoped reclaim
+    /// possible at all. A volume with no labels is somebody else's and is never in a plan.
+    /// </remarks>
+    [JsonPropertyName("Labels")]
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
 }
 
 /// <summary>What <c>/volumes</c> answers.</summary>

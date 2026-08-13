@@ -44,6 +44,7 @@ public sealed class AgentSurfaceTests
     /// </remarks>
     private static readonly Dictionary<string, string[]> DrivenWith = new(StringComparer.Ordinal)
     {
+        ["changes"] = [],
         ["context"] = [],
         ["ps"] = [],
         ["doctor"] = ["shop-api-1"],

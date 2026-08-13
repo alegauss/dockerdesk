@@ -101,6 +101,21 @@
       ],
       "read doctor": 280,
       "read logs": 400,
+      "$read changes": [
+        "DD29. Four containers and two volumes made by one session render at 100 measured, against a",
+        "ceiling of 115. It is a listing rather than a payload: one line per object, and the number that",
+        "matters is not this one - the alternative to this verb is `docker ps -a` plus `docker volume ls`",
+        "plus the caller deciding by eye which rows are its own, which is 1906 tokens for the container",
+        "list alone and a guess at the end of it."
+      ],
+      "read changes": 115,
+      "$do reclaim": [
+        "DD29. The same session's plan is 154 measured against a ceiling of 170, and what the tokens buy",
+        "is the part that makes the delete safe to delegate: the removal list, the volumes kept beside",
+        "the reason they are kept, and the confirm line. A reclaim that printed only a token would be",
+        "cheaper and would be the thing this task exists to prevent - a delete nobody read."
+      ],
+      "do reclaim": 170,
       "do compose up": 140,
       "read verify": 110
     }

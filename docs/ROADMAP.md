@@ -33,7 +33,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD29** (deps: DD24 ✅) **What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing** — Prune is scoped to the whole machine and is the one command nobody delegates, so leftovers stay rather than risk a volume the session did not create. → §DD29
 - 📋 **DD30** (deps: DD26 ✅) **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle. → §DD30
 - 📋 **DD31** (deps: DD25 ✅, DD7 ✅) **Every session re-derives the whole machine, because nothing states what moved since the last one** — The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first. → §DD31
 - 💭 **DD33** (deps: DD24 ✅) **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does. → §DD33

@@ -40,7 +40,7 @@ public sealed class DockerApiException(
 /// a streaming endpoint without owning a child's stdout. <see cref="StreamAsync(string, CancellationToken)"/> exists because of
 /// that last one.
 /// </remarks>
-public sealed class DockerApi : IDisposable, Agent.IEngineReads
+public sealed class DockerApi : IDisposable, Agent.IEngineRemovals
 {
     /// <summary>The pipe the engine serves on Windows.</summary>
     public const string DefaultPipeName = "docker_engine";

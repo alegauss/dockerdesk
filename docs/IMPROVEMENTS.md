@@ -336,29 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD29 A label is the audit trail, and a scoped reclaim is the undo
-
-An agent that starts three containers and a volume to reproduce a defect has no way to
-take them back. `prune` is scoped to the machine, cannot distinguish what this session
-made from what the user made last week, and is therefore the one command nobody
-delegates — so the leftovers stay, and the next session inherits a machine with a
-history it did not write.
-
-Docker already carries the mechanism: every object takes labels. Everything created
-through `dockerdesk do` is stamped `dockerdesk.session=<id>`, and `do reclaim --session`
-removes exactly that set and nothing else. Scoped by label, cleanup is an undo, and an
-undo is safe enough to be routine in a way that a whole-machine sweep never becomes.
-
-The same label answers the other half, which is what you see. `read changes` can say
-what this session created without inferring it from timestamps, and a reclaim can print
-what it is about to remove before it removes it. A destructive call takes a confirm
-token computed over that list: right is the token and the list, wrong is a refusal
-naming what would go now, so a plan that went stale between the two calls refuses rather
-than deleting something that arrived in between.
-
-Volumes stay the exception the tool is loudest about. A container comes back and a
-volume does not.
-
 ### §DD30 Cheap textual proof, because the agent cannot look
 
 The daemon reporting `running` and the service actually answering are different facts,

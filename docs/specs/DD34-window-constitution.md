@@ -3,7 +3,7 @@
 > Roadmap: [ROADMAP.md](../ROADMAP.md) Block **C** ·
 > Design: [IMPROVEMENTS.md](../IMPROVEMENTS.md) §DD34–§DD39
 > Status: 📋 designed, not started · deps: none — DD34 is the floor the rest stand on
-> Scope: this document is the **constitution for the human surface** — the laws a
+> Scope: this document is the **constitution for the desktop surface** — the laws a
 > window is judged by, the elements they imply, and the decomposition into DD34–DD39.
 > [DD23](DD23-agent-first-dockerdesk.md) is its counterpart for the agent surface.
 > Each task keeps its own rationale in `IMPROVEMENTS.md`; this is the premise under

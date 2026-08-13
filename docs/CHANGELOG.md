@@ -6,6 +6,7 @@
 - ✅ **DD2** **There is no unattended way to put a container engine on Windows without installing Docker Desktop** — `dockerdesk-engine --provision` puts upstream Moby 29.7.2 in an owned WSL2 distro and docker.exe where an installer can add it to PATH.
 - ✅ **DD17** **No clean Windows is reachable from here, so a red preflight row and a real install have never been executed** — `vm.ps1` runs the product preflight inside a Windows 11 guest through vmrun and reads back what it said.
 - ✅ **DD3** **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — `dockerdesk-engine --run` starts the distro and daemon, serves \.\pipe\docker_engine, and reports Running only once the engine answers.
+- ✅ **DD16** **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — The row now asks what owns the docker command, resolving it off PATH the way a shell does and reading the registered WSL distributions, and it names every signal it found.
 
 ## Block B — The daemon client (talk to the engine)
 

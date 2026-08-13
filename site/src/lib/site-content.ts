@@ -133,8 +133,8 @@ export const heroSession = {
       out: ":8080 answers from Windows  ·  200 OK  ·  PASS",
     },
   ],
-  today: "Docker today: 15–30 calls · 30–60k tokens · 1–3 human round trips",
-  target: "This session: ≈5 calls · ~2–5k tokens · 0 human round trips",
+  today: "Docker today: 15–30 calls · 30–60k tokens · 1–3 interruptions",
+  target: "This session: ≈5 calls · ~2–5k tokens · 0 interruptions",
   note: [
     "A scripted session — the costs are ",
     { b: "targets DD23 must prove or falsify" },
@@ -152,9 +152,9 @@ export const heroSession = {
 
 export const operator = {
   eyebrow: "Who operates this",
-  heading: "The operator is an agent. The human installs and approves.",
+  heading: "The operator is an agent. You install and approve.",
   intro: [
-    "DockerDesk is a Docker installation whose primary operator is a coding agent. The agent runs, inspects and diagnoses; the human installs, approves and intervenes. Every decision on the agent surface is judged in tokens rather than clicks — which is why the site opens on a session and not a screenshot.",
+    "DockerDesk is a Docker installation whose primary operator is a coding agent. The agent runs, inspects and diagnoses; you install, approve and intervene. Every decision on the agent surface is judged in tokens rather than clicks — which is why the site opens on a session and not a screenshot.",
   ] as Rich,
   actors: [
     {
@@ -164,14 +164,14 @@ export const operator = {
       job: "Run, inspect, diagnose, clean up after itself",
     },
     {
-      who: "Human",
-      sub: "you",
+      who: "You",
+      sub: "at the keyboard",
       iface: "the installer, the tray, the container and log windows",
       job: "Install, approve, intervene, uninstall",
     },
   ],
   actorsNote: [
-    "The human path is not sacrificed — it is what the installer and the tray (",
+    "The desktop path is not sacrificed — it is what the installer and the tray (",
     { code: "DD14" },
     ", ",
     { code: "DD15" },
@@ -189,8 +189,8 @@ export const operator = {
     { id: "P4", title: "A file beats a stream", body: "An unbounded log read is the largest token sink here. Write it to disk and let the agent Grep it — it pays for the lines that match, not for the whole log." },
     { id: "P5", title: "Names, not ids", body: "A 64-hex id changes on every recreate. The address is the name — svc:<project>/<service>, or the container name — so ids stop being currency threaded across calls." },
     { id: "P6", title: "Errors are instructions", body: "Every refusal carries what was wrong, what is allowed, the nearest match, a correct example — and the Windows fact that explains it. An error that costs a round trip to read is a defect." },
-    { id: "P7", title: "Never surprise the human", body: "Read and write are split at the argv level so an allowlist can tell them apart. Destructive calls take a confirm token, and everything the agent creates is labelled with its session." },
-    { id: "P8", title: "The agent cannot see", body: "Give it cheap textual proof that what it started works — the port listens from Windows, the mount resolved, the service answered — or every mistake costs a human cycle." },
+    { id: "P7", title: "Never surprise you", body: "Read and write are split at the argv level so an allowlist can tell them apart. Destructive calls take a confirm token, and everything the agent creates is labelled with its session." },
+    { id: "P8", title: "The agent cannot see", body: "Give it cheap textual proof that what it started works — the port listens from Windows, the mount resolved, the service answered — or every mistake costs a trip back to you." },
     { id: "P9", title: "Session N+1 is cheaper than N", body: "A cursor and a change feed, so a follow-up session reads the delta rather than re-deriving the whole machine from nothing." },
     { id: "P10", title: "Compose, don't fork", body: "The surface is a shape over the Engine API and facts Windows already knows. It is not a second Docker CLI and never grows a build, a push or a compose up of its own." },
   ],
@@ -652,7 +652,7 @@ export const claudeCode = {
   intro: [
     "Listing containers and deleting a volume are one string to an allowlist, so a user either grants every ",
     { code: "docker" },
-    " call — which permits deleting a volume — or approves each one. Splitting the verbs in argv makes it one line of settings, and what that buys is not keystrokes: it is the removal of a human round trip from the 90% of agent Docker work that mutates nothing.",
+    " call — which permits deleting a volume — or approves each one. Splitting the verbs in argv makes it one line of settings, and what that buys is not keystrokes: it is the removal of an interruption from the 90% of agent Docker work that mutates nothing.",
   ] as Rich,
   status: [
     "This is the designed surface, not a shipped one — the CLI is ",

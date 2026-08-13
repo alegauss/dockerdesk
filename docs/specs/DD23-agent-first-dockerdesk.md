@@ -12,14 +12,14 @@
 
 ## 1. The shift
 
-DockerDesk today is a **Windows desktop app for a human**: a preflight, an owned WSL2
+DockerDesk today is a **Windows desktop app you drive by hand**: a preflight, an owned WSL2
 distribution, a tray carrying the engine's state, a container list, a log window. That
 foundation is right and none of it changes. What this document changes is **who is
 expected to be driving it**:
 
 > DockerDesk is a Docker installation whose primary operator is a coding agent.
-> The agent runs, inspects and diagnoses. The human installs, approves and
-> intervenes. Every design decision on the agent surface is judged by *tokens and
+> The agent runs, inspects and diagnoses. You install, approve and
+> intervene. Every design decision on the agent surface is judged by *tokens and
 > round trips*, not by clicks.
 
 This is not "add AI to a Docker GUI". DockerDesk hosts no model, no prompts and no API
@@ -34,7 +34,7 @@ Three things are true of this repository and of almost nothing else:
 - **The transport is already the Engine API, not `docker.exe`.**
   [`DockerApi`](../../src/DockerDesk.Core/Api/DockerApi.cs) speaks HTTP over
   `\\.\pipe\docker_engine` with nothing from NuGet, which means an agent-facing
-  response can be *shaped* rather than parsed back out of a human's table.
+  response can be *shaped* rather than parsed back out of a human-readable table.
 - **It owns the engine's lifecycle.**
   [`EngineLifecycle`](../../src/DockerDesk.Core/Engine/EngineLifecycle.cs) can start the
   daemon. Every other route an agent has to Docker on Windows ends at "ask the user to
@@ -50,9 +50,9 @@ Three things are true of this repository and of almost nothing else:
 | Actor | Interface | Job |
 |---|---|---|
 | **Agent** (Claude Code) | the `dockerdesk` CLI, over an ordinary shell | Run, inspect, diagnose, clean up after itself |
-| **Human** | the installer, the tray, the container and log windows | Install, approve, intervene, uninstall |
+| **You** | the installer, the tray, the container and log windows | Install, approve, intervene, uninstall |
 
-The human path is not sacrificed. It is what DD14 and DD15 are for, and Block G does not
+The desktop path is not sacrificed. It is what DD14 and DD15 are for, and Block G does not
 start until they ship.
 
 ---
@@ -89,14 +89,14 @@ the nearest match and a minimal correct example. On this product it carries one 
 more: **the Windows fact that explains it**. An error that costs a round trip to
 interpret is a defect.
 
-**P7 — Never surprise the human.** Read and write are separated at the argv level so a
+**P7 — Never surprise you.** Read and write are separated at the argv level so a
 permission allowlist can tell them apart. Destructive operations take a confirm token.
 Everything an agent creates is labelled with its session, and that label is the undo.
 
 **P8 — The agent cannot see.** Give it cheap textual proof that what it started is
 actually working — the port listens *from Windows*, the mount resolved, the service
-answered. Otherwise every mistake costs a human cycle, which is the most expensive unit
-in the system.
+answered. Otherwise every mistake costs a trip back to you, which is the most expensive
+unit in the system.
 
 **P9 — Session N+1 is cheaper than session N.** A cursor and a change feed, so a
 follow-up session reads the delta rather than re-deriving the machine.
@@ -132,15 +132,15 @@ the first task of Block G for exactly that reason.**
 
 | Phase | Today | Cost driver |
 |---|---|---|
-| Learn the state | `docker ps -a`, re-run three to five times a session as state moves | A truncating human table, no cursor, no delta — full re-discovery each time |
+| Learn the state | `docker ps -a`, re-run three to five times a session as state moves | A truncating human-readable table, no cursor, no delta — full re-discovery each time |
 | Diagnose | `docker inspect api` — 300–600 lines of JSON, of which four fields are read (`State.ExitCode`, `OOMKilled`, `PortBindings`, `Mounts`) | No projection: the whole entity tree is paid for |
 | Read the log | `docker logs --tail 200`, carrying the same stack trace forty times from a restart loop | No dedup, no cursor, no level filter, no ceiling |
 | Confirm the network | `docker port` + `inspect network` + a guess | The last question — *is the host port actually listening* — Docker does not answer at all |
-| Get permission | every call is an allowlist decision | **A human round trip, the most expensive unit here** |
+| Get permission | every call is an allowlist decision | **An interruption, the most expensive unit here** |
 | Next session | all of it again | No memory |
 
-Ballpark: **30–60k tokens, 15–30 calls, 1–3 human cycles**, of which `inspect` and
-unbounded logs are the large majority. Two of the three human cycles exist only because
+Ballpark: **30–60k tokens, 15–30 calls, 1–3 interruptions**, of which `inspect` and
+unbounded logs are the large majority. Two of the three interruptions exist only because
 the agent cannot verify its own work.
 
 ### 3.1 The same task under this proposal
@@ -154,7 +154,7 @@ the agent cannot verify its own work.
 5. dockerdesk read verify svc:shop/api         → the port answers from Windows: PASS    (~80 tok)
 ```
 
-Target: **~2–5k tokens, ~5 calls, 0 human cycles for the diagnosis.** Steps 1, 2, 3 and
+Target: **~2–5k tokens, ~5 calls, 0 interruptions for the diagnosis.** Steps 1, 2, 3 and
 5 are reads, so a single allowlist entry — `Bash(dockerdesk read:*)` — removes every
 permission prompt on the inspection path while step 4 still asks. **These are the
 numbers DD23 must prove or falsify. They are acceptance criteria, not achievements.**
@@ -175,7 +175,7 @@ grants `Bash(docker:*)` — which permits deleting a volume — or approves ever
 Docker tool can express the rule the user actually wants, because `docker` mixes both in
 one verb namespace. Splitting them in argv makes it one line of
 `.claude/settings.json`, and what that buys is not fewer keystrokes: it is the removal of
-human round trips from the 90% of agent Docker work that mutates nothing (P7, P8).
+interruptions from the 90% of agent Docker work that mutates nothing (P7, P8).
 
 `read` is a promise, not a naming convention: a verb under it that writes is a defect.
 

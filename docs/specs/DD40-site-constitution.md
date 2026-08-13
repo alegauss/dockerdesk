@@ -6,7 +6,7 @@
 > Scope: this document is the **constitution for the published surface** — who reads it,
 > the laws a page is judged by, the page map, the build, and the decomposition into
 > DD40–DD51. [DD23](DD23-agent-first-dockerdesk.md) is the constitution for the agent
-> surface and [DD34](DD34-window-constitution.md) for the human one; this is the
+> surface and [DD34](DD34-window-constitution.md) for the desktop one; this is the
 > constitution for the *third* surface, the one both audiences meet first.
 > Each task keeps its own rationale in `IMPROVEMENTS.md`; this is the premise under all
 > of them.
@@ -18,7 +18,7 @@
 Two projects by the same author now make the same argument. DD23 states DockerDesk's:
 
 > DockerDesk is a Docker installation whose primary operator is a coding agent. The
-> agent runs, inspects and diagnoses. The human installs, approves and intervenes.
+> agent runs, inspects and diagnoses. You install, approve and intervene.
 
 Viglet Shio states its own in one line on its home page — *the CMS whose operator is
 Claude Code* — and it has already **built the site that sells that argument**:
@@ -186,7 +186,7 @@ Ten routes, mirroring `shio-site`'s five-plus-depth-pages shape.
 
 | Route | What it is | Task |
 |---|---|---|
-| `/` | The landing page: the argument, in the order an agent then a human meets it | DD40 |
+| `/` | The landing page: the argument, in the order an agent then a reader meets it | DD40 |
 | `/claude-code` | The agent's operator: the read/do split, the one allowlist line, the plugin | DD46 |
 | `/compare` | Against Docker Desktop, Rancher Desktop, Podman Desktop and plain WSL2 | DD47 |
 | `/features/preflight` | Four rows, each with its remedy, and the hypervisor-before-firmware order | DD48 |

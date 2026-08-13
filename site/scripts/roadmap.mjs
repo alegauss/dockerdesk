@@ -1,6 +1,6 @@
 // S2 — the build reads roadkeep. This runs `roadkeep export --json` against the governed
 // files and writes src/lib/roadmap.generated.ts, so a shipped task moves the row it is on
-// and nothing about this project's own progress is a number a human retyped. If roadkeep
+// and nothing about this project's own progress is a number retyped by hand. If roadkeep
 // cannot be reached or its output is malformed, this throws — a red build, never a page
 // left confidently stale.
 import { execFileSync } from "node:child_process";

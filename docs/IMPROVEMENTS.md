@@ -2,34 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD16 The rival row asks where a vendor installs, not what owns the docker command
-
-The rival row shipped looking for `%ProgramFiles%\Docker\Docker\Docker Desktop.exe`, a
-`%LOCALAPPDATA%\Programs\Rancher Desktop` executable, and an open
-`\\.\pipe\docker_engine`. Docker Desktop now installs per user, into
-`%LOCALAPPDATA%\Programs\DockerDesktop`, and its engine is only listening while the app
-is running. So a machine with Docker Desktop installed and stopped answers no to all
-three.
-
-Measured on the development machine: `docker.exe` resolves to
-`C:\Users\alexa\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe`, `wsl -l
--v` lists a registered `docker-desktop` distribution, and both `C:\Program Files\Docker`
-and `%LOCALAPPDATA%\Docker` exist — while the preflight prints `[ok] Container engine —
-nothing else owns the docker command or the docker_engine pipe` and exits 0.
-
-That is the one row that must never be wrongly green. Its remedy is "uninstall it
-first", and the reason is that two engines competing for one pipe leave the user with
-neither — so a false green does not merely omit a warning, it clears an install to walk
-into the exact collision the check was added to prevent.
-
-What the design already said is the fix: the fact is whether something **owns the
-`docker` command**, and the shipped probe never asked. Resolving `docker` the way the
-shell resolves it answers it in one read, independent of where any vendor chose to
-install this year, and a registered `docker-desktop` distribution is the second signal
-that survives the app being shut down. The three existing checks stay — a path and an
-open pipe are still evidence, and evidence carried into the report is what lets a user
-argue with it.
-
 ### §DD18 The WSL2 row asks the one question that hangs on a machine with no WSL
 
 `wsl.exe` ships in System32 on a Windows 11 that never had WSL, so its presence was
@@ -128,6 +100,24 @@ user. Reading the active context and saying so — "your docker points at X, thi
 is at `\\.\pipe\docker_engine`" — leaves the choice with them. The second suits a tool
 whose argument is that it takes nothing over, and picking between them is the task
 rather than the implementation.
+
+### §DD52 Wrapping a detail that contains paths
+
+Measured after DD16: the rival row's detail is 254 characters, because it now carries
+every signal the row was found by — a resolved command, a registered distribution and an
+installer path. A terminal wraps it, so nothing is lost, and that is why this is an idea
+rather than a defect.
+
+The obvious fix was tried and reverted in the same session. `ReportText.Wrap` breaks on
+spaces, which is right for the remedy — prose — and wrong here: aligned under the detail
+column it produced `…\Programs\DockerDesktop\Docker` on one line and `Desktop.exe)` on
+the next, and a path split at a space is one nobody can copy or grep. That is worse than
+a long line, which is the whole reason the change went back.
+
+So whatever is done here has to treat a path as atomic. One evidence item per line is
+the shape that avoids the problem rather than working around it, and it needs the detail
+to stop being a single joined string — which is a change to what a row carries, not to
+how a row is printed.
 
 ## Block B — The daemon client (talk to the engine)
 
@@ -347,8 +337,8 @@ live machine, so what a session starts knowing is generated rather than hand-mai
 and rotting.
 
 The install proposes and never writes: a tool that edits a user's agent configuration
-without asking has broken the rule that nothing here surprises the human, and the
-allowlist is exactly the file where that would be least forgivable.
+without asking has broken the rule that nothing here surprises you, and the allowlist is
+exactly the file where that would be least forgivable.
 
 What this must not become is a second place where the surface is described. The skill
 names verbs and defers; every sentence explaining what a verb does lives in `--help`,
@@ -392,8 +382,8 @@ is new is the split.
 the whole verb namespace — which permits deleting a volume — or approves every call by
 hand. `dockerdesk read …` beside `dockerdesk do …` makes the rule expressible in one
 line, and what that buys is not keystrokes: most of the calls in a diagnosis mutate
-nothing, and each of them currently costs the most expensive unit there is, which is a
-human round trip.
+nothing, and each of them currently costs the most expensive unit there is, which is
+stopping to ask you.
 
 `read` is a promise and not a naming convention. A verb under it that writes is a
 defect, and the guard belongs in a test rather than in review.
@@ -522,12 +512,12 @@ through `dockerdesk do` is stamped `dockerdesk.session=<id>`, and `do reclaim --
 removes exactly that set and nothing else. Scoped by label, cleanup is an undo, and an
 undo is safe enough to be routine in a way that a whole-machine sweep never becomes.
 
-The same label answers the other half, which is what the human sees. `read changes` can
-say what this session created without inferring it from timestamps, and a reclaim can
-print what it is about to remove before it removes it. A destructive call takes a
-confirm token computed over that list: right is the token and the list, wrong is a
-refusal naming what would go now, so a plan that went stale between the two calls
-refuses rather than deleting something that arrived in between.
+The same label answers the other half, which is what you see. `read changes` can say
+what this session created without inferring it from timestamps, and a reclaim can print
+what it is about to remove before it removes it. A destructive call takes a confirm
+token computed over that list: right is the token and the list, wrong is a refusal
+naming what would go now, so a plan that went stale between the two calls refuses rather
+than deleting something that arrived in between.
 
 Volumes stay the exception the tool is loudest about. A container comes back and a
 volume does not.
@@ -541,9 +531,9 @@ the app bound to `127.0.0.1` rather than `0.0.0.0`, the health check has never g
 green, the bind mount resolved to an empty directory because a Windows path did not
 survive the hop into WSL.
 
-None of that is visible from the Engine API, and all of it is currently closed by a
-human looking at a browser and reporting back — which is the most expensive cycle in the
-system and the reason two of the three in the canonical task exist at all.
+None of that is visible from the Engine API, and all of it is currently closed by you
+opening a browser and reporting back — which is the most expensive cycle in the system
+and the reason two of the three in the canonical task exist at all.
 
 So the surface returns cheap textual proof instead: the host port accepts a connection
 *from Windows*, an optional request returns a status, the health check's current state
@@ -574,8 +564,8 @@ the icon the user already started.
 Two constraints. The ring is bounded, so a cursor older than it must be answered with
 `too old, re-read the context` rather than with a silent partial — the failure mode of a
 delta that quietly skips is worse than no delta, because nothing downstream can detect
-it. And the feed reports what the *user* did too: a container the human stopped from the
-tray is a change, and a feed that only reports the agent's own writes is a memory of its
+it. And the feed reports what the *user* did too: a container you stopped from the tray
+is a change, and a feed that only reports the agent's own writes is a memory of its
 intentions rather than of the machine.
 
 ### §DD33 MCP is a second head, and it is not free

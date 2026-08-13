@@ -9,7 +9,7 @@ export const roadmap: RoadmapData = {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
       "open": 4,
-      "shipped": 4,
+      "shipped": 5,
       "retired": 0
     },
     {
@@ -43,8 +43,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "F",
       "title": "F — Installer and distribution (free, Apache 2.0)",
-      "open": 3,
-      "shipped": 1,
+      "open": 1,
+      "shipped": 3,
       "retired": 0
     },
     {
@@ -63,19 +63,11 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 25,
-    "shipped": 26,
+    "open": 23,
+    "shipped": 29,
     "retired": 0
   },
   "open": [
-    {
-      "id": "DD16",
-      "status": "📋",
-      "block": "A",
-      "symptom": "The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH",
-      "why": "A false green on the one row whose remedy is uninstall the rival clears an install to walk into the docker_engine collision that row exists to prevent.",
-      "deps": []
-    },
     {
       "id": "DD18",
       "status": "📋",
@@ -98,6 +90,14 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering",
       "why": "The context outlives a rival uninstall because it lives in the user profile, and the result is a tool that looks broken with nothing wrong with it.",
+      "deps": []
+    },
+    {
+      "id": "DD52",
+      "status": "💭",
+      "block": "A",
+      "symptom": "The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path",
+      "why": "Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped.",
       "deps": []
     },
     {
@@ -171,27 +171,6 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
-      "id": "DD14",
-      "status": "📋",
-      "block": "F",
-      "symptom": "There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data",
-      "why": "A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here.",
-      "deps": [
-        "DD2 ✅",
-        "DD13 ✅"
-      ]
-    },
-    {
-      "id": "DD15",
-      "status": "📋",
-      "block": "F",
-      "symptom": "Every release is built on one developer's machine, so the first download finds what that machine hid",
-      "why": "A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge.",
-      "deps": [
-        "DD14"
-      ]
-    },
-    {
       "id": "DD32",
       "status": "📋",
       "block": "F",
@@ -199,7 +178,7 @@ export const roadmap: RoadmapData = {
       "why": "A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches.",
       "deps": [
         "DD24",
-        "DD14"
+        "DD14 ✅"
       ]
     },
     {
@@ -209,8 +188,8 @@ export const roadmap: RoadmapData = {
       "symptom": "Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim",
       "why": "A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote.",
       "deps": [
-        "DD14",
-        "DD15"
+        "DD14 ✅",
+        "DD15 ✅"
       ]
     },
     {
@@ -218,7 +197,7 @@ export const roadmap: RoadmapData = {
       "status": "📋",
       "block": "G",
       "symptom": "Reading a container and deleting a volume are one allowlist decision, so every read costs an approval",
-      "why": "The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and the read path pays a human round trip.",
+      "why": "The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and every read stops to ask you.",
       "deps": [
         "DD23"
       ]
@@ -228,7 +207,7 @@ export const roadmap: RoadmapData = {
       "status": "📋",
       "block": "G",
       "symptom": "Learning what this machine is running costs five commands, and it repeats in full every session",
-      "why": "Discovery is answered by a truncating human table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines.",
+      "why": "Discovery is answered by a truncating human-readable table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines.",
       "deps": [
         "DD24"
       ]
@@ -261,7 +240,7 @@ export const roadmap: RoadmapData = {
       "why": "The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete.",
       "deps": [
         "DD24",
-        "DD16",
+        "DD16 ✅",
         "DD20"
       ]
     },
@@ -280,7 +259,7 @@ export const roadmap: RoadmapData = {
       "status": "📋",
       "block": "G",
       "symptom": "Nothing proves a service is reachable: a running container with a bound port can answer nothing",
-      "why": "An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by a human looking, which is the costliest cycle.",
+      "why": "An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle.",
       "deps": [
         "DD26"
       ]
@@ -338,6 +317,14 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying",
       "why": "`dockerdesk-engine --run` starts the distro and daemon, serves \\.\\pipe\\docker_engine, and reports Running only once the engine answers.",
+      "deps": []
+    },
+    {
+      "id": "DD16",
+      "status": "✅",
+      "block": "A",
+      "symptom": "The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH",
+      "why": "The row now asks what owns the docker command, resolving it off PATH the way a shell does and reading the registered WSL distributions, and it names every signal it found.",
       "deps": []
     },
     {
@@ -418,6 +405,22 @@ export const roadmap: RoadmapData = {
       "block": "F",
       "symptom": "Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine",
       "why": "Apache-2.0 stated in the README's first paragraph, in LICENSE and in the window's About, with a NOTICE generated from the install manifest so a new download cannot ship unattributed.",
+      "deps": []
+    },
+    {
+      "id": "DD14",
+      "status": "✅",
+      "block": "F",
+      "symptom": "There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data",
+      "why": "One DockerDesk.exe with every verb behind an argument, an Inno Setup installer that is per-user with no administrator prompt, and an uninstall that asks before deleting the distribution.",
+      "deps": []
+    },
+    {
+      "id": "DD15",
+      "status": "✅",
+      "block": "F",
+      "symptom": "Every release is built on one developer's machine, so the first download finds what that machine hid",
+      "why": "Two Windows workflows: a check that builds, tests and starts the published .exe on every push, and a tag that drafts a release carrying SHA-256 sums for a person to publish.",
       "deps": []
     },
     {
@@ -517,5 +520,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD14"
+  "next": "DD18"
 };

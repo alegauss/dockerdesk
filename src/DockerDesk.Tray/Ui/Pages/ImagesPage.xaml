@@ -18,6 +18,8 @@
     <TextBlock x:Name="ImageTotalsLine" VerticalAlignment="Center" FontSize="13"
                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <TextBox x:Name="ImageFilter" Style="{DynamicResource FilterBox}" Margin="0,0,10,0"
+               TextChanged="FilterChanged" ToolTip="Narrow by repository, tag or what holds it" />
       <TextBlock x:Name="ImageOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
                  FontSize="12" TextWrapping="Wrap" MaxWidth="420"
                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
@@ -37,10 +39,18 @@
       <ColumnDefinition Width="2*" />
       <ColumnDefinition Width="120" />
     </Grid.ColumnDefinitions>
-    <TextBlock Grid.Column="0" Text="REPOSITORY" Style="{DynamicResource Header}" />
-    <TextBlock Grid.Column="1" Text="TAG" Style="{DynamicResource Header}" />
-    <TextBlock Grid.Column="2" Text="SIZE" Style="{DynamicResource Header}" />
-    <TextBlock Grid.Column="3" Text="USED BY" Style="{DynamicResource Header}" />
+    <Button Grid.Column="0" Tag="REPOSITORY" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="REPOSITORY" x:Name="RepositoryHeading" />
+    <Button Grid.Column="1" Tag="TAG" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="TAG" x:Name="TagHeading" />
+    <Button Grid.Column="2" Tag="SIZE" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="SIZE" x:Name="SizeHeading" />
+    <Button Grid.Column="3" Tag="USED BY" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="USED BY" x:Name="UsedByHeading" />
   </Grid>
 
   <ListView Grid.Row="2" x:Name="Images" BorderThickness="0"

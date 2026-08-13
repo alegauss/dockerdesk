@@ -22,4 +22,35 @@
          converter; DataTriggers instead would be XAML explaining a boolean to itself. -->
     <BooleanToVisibilityConverter x:Key="Shown" />
 
+
+    <!-- A heading that sorts, templated so it looks like the label it replaced and behaves like the
+         control it now is (DD37). Borrowed from claude-tray, whose own comment gives the reason: a
+         heading that reorders the list on click and offers no affordance is a feature only its author
+         finds. So hover brightens it, and the sorted one carries a glyph.
+
+         Safe at application scope, unlike RowAction: it defines its own Template and is BasedOn
+         nothing, so it needs no Fluent Button style from the window's resources (DD34). -->
+    <Style x:Key="SortHeading" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="Caption" Text="{TemplateBinding Content}"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{TemplateBinding Foreground}" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Caption" Property="Foreground"
+                                    Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

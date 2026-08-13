@@ -79,6 +79,16 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- One per list. Here rather than in Theme.xaml for the reason RowAction is: a keyed style
+             replaces the implicit one outright, so without BasedOn it falls back to the pre-Fluent
+             chrome — which the first capture showed as a white rectangle on a dark window. Fluent
+             lives in this window's resources because ThemeMode puts it there (DD34). -->
+        <Style x:Key="FilterBox" TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Width" Value="200" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
     </Window.Resources>
 
     <Grid Margin="20,16,20,16">

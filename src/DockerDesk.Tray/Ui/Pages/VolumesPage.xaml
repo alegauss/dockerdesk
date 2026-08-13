@@ -16,6 +16,8 @@
     <TextBlock x:Name="VolumeTotalsLine" VerticalAlignment="Center" FontSize="13"
                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <TextBox x:Name="VolumeFilter" Style="{DynamicResource FilterBox}" Margin="0,0,10,0"
+               TextChanged="FilterChanged" ToolTip="Narrow by name or what mounts it" />
       <TextBlock x:Name="VolumeOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
                  FontSize="12" TextWrapping="Wrap" MaxWidth="420"
                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
@@ -33,9 +35,15 @@
       <ColumnDefinition Width="2*" />
       <ColumnDefinition Width="120" />
     </Grid.ColumnDefinitions>
-    <TextBlock Grid.Column="0" Text="NAME" Style="{DynamicResource Header}" />
-    <TextBlock Grid.Column="1" Text="SIZE" Style="{DynamicResource Header}" />
-    <TextBlock Grid.Column="2" Text="MOUNTED BY" Style="{DynamicResource Header}" />
+    <Button Grid.Column="0" Tag="NAME" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="NAME" x:Name="NameHeading" />
+    <Button Grid.Column="1" Tag="SIZE" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="SIZE" x:Name="SizeHeading" />
+    <Button Grid.Column="2" Tag="MOUNTED BY" Click="SortBy"
+            Style="{DynamicResource SortHeading}"
+            Content="MOUNTED BY" x:Name="MountedByHeading" />
   </Grid>
 
   <ListView Grid.Row="2" x:Name="Volumes" BorderThickness="0"

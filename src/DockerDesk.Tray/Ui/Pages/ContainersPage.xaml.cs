@@ -84,19 +84,84 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             }
         }
 
-        Containers.ItemsSource = rows;
-        var empty = rows.Count == 0;
+        _rows = rows;
+        Show();
+    }
+
+    /// <summary>What the daemon last returned, before the sort and the filter are applied.</summary>
+    /// <remarks>
+    /// Kept so a heading click and a keystroke redraw from these rather than asking the engine again:
+    /// the answer is already here, and the question is about presentation.
+    /// </remarks>
+    private IReadOnlyList<ContainerRow> _rows = [];
+
+    /// <summary>Draw the rows in hand, shaped.</summary>
+    private void Show()
+    {
+        var shown = ContainerRow.Shaped(_rows, _shape);
+
+        Containers.ItemsSource = shown;
+        NameHeading.Content = ContainerRow.Columns.Name + _shape.GlyphFor(ContainerRow.Columns.Name);
+        ImageHeading.Content = ContainerRow.Columns.Image + _shape.GlyphFor(ContainerRow.Columns.Image);
+        StateHeading.Content = ContainerRow.Columns.State + _shape.GlyphFor(ContainerRow.Columns.State);
+        StatusHeading.Content = ContainerRow.Columns.Status + _shape.GlyphFor(ContainerRow.Columns.Status);
+        PortsHeading.Content = ContainerRow.Columns.Ports + _shape.GlyphFor(ContainerRow.Columns.Ports);
+
+        var empty = shown.Count == 0;
         Containers.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         HeaderRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         Empty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
 
-        if (empty)
+        if (!empty)
         {
-            var state = EmptyState.For(engine);
-            EmptyHeadline.Text = state.Headline;
-            EmptyDetail.Text = state.Detail;
-            EmptyStart.Visibility = state.OffersStart ? Visibility.Visible : Visibility.Collapsed;
+            return;
         }
+
+        // The third empty state. "No containers" and "nothing matched api" are different answers, and
+        // only one of them is fixed by clearing a box.
+        if (_shape.EmptyBecauseFiltered("containers") is var (headline, detail) && _rows.Count > 0)
+        {
+            (EmptyHeadline.Text, EmptyDetail.Text) = (headline, detail);
+            EmptyStart.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var state = EmptyState.For(_engineState());
+        EmptyHeadline.Text = state.Headline;
+        EmptyDetail.Text = state.Detail;
+        EmptyStart.Visibility = state.OffersStart ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+
+    /// <summary>
+    /// The sort and the filter, held by the page rather than by the controls.
+    /// </summary>
+    /// <remarks>
+    /// This is the part DD37 calls easy to get wrong. The list redraws on every engine event, so a
+    /// shape that lived only in the ListView would be thrown away each time and snap back to its
+    /// default while somebody was reading it.
+    /// </remarks>
+    private ListShape _shape = new(ContainerRow.DefaultColumn, Descending: false);
+
+    /// <summary>Re-sort on a heading click, and redraw from the rows already in hand.</summary>
+    private void SortBy(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string column })
+        {
+            return;
+        }
+
+        // A size reads best biggest-first and a name does not, so a column starts at its own natural
+        // direction rather than at whatever the last one happened to be.
+        _shape = _shape.Toggled(column, descendsFirst: column is ContainerRow.Columns.Ports);
+        Show();
+    }
+
+    /// <summary>Re-narrow as it is typed, over the rows in hand.</summary>
+    private void FilterChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        _shape = _shape.Narrowed((sender as System.Windows.Controls.TextBox)?.Text);
+        Show();
     }
 
     private void OpenPort(object sender, RoutedEventArgs e)
@@ -312,11 +377,9 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// </summary>
     private void Redress()
     {
-        if (Containers.ItemsSource is IEnumerable<ContainerRow> rows)
-        {
-            // The chip is carried through: a row going pending keeps the colour it already had, and
-            // re-resolving the brushes here would be the per-row lookup the render avoids.
-            Containers.ItemsSource = rows.Select(_activity.Dress).ToList();
-        }
+        // Through the rows in hand and the same Show(), so a row going pending keeps the order and
+        // the filter it was drawn under. Redressing the ListView's own items would drop both.
+        _rows = [.. _rows.Select(_activity.Dress)];
+        Show();
     }
 }

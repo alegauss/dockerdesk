@@ -70,30 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD37 A heading that sorts, and a box that narrows
-
-Every heading in this window is a dead `TextBlock`. NAME, IMAGE, STATE, REPOSITORY, SIZE
-— none does anything when clicked, and the order a list arrives in is the order it is
-read in. Images are sorted by size, which DD11 chose and is right as a default;
-containers are in whatever order the daemon returned them, which is creation order and
-answers nothing.
-
-There is no filter anywhere. A developer's machine carries thirty to sixty images and a
-dozen containers, and the only way to reach one is the scrollbar. The window is rarely
-opened to survey the machine; it is opened with one container in mind, and that is the
-case it serves worst.
-
-claude-tray templates a sorting heading as a `Button` whose template is a `TextBlock`:
-it looks like a label, behaves like a control, and its own comment gives the reason — a
-heading that reorders the list on click and offers no affordance is a feature only its
-author finds. Hover brightens it, and the sorted column carries a glyph.
-
-So: every heading sorts, each list keeps its default, and one filter box per list
-narrows by the fields already on the row — a name, an image, a repository, a port.
-Filtering is over the rows in hand, never a second call to the daemon, and it survives a
-refresh from the event stream — the part easy to get wrong. An empty result is a third
-empty state, saying what was typed.
-
 ### §DD39 The window remembers where it was and what was being read
 
 `WindowStartupLocation="CenterScreen"`, `Width="1040" Height="560"`, and nothing

@@ -76,14 +76,36 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
         }
     }
 
+    /// <summary>What the join last produced, before the sort and the filter are applied.</summary>
+    private IReadOnlyList<VolumeRow> _rows = [];
+
+    private string? _failure;
+
     private void ShowVolumes(IReadOnlyList<VolumeRow> rows, string? failure)
     {
-        _volumeTotals = VolumeTotals.For(rows);
-        Volumes.ItemsSource = rows;
-        VolumeTotalsLine.Text = rows.Count == 0 ? "" : _volumeTotals.Summary;
+        _rows = rows;
+        _failure = failure;
+        Show();
+    }
+
+    /// <summary>Draw the rows in hand, shaped.</summary>
+    private void Show()
+    {
+        var shown = VolumeRow.Shaped(_rows, _shape);
+
+        // Over everything, not over what is shown: a filter narrows the list and does not change how
+        // much is on disk.
+        _volumeTotals = VolumeTotals.For(_rows);
+        Volumes.ItemsSource = shown;
+        VolumeTotalsLine.Text = _rows.Count == 0 ? "" : _volumeTotals.Summary;
         PruneVolumes.IsEnabled = _volumeTotals.CanPrune;
 
-        var empty = rows.Count == 0;
+        NameHeading.Content = VolumeRow.Columns.Name + _shape.GlyphFor(VolumeRow.Columns.Name);
+        SizeHeading.Content = VolumeRow.Columns.Size + _shape.GlyphFor(VolumeRow.Columns.Size);
+        MountedByHeading.Content =
+            VolumeRow.Columns.MountedBy + _shape.GlyphFor(VolumeRow.Columns.MountedBy);
+
+        var empty = shown.Count == 0;
         Volumes.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         VolumeHeaderRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         VolumesEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
@@ -92,14 +114,52 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
             return;
         }
 
-        (VolumesEmptyHeadline.Text, VolumesEmptyDetail.Text) = (failure, _engineState()) switch
+        if (_shape.EmptyBecauseFiltered("volumes") is var (headline, detail) && _rows.Count > 0)
         {
-            (not null, _) => ("The volumes could not be read", failure!),
+            (VolumesEmptyHeadline.Text, VolumesEmptyDetail.Text) = (headline, detail);
+            return;
+        }
+
+        (VolumesEmptyHeadline.Text, VolumesEmptyDetail.Text) = (_failure, _engineState()) switch
+        {
+            (not null, _) => ("The volumes could not be read", _failure!),
             (_, EngineState.Running) => (
                 "No volumes",
                 "Nothing has been created yet. A named volume or a `docker run -v` appears here."),
             _ => ("The engine is not running", "Start it to see what is on disk."),
         };
+    }
+
+
+    /// <summary>
+    /// The sort and the filter, held by the page rather than by the controls.
+    /// </summary>
+    /// <remarks>
+    /// This is the part DD37 calls easy to get wrong. The list redraws on every engine event, so a
+    /// shape that lived only in the ListView would be thrown away each time and snap back to its
+    /// default while somebody was reading it.
+    /// </remarks>
+    private ListShape _shape = new(VolumeRow.DefaultColumn, Descending: false);
+
+    /// <summary>Re-sort on a heading click, and redraw from the rows already in hand.</summary>
+    private void SortBy(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string column })
+        {
+            return;
+        }
+
+        // A size reads best biggest-first and a name does not, so a column starts at its own natural
+        // direction rather than at whatever the last one happened to be.
+        _shape = _shape.Toggled(column, descendsFirst: column is VolumeRow.Columns.Size or VolumeRow.Columns.MountedBy);
+        Show();
+    }
+
+    /// <summary>Re-narrow as it is typed, over the rows in hand.</summary>
+    private void FilterChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        _shape = _shape.Narrowed((sender as System.Windows.Controls.TextBox)?.Text);
+        Show();
     }
 
     private async void RemoveVolume(object sender, RoutedEventArgs e)
@@ -173,9 +233,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
 
     private void RedressVolumes()
     {
-        if (Volumes.ItemsSource is IEnumerable<VolumeRow> rows)
-        {
-            Volumes.ItemsSource = rows.Select(_volumeActivity.Dress).ToList();
-        }
+        _rows = [.. _rows.Select(_volumeActivity.Dress)];
+        Show();
     }
 }

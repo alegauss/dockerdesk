@@ -27,7 +27,10 @@ the engine's state, and one window for containers, images and volumes.
   followed, and a shell in the terminal you already have. Three controls per row rather
   than six: Logs, the one verb the row was opened for, and an overflow that is always
   drawn. Images sorted by size with dangling and in-use named. Volumes with what mounts
-  them, because a volume is the one thing here that does not come back.
+  them, because a volume is the one thing here that does not come back. **Every heading
+  sorts and every list has a filter box**, over the rows already in hand and never a
+  second call to the daemon — and both survive the redraw the event stream causes, which
+  is the part that is easy to get wrong. Containers open running-first.
 - **No daemon of its own.** Quitting the tray leaves the engine exactly as it was.
 
 ## What it is not

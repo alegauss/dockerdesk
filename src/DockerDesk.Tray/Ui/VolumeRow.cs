@@ -74,6 +74,60 @@ public sealed record VolumeRow(
         _ => "nothing mounts it",
     };
 
+
+    /// <summary>The headings this list sorts on.</summary>
+    public static class Columns
+    {
+        /// <summary>The volume's name, which is also its id.</summary>
+        public const string Name = "NAME";
+
+        /// <summary>What it costs on disk, once measured.</summary>
+        public const string Size = "SIZE";
+
+        /// <summary>Which containers mount it.</summary>
+        public const string MountedBy = "MOUNTED BY";
+    }
+
+    /// <summary>
+    /// The order a volume list opens in: by name.
+    /// </summary>
+    /// <remarks>
+    /// Not by size, and the reason is the compose convention: a project's volumes share a prefix, so
+    /// alphabetical groups them and size scatters them.
+    /// </remarks>
+    public const string DefaultColumn = Columns.Name;
+
+    /// <summary>Shape a list of rows: narrowed, then ordered.</summary>
+    /// <param name="rows">What the join produced.</param>
+    /// <param name="shape">The sort and filter the page is holding.</param>
+    /// <returns>The rows to draw.</returns>
+    public static IReadOnlyList<VolumeRow> Shaped(IEnumerable<VolumeRow> rows, ListShape shape)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(shape);
+
+        var kept = rows.Where(row => shape.Keeps(row.Name, string.Join(" ", row.MountedBy)));
+
+        IOrderedEnumerable<VolumeRow> ordered = shape.Column switch
+        {
+            // An unmeasured volume sorts as if it were empty rather than throwing the order: the
+            // sizes arrive after the list, and a row jumping when its size lands is worse than a
+            // row that starts at the bottom.
+            Columns.Size => By(kept, r => r.Size ?? 0, shape.Descending),
+            Columns.MountedBy => By(kept, r => r.MountedBy.Count, shape.Descending),
+            _ => By(kept, r => r.Name, shape.Descending, StringComparer.OrdinalIgnoreCase),
+        };
+
+        return [.. ordered.ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private static IOrderedEnumerable<VolumeRow> By<TKey>(
+        IEnumerable<VolumeRow> rows,
+        Func<VolumeRow, TKey> key,
+        bool descending,
+        IComparer<TKey>? comparer = null) =>
+        descending ? rows.OrderByDescending(key, comparer) : rows.OrderBy(key, comparer);
+
     /// <summary>
     /// Join the volume list against the containers, since the daemon will not.
     /// </summary>

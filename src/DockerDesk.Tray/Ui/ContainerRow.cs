@@ -212,6 +212,85 @@ public sealed record ContainerRow(
         return this with { ChipFill = style.Fill(Tone), ChipText = style.Text(Tone) };
     }
 
+
+    /// <summary>The headings this list sorts on, spelled once so markup and code cannot disagree.</summary>
+    public static class Columns
+    {
+        /// <summary>The container's name.</summary>
+        public const string Name = "NAME";
+
+        /// <summary>What it runs.</summary>
+        public const string Image = "IMAGE";
+
+        /// <summary>Running, exited, paused.</summary>
+        public const string State = "STATE";
+
+        /// <summary>The daemon's own sentence, which carries the duration.</summary>
+        public const string Status = "STATUS";
+
+        /// <summary>What it publishes.</summary>
+        public const string Ports = "PORTS";
+    }
+
+    /// <summary>
+    /// The order a container list opens in.
+    /// </summary>
+    /// <remarks>
+    /// Running first, then alphabetical inside each group. The window is opened to act on something,
+    /// and the things that can be stopped, shelled into or read are the running ones; a stopped
+    /// container is usually looked up rather than scanned for. Creation order — what the daemon
+    /// returns — answers neither question.
+    ///
+    /// <para>Stable either way: two rows never swap places unless their state actually changed, which
+    /// matters on a list that redraws on every engine event.</para>
+    /// </remarks>
+    public const string DefaultColumn = Columns.State;
+
+    /// <summary>Shape a list of rows: narrowed, then ordered.</summary>
+    /// <param name="rows">What the daemon just returned.</param>
+    /// <param name="shape">The sort and filter the page is holding.</param>
+    /// <returns>The rows to draw.</returns>
+    public static IReadOnlyList<ContainerRow> Shaped(
+        IEnumerable<ContainerRow> rows, ListShape shape)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(shape);
+
+        var kept = rows.Where(row => shape.Keeps(
+            row.Name, row.Image, row.State, row.Status,
+            string.Join(" ", row.Ports.Select(port => port.Text))));
+
+        // Name is the tie-break under every column, and it is always ascending: a redraw must not
+        // reshuffle rows that compare equal on whatever is being sorted, and flipping the direction
+        // of the sorted column is not a reason to flip the tie-break under it.
+        IOrderedEnumerable<ContainerRow> ordered = shape.Column switch
+        {
+            Columns.Image => By(kept, r => r.Image, shape.Descending, StringComparer.OrdinalIgnoreCase),
+            Columns.Status => By(kept, r => r.Status, shape.Descending, StringComparer.OrdinalIgnoreCase),
+
+            // Published before exposed-only before none, so "which of these can I open" is the
+            // question this column answers.
+            Columns.Ports => By(kept, r => r.Ports.Count == 0 ? "" : r.Ports[0].Text, shape.Descending,
+                StringComparer.OrdinalIgnoreCase),
+
+            // Running before anything else, which is what makes this the default rather than a
+            // straight alphabetical sort on the word.
+            Columns.State => By(kept, r => r.IsRunning ? 0 : r.IsLive ? 1 : 2, shape.Descending),
+            _ => By(kept, r => r.Name, shape.Descending, StringComparer.OrdinalIgnoreCase),
+        };
+
+        return [.. ordered.ThenBy(row => row.Name, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private static IOrderedEnumerable<ContainerRow> By<TKey>(
+        IEnumerable<ContainerRow> rows,
+        Func<ContainerRow, TKey> key,
+        bool descending,
+        IComparer<TKey>? comparer = null) =>
+        descending
+            ? rows.OrderByDescending(key, comparer)
+            : rows.OrderBy(key, comparer);
+
     /// <summary>Project one summary.</summary>
     /// <param name="container">What the API returned.</param>
     /// <returns>The row.</returns>

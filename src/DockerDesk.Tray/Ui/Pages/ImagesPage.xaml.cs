@@ -51,12 +51,35 @@ internal partial class ImagesPage : System.Windows.Controls.UserControl
             }
         }
 
-        _totals = ImageTotals.For(rows);
-        Images.ItemsSource = rows;
-        ImageTotalsLine.Text = rows.Count == 0 ? "" : _totals.Summary;
+        _rows = rows;
+        _failure = failure;
+        Show();
+    }
+
+    /// <summary>What the join last produced, before the sort and the filter are applied.</summary>
+    private IReadOnlyList<ImageRow> _rows = [];
+
+    private string? _failure;
+
+    /// <summary>Draw the rows in hand, shaped.</summary>
+    private void Show()
+    {
+        var shown = ImageRow.Shaped(_rows, _shape);
+
+        // The totals are about the machine, not about what is currently shown: a filter narrows the
+        // list, and telling somebody they have 400 MB of images because they typed a name would be a
+        // number that means nothing.
+        _totals = ImageTotals.For(_rows);
+        Images.ItemsSource = shown;
+        ImageTotalsLine.Text = _rows.Count == 0 ? "" : _totals.Summary;
         PruneImages.IsEnabled = _totals.CanPrune;
 
-        var empty = rows.Count == 0;
+        RepositoryHeading.Content = ImageRow.Columns.Repository + _shape.GlyphFor(ImageRow.Columns.Repository);
+        TagHeading.Content = ImageRow.Columns.Tag + _shape.GlyphFor(ImageRow.Columns.Tag);
+        SizeHeading.Content = ImageRow.Columns.Size + _shape.GlyphFor(ImageRow.Columns.Size);
+        UsedByHeading.Content = ImageRow.Columns.UsedBy + _shape.GlyphFor(ImageRow.Columns.UsedBy);
+
+        var empty = shown.Count == 0;
         Images.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         ImageHeaderRow.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         ImagesEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
@@ -65,14 +88,52 @@ internal partial class ImagesPage : System.Windows.Controls.UserControl
             return;
         }
 
-        (ImagesEmptyHeadline.Text, ImagesEmptyDetail.Text) = (failure, _engineState()) switch
+        if (_shape.EmptyBecauseFiltered("images") is var (headline, detail) && _rows.Count > 0)
         {
-            (not null, _) => ("The images could not be read", failure!),
+            (ImagesEmptyHeadline.Text, ImagesEmptyDetail.Text) = (headline, detail);
+            return;
+        }
+
+        (ImagesEmptyHeadline.Text, ImagesEmptyDetail.Text) = (_failure, _engineState()) switch
+        {
+            (not null, _) => ("The images could not be read", _failure!),
             (_, EngineState.Running) => (
                 "No images",
                 "Nothing has been pulled or built yet. Images appear here as they arrive."),
             _ => ("The engine is not running", "Start it to see what is on disk."),
         };
+    }
+
+
+    /// <summary>
+    /// The sort and the filter, held by the page rather than by the controls.
+    /// </summary>
+    /// <remarks>
+    /// This is the part DD37 calls easy to get wrong. The list redraws on every engine event, so a
+    /// shape that lived only in the ListView would be thrown away each time and snap back to its
+    /// default while somebody was reading it.
+    /// </remarks>
+    private ListShape _shape = new(ImageRow.DefaultColumn, Descending: true);
+
+    /// <summary>Re-sort on a heading click, and redraw from the rows already in hand.</summary>
+    private void SortBy(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string column })
+        {
+            return;
+        }
+
+        // A size reads best biggest-first and a name does not, so a column starts at its own natural
+        // direction rather than at whatever the last one happened to be.
+        _shape = _shape.Toggled(column, descendsFirst: column is ImageRow.Columns.Size or ImageRow.Columns.UsedBy);
+        Show();
+    }
+
+    /// <summary>Re-narrow as it is typed, over the rows in hand.</summary>
+    private void FilterChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        _shape = _shape.Narrowed((sender as System.Windows.Controls.TextBox)?.Text);
+        Show();
     }
 
     private async void RemoveImage(object sender, RoutedEventArgs e)
@@ -139,9 +200,9 @@ internal partial class ImagesPage : System.Windows.Controls.UserControl
 
     private void RedressImages()
     {
-        if (Images.ItemsSource is IEnumerable<ImageRow> rows)
-        {
-            Images.ItemsSource = rows.Select(_imageActivity.Dress).ToList();
-        }
+        // Through the rows in hand and the same Show(), so a row going pending keeps the order and
+        // the filter it was drawn under.
+        _rows = [.. _rows.Select(_imageActivity.Dress)];
+        Show();
     }
 }

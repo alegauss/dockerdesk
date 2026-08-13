@@ -54,11 +54,21 @@
     </UserControl.Resources>
 <Grid Margin="0,10,0,0">
   <Grid.RowDefinitions>
-    <RowDefinition Height="Auto" />
-    <RowDefinition Height="*" />
+    <RowDefinition Height="Auto" /><!-- the filter -->
+    <RowDefinition Height="Auto" /><!-- the headings -->
+    <RowDefinition Height="*" />   <!-- the rows -->
   </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" x:Name="HeaderRow" Margin="10,0,10,6">
+  <!-- One box, over the rows already in hand. Never a second call to the daemon: every field it
+       matches is on the row, and asking the engine to search would be a round trip to answer a
+       question this window can answer itself. -->
+  <Grid Grid.Row="0" Margin="10,0,10,10">
+    <TextBox x:Name="Filter" HorizontalAlignment="Right" Style="{DynamicResource FilterBox}"
+             TextChanged="FilterChanged"
+             ToolTip="Narrow by name, image, state or port" />
+  </Grid>
+
+        <Grid Grid.Row="1" x:Name="HeaderRow" Margin="10,0,10,6">
 <Grid.ColumnDefinitions>
     <ColumnDefinition Width="1.2*" />
     <ColumnDefinition Width="1.3*" />
@@ -67,14 +77,24 @@
     <ColumnDefinition Width="1.2*" />
     <ColumnDefinition Width="180" />
 </Grid.ColumnDefinitions>
-<TextBlock Grid.Column="0" Text="NAME" Style="{DynamicResource Header}" />
-<TextBlock Grid.Column="1" Text="IMAGE" Style="{DynamicResource Header}" />
-<TextBlock Grid.Column="2" Text="STATE" Style="{DynamicResource Header}" />
-<TextBlock Grid.Column="3" Text="STATUS" Style="{DynamicResource Header}" />
-<TextBlock Grid.Column="4" Text="PORTS" Style="{DynamicResource Header}" />
+<Button Grid.Column="0" Tag="NAME" Click="SortBy"
+        Style="{DynamicResource SortHeading}"
+        Content="NAME" x:Name="NameHeading" />
+<Button Grid.Column="1" Tag="IMAGE" Click="SortBy"
+        Style="{DynamicResource SortHeading}"
+        Content="IMAGE" x:Name="ImageHeading" />
+<Button Grid.Column="2" Tag="STATE" Click="SortBy"
+        Style="{DynamicResource SortHeading}"
+        Content="STATE" x:Name="StateHeading" />
+<Button Grid.Column="3" Tag="STATUS" Click="SortBy"
+        Style="{DynamicResource SortHeading}"
+        Content="STATUS" x:Name="StatusHeading" />
+<Button Grid.Column="4" Tag="PORTS" Click="SortBy"
+        Style="{DynamicResource SortHeading}"
+        Content="PORTS" x:Name="PortsHeading" />
         </Grid>
 
-        <ListView Grid.Row="1" x:Name="Containers" BorderThickness="0"
+        <ListView Grid.Row="2" x:Name="Containers" BorderThickness="0"
       Background="Transparent"
       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 <ListView.ItemContainerStyle>
@@ -215,7 +235,7 @@
 
         <!-- Empty is designed, not a blank grid: the two reasons a list is empty read differently,
  and only one of them is something the user can do anything about. -->
-        <StackPanel Grid.Row="1" x:Name="Empty" VerticalAlignment="Center"
+        <StackPanel Grid.Row="2" x:Name="Empty" VerticalAlignment="Center"
         HorizontalAlignment="Center" Visibility="Collapsed">
 <TextBlock x:Name="EmptyHeadline" FontSize="20" HorizontalAlignment="Center"
            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />

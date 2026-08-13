@@ -94,6 +94,58 @@ public sealed record ImageRow(
     /// <summary>What the row is called, for a message about it.</summary>
     public string Name => IsDangling ? Id[..Math.Min(Id.Length, 19)] : $"{Repository}:{Tag}";
 
+
+    /// <summary>The headings this list sorts on.</summary>
+    public static class Columns
+    {
+        /// <summary>The repository half of the tag.</summary>
+        public const string Repository = "REPOSITORY";
+
+        /// <summary>The tag half.</summary>
+        public const string Tag = "TAG";
+
+        /// <summary>What it costs on disk.</summary>
+        public const string Size = "SIZE";
+
+        /// <summary>Which containers hold it.</summary>
+        public const string UsedBy = "USED BY";
+    }
+
+    /// <summary>The order an image list opens in: biggest first, which DD11 chose and is right.</summary>
+    public const string DefaultColumn = Columns.Size;
+
+    /// <summary>Shape a list of rows: narrowed, then ordered.</summary>
+    /// <param name="rows">What the join produced.</param>
+    /// <param name="shape">The sort and filter the page is holding.</param>
+    /// <returns>The rows to draw.</returns>
+    public static IReadOnlyList<ImageRow> Shaped(IEnumerable<ImageRow> rows, ListShape shape)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(shape);
+
+        var kept = rows.Where(row => shape.Keeps(
+            row.Repository, row.Tag, string.Join(" ", row.UsedBy)));
+
+        IOrderedEnumerable<ImageRow> ordered = shape.Column switch
+        {
+            Columns.Tag => By(kept, r => r.Tag, shape.Descending, StringComparer.OrdinalIgnoreCase),
+            Columns.UsedBy => By(kept, r => r.UsedBy.Count, shape.Descending),
+            Columns.Repository => By(kept, r => r.Repository, shape.Descending, StringComparer.OrdinalIgnoreCase),
+            _ => By(kept, r => r.Size, shape.Descending),
+        };
+
+        return [.. ordered
+            .ThenBy(row => row.Repository, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(row => row.Tag, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    private static IOrderedEnumerable<ImageRow> By<TKey>(
+        IEnumerable<ImageRow> rows,
+        Func<ImageRow, TKey> key,
+        bool descending,
+        IComparer<TKey>? comparer = null) =>
+        descending ? rows.OrderByDescending(key, comparer) : rows.OrderBy(key, comparer);
+
     /// <summary>
     /// Project the daemon's two lists into one, joined on image id and sorted by size.
     /// </summary>

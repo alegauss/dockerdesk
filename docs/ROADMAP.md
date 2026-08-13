@@ -12,7 +12,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD37** (deps: DD35 ✅) **No heading sorts and no list filters, so finding one container among forty is done with the scrollbar** — The window is opened with one container in mind; a heading that reorders on click and a box that narrows turn a long list into an answer rather than a scroll. → §DD37
 - 📋 **DD39** (deps: —) **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — A tool opened several times a day on a two-monitor desk is placed by hand every time, and the tab is the one piece of state the user set on purpose. → §DD39
 - 📋 **DD61** (deps: —) **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — The overlap check cannot answer for this: the intruder is not in front of the window, it is showing through it, so the copy leaks with every assertion satisfied. → §DD61
 

@@ -29,7 +29,7 @@ internal sealed class TrayApplication : ApplicationContext
     internal TrayApplication(bool openWindow = false)
     {
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
-        _holder = new EngineHolder(EngineHolder.BesideThisProcess(), new DetachedLauncher());
+        _holder = new EngineHolder(EngineHolder.ThisProcess(), new DetachedLauncher());
 
         // Short on purpose. A context menu that grows into a second UI is how a tray app stops
         // being glanceable; everything else belongs in the window.
@@ -199,14 +199,52 @@ internal sealed class TrayApplication : ApplicationContext
     }
 }
 
-/// <summary>The entry point.</summary>
+/// <summary>
+/// The one entry point, for the one executable.
+/// </summary>
+/// <remarks>
+/// Every face of this tool is behind here: the tray with no arguments, and each console verb behind
+/// its own. What that buys is DD14's whole shape — one file to publish, one to sign, one to install
+/// and one to hand somebody. It also removes a failure the tray could not do anything about: it used
+/// to look for <c>dockerdesk-engine.exe</c> beside itself, and a copy that arrived without it had a
+/// Start engine menu item that could only apologise.
+/// </remarks>
 internal static class Program
 {
     [STAThread]
-    private static void Main(string[] args)
+    private static int Main(string[] args)
     {
-        ApplicationConfiguration.Initialize();
-        Application.Run(new TrayApplication(
-            openWindow: args.Contains("--window", StringComparer.OrdinalIgnoreCase)));
+        var route = Cli.CommandLine.Of(args);
+
+        if (route.Surface is Cli.Surface.Tray)
+        {
+            ApplicationConfiguration.Initialize();
+            Application.Run(new TrayApplication(openWindow: route.OpenWindow));
+            return 0;
+        }
+
+        // Every remaining surface writes, so the console comes first: attaching after something has
+        // already printed means the first lines went to Stream.Null.
+        Cli.ParentConsole.Attach();
+
+        switch (route.Surface)
+        {
+            case Cli.Surface.Preflight:
+                return Cli.PreflightCommand.Run(route.Arguments);
+            case Cli.Surface.Engine:
+                return Cli.EngineCommand.Run(route.Arguments);
+            case Cli.Surface.Version:
+                Console.Out.WriteLine(Core.Licensing.BuildVersion.Current);
+                return 0;
+            case Cli.Surface.Help:
+                Console.Out.Write(Cli.CommandLine.HelpText);
+                return 0;
+            default:
+                Console.Error.WriteLine(
+                    $"{Cli.CommandLine.ExecutableName}: "
+                    + $"unknown argument {string.Join(' ', route.Arguments)}");
+                Console.Error.Write(Cli.CommandLine.HelpText);
+                return 2;
+        }
     }
 }

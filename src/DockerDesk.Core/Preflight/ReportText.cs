@@ -1,7 +1,6 @@
 using System.Text;
-using DockerDesk.Core.Preflight;
 
-namespace DockerDesk.Preflight;
+namespace DockerDesk.Core.Preflight;
 
 /// <summary>Renders a <see cref="PreflightReport"/> as the report a person reads.</summary>
 /// <remarks>

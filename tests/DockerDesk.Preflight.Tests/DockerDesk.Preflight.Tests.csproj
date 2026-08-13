@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DockerDesk.Core\DockerDesk.Core.csproj" />
-    <ProjectReference Include="..\..\src\DockerDesk.Preflight\DockerDesk.Preflight.csproj" />
     <ProjectReference Include="..\..\src\DockerDesk.Tray\DockerDesk.Tray.csproj" />
   </ItemGroup>
 

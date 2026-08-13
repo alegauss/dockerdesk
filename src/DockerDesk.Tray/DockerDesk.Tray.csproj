@@ -16,8 +16,33 @@
          project with a UI pays for ICU. -->
     <InvariantGlobalization>false</InvariantGlobalization>
     <RootNamespace>DockerDesk.Tray</RootNamespace>
-    <AssemblyName>dockerdesk-tray</AssemblyName>
+    <!-- DD14: one executable, and this is it. The tray with no arguments, every console verb behind
+         one — see Cli\CommandLine.cs. The name is what a person types and what the installer lays
+         down, so it is not the project's name. -->
+    <AssemblyName>DockerDesk</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Generated from docs\logo.svg by build\icon.mjs, and committed: a build that needed Node to
+         produce a Windows resource would fail on a machine with only the .NET SDK. -->
+    <ApplicationIcon>DockerDesk.ico</ApplicationIcon>
+    <!-- Unconditional, so the output path is the same in Debug and Release and every script,
+         document and installer reference can name one folder. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!-- One self-contained file when published, and Release only. A clean Windows 11 has no .NET
+       runtime — measured in the test guest, where a framework-dependent build died with 0x80008083
+       and a link to a download page — so the shipped .exe has to carry it.
+
+       Conditioned on Configuration, not applied always, and that is the point: with these in the
+       PropertyGroup above, a plain `dotnet build -c Debug` lays the whole runtime down beside the
+       .exe on every single build, which is charged against the loop this project is developed in.
+       `Configuration` rather than the SDK-internal `_IsPublishing`: if that property ever stopped
+       being set, publish would quietly stop being self-contained and only a release would find out. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

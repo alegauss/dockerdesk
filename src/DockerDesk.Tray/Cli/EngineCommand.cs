@@ -1,25 +1,25 @@
-using System.Text;
 using DockerDesk.Core.Api;
 using DockerDesk.Core.Engine;
 using DockerDesk.Core.Preflight;
 using DockerDesk.Core.Preflight.Windows;
 
-namespace DockerDesk.Engine.Cli;
+namespace DockerDesk.Tray.Cli;
 
 /// <summary>
 /// Puts the engine on this machine, unattended. Three modes, because two of the three phases
 /// change nothing outside this tool's own directory and are worth being able to run alone.
 /// </summary>
-internal static class Program
+internal static class EngineCommand
 {
     private const int Ok = 0;
     private const int Failed = 1;
     private const int Usage = 2;
 
-    private static int Main(string[] args)
+    /// <summary>Run an engine verb.</summary>
+    /// <param name="args">The verb and, for <c>--autostart</c>, its value.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int Run(string[] args)
     {
-        Console.OutputEncoding = Encoding.UTF8;
-
         var mode = args.Length == 0 ? "--help" : args[0];
 
         // --autostart is the one mode that takes a value; everything else is a verb on its own.
@@ -32,8 +32,8 @@ internal static class Program
         return mode switch
         {
             "--plan" => Plan(),
-            "--acquire" => Run(acquireOnly: true),
-            "--provision" => Run(acquireOnly: false),
+            "--acquire" => Provision(acquireOnly: true),
+            "--provision" => Provision(acquireOnly: false),
             "--status" => Status(),
             "--api" => ApiProbe(),
             "--watch" => Watch(),
@@ -274,7 +274,7 @@ internal static class Program
         return Ok;
     }
 
-    private static int Run(bool acquireOnly)
+    private static int Provision(bool acquireOnly)
     {
         // The preflight is the same code the installer runs, and running it here is the point: an
         // engine unpacked onto a machine that cannot host one fails halfway.
@@ -323,33 +323,21 @@ internal static class Program
 
     private static int Complain(string problem)
     {
-        Console.Error.WriteLine($"dockerdesk-engine: {problem}");
+        Console.Error.WriteLine($"{CommandLine.ExecutableName}: {problem}");
         return Help(Usage);
     }
 
+    /// <summary>
+    /// The one help text, and deliberately not a second one.
+    /// </summary>
+    /// <remarks>
+    /// This used to print its own list of engine modes, which was correct while the engine was its
+    /// own executable and became a duplicate the moment it stopped being one. A verb documented in
+    /// one of two lists is a verb somebody cannot find.
+    /// </remarks>
     private static int Help(int code)
     {
-        (code == Ok ? Console.Out : Console.Error).Write(
-            """
-            dockerdesk-engine — put upstream Moby into a WSL2 distribution this tool owns.
-
-              --plan        the pinned versions, digests and paths; reaches nothing
-              --acquire     download and verify every artefact, and stop
-              --provision   acquire, import the distribution, install the engine, place docker.exe
-
-              --run         start the engine and serve \\.\pipe\docker_engine until Ctrl+C
-              --stop        stop the engine and terminate the distribution
-              --status      what the engine is doing, by asking it
-              --api         version and containers, read through the Engine API
-              --watch       print /events as they happen, until Ctrl+C
-              --autostart   on | off | status  - off unless you turn it on
-
-              --help        this
-
-            Exit code 0 means the mode finished; 1 names the step it stopped at. For --status,
-            1 means the engine is not answering.
-
-            """);
+        (code == Ok ? Console.Out : Console.Error).Write(CommandLine.HelpText);
         return code;
     }
 }

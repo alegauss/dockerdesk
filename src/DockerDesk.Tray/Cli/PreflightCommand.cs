@@ -1,16 +1,15 @@
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DockerDesk.Core.Preflight;
 using DockerDesk.Core.Preflight.Windows;
 
-namespace DockerDesk.Preflight;
+namespace DockerDesk.Tray.Cli;
 
 /// <summary>
 /// The standalone form of the check. The install runs the same <see cref="PreflightInspection"/>;
 /// this is what a user runs when a working setup stopped working and the question is what changed.
 /// </summary>
-internal static class Program
+internal static class PreflightCommand
 {
     /// <summary>Exit code when every blocking row is green.</summary>
     private const int Ready = 0;
@@ -27,7 +26,10 @@ internal static class Program
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private static int Main(string[] args)
+    /// <summary>Run the preflight verb.</summary>
+    /// <param name="args">Everything after <c>--preflight</c>.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int Run(string[] args)
     {
         var json = false;
         foreach (var argument in args)
@@ -41,14 +43,13 @@ internal static class Program
                     Console.Out.Write(HelpText);
                     return Ready;
                 default:
-                    Console.Error.WriteLine($"dockerdesk-preflight: unknown argument {argument}");
+                    Console.Error.WriteLine(
+                        $"{CommandLine.ExecutableName} {CommandLine.PreflightVerb}: "
+                        + $"unknown argument {argument}");
                     Console.Error.Write(HelpText);
                     return Usage;
             }
         }
-
-        // The report carries em dashes and arrows whatever the console's code page is.
-        Console.OutputEncoding = Encoding.UTF8;
 
         var report = PreflightInspection.Run(new WindowsMachineFacts());
 
@@ -60,8 +61,9 @@ internal static class Program
     }
 
     private static string HelpText =>
-        """
-        dockerdesk-preflight — read what this machine can host, and change nothing.
+        $"""
+        {CommandLine.ExecutableName} {CommandLine.PreflightVerb} — read what this machine can host,
+        and change nothing.
 
           --json    the same report as JSON, for an installer rather than a person
           --help    this

@@ -20,7 +20,7 @@
 .PARAMETER Action
   doctor    every reachability fact, as a report (default)
   preflight build the product preflight, copy it to the guest, run it there, print what it said
-  engine    the same for dockerdesk-engine; -Command carries its mode, default --plan
+  engine    the same for an engine mode; -Command carries it, default --plan
   run       run one command in the guest and print its output
   start     power the guest on and wait for its agent
   screenshot capture the guest's screen to a PNG; -Command is the path, default under TEMP
@@ -520,6 +520,13 @@ function Publish-ToGuest {
       Self-contained and single-file, because a clean Windows 11 has no .NET runtime: a
       framework-dependent build died in the guest with 0x80008083 and a link to the download page —
       which is also the fact the installer itself has to reckon with. One file, so one copy call.
+
+      Since DD14 there is one project to publish and one .exe to copy, and every verb is a mode of
+      it. That the guest's output still comes back rests on one fact worth naming: cmd waits for a
+      windowed executable when it is run from a batch file, and does not when it is typed at an
+      interactive prompt. Invoke-GuestCapture writes a batch file, which is the half that waits —
+      measured on the host, where the same batch shape returned 407 bytes and exit 0 for
+      `--preflight` and 1177 bytes and exit 2 for a verb that does not exist.
     #>
     param(
         [Parameter(Mandatory)] [string] $Project,
@@ -632,14 +639,14 @@ switch ($Action) {
     }
     'preflight' {
         Assert-Reachable
-        $exe = Publish-ToGuest -Project 'DockerDesk.Preflight' -Exe 'dockerdesk-preflight.exe'
-        exit (Invoke-InGuest $exe)
+        $exe = Publish-ToGuest -Project 'DockerDesk.Tray' -Exe 'DockerDesk.exe'
+        exit (Invoke-InGuest "$exe --preflight")
     }
     'engine' {
         Assert-Reachable
-        $exe = Publish-ToGuest -Project 'DockerDesk.Engine' -Exe 'dockerdesk-engine.exe'
+        $exe = Publish-ToGuest -Project 'DockerDesk.Tray' -Exe 'DockerDesk.exe'
         $mode = if ($Command) { $Command } else { '--plan' }
-        Write-Host "running dockerdesk-engine $mode in the guest"
+        Write-Host "running DockerDesk.exe $mode in the guest"
         exit (Invoke-InGuest "$exe $mode")
     }
 }

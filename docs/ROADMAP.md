@@ -28,13 +28,12 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD14** (deps: DD2 ✅, DD13 ✅) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
-- 📋 **DD15** (deps: DD14) **Every release is built on one developer's machine, so the first download finds what that machine hid** — A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge. → §DD15
-- 📋 **DD32** (deps: DD24, DD14) **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches. → §DD32
+- 📋 **DD15** (deps: DD14 ✅) **Every release is built on one developer's machine, so the first download finds what that machine hid** — A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge. → §DD15
+- 📋 **DD32** (deps: DD24, DD14 ✅) **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches. → §DD32
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD23** (deps: DD14, DD15) **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote. → §DD23
+- 📋 **DD23** (deps: DD14 ✅, DD15) **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A cost that is argued rather than measured drifts quietly and in somebody else's environment, so the measurement is the first deliverable rather than a footnote. → §DD23
 - 📋 **DD24** (deps: DD23) **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and the read path pays a human round trip. → §DD24
 - 📋 **DD25** (deps: DD24) **Learning what this machine is running costs five commands, and it repeats in full every session** — Discovery is answered by a truncating human table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines. → §DD25
 - 📋 **DD26** (deps: DD24) **Why a container is not answering is a join across five commands, and inspect is read for four fields** — One inspect is three to six hundred lines of JSON paid in full, and the join that turns those fields into a conclusion has no command at all. → §DD26

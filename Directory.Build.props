@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -15,6 +15,17 @@
     <Product>DockerDesk</Product>
     <Company>DockerDesk contributors</Company>
     <Copyright>Copyright (c) DockerDesk contributors</Copyright>
+    <!-- The single source of truth for the version (DD14). It travels into the .exe, and
+         build\installer.iss reads it back off the published file with GetStringFileInfo rather than
+         stating it a second time â€” so a release is one number changed in one place. BuildVersion
+         already reads it off the assembly, which is what the version verb and the window's About
+         print. (An XML comment cannot contain two hyphens in a row, so no flag can be spelled
+         here as it is typed.) -->
+    <Version>0.1.0</Version>
+    <!-- Keep ProductVersion exactly "x.y.z". The SDK otherwise appends "+<commit>", and the
+         installer would carry a version string Windows shows in Add/Remove Programs with a hash
+         in it. BuildVersion trims the suffix for its own reasons; the installer cannot. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
 </Project>

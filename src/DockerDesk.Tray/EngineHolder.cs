@@ -26,22 +26,24 @@ public interface IProcessLauncher
 ///
 /// A process and not a Windows service. The service is what the non-goal rules out, and it is also
 /// what would put the engine back on every boot without being asked.
+///
+/// The process it starts is this same executable with <c>--run</c> (DD14). It used to be a second
+/// file, <c>dockerdesk-engine.exe</c>, expected beside the tray: a copy that arrived without it —
+/// half an unzip, a shortcut to the wrong folder — had a Start engine menu item whose only possible
+/// answer was that the engine was missing. An executable is always beside itself.
 /// </remarks>
 public sealed class EngineHolder(string enginePath, IProcessLauncher launcher)
 {
-    /// <summary>The executable that holds the engine.</summary>
-    public const string EngineExecutable = "dockerdesk-engine.exe";
-
-    /// <summary>Where the engine executable is expected: beside whatever is running.</summary>
+    /// <summary>Where the engine is: this executable.</summary>
     /// <returns>The path.</returns>
-    public static string BesideThisProcess()
-    {
+    public static string ThisProcess() =>
         // System.IO.Path spelled out: enabling WPF brings System.Windows.Shapes.Path into the
         // implicit usings, and the unqualified name then resolves to a drawing primitive.
-        var here = System.IO.Path.GetDirectoryName(Environment.ProcessPath)
-            ?? AppContext.BaseDirectory;
-        return System.IO.Path.Combine(here, EngineExecutable);
-    }
+        //
+        // ProcessPath is null only for a host this project does not produce, and the fallback names
+        // the file the installer laid down rather than throwing at the first click.
+        Environment.ProcessPath
+        ?? System.IO.Path.Combine(AppContext.BaseDirectory, Cli.CommandLine.ExecutableName);
 
     /// <summary>The engine executable this holder drives.</summary>
     public string EnginePath { get; } = enginePath;
@@ -73,8 +75,8 @@ public sealed class DetachedLauncher : IProcessLauncher
         // an icon that vanishes when you press its menu item is worse than any error message.
         if (!System.IO.File.Exists(fileName))
         {
-            return $"{System.IO.Path.GetFileName(fileName)} is not beside the tray "
-                + $"(looked in {System.IO.Path.GetDirectoryName(fileName)})";
+            return $"{System.IO.Path.GetFileName(fileName)} is not in "
+                + $"{System.IO.Path.GetDirectoryName(fileName)}";
         }
 
         try

@@ -31,6 +31,7 @@
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 - ✅ **DD13** **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — Apache-2.0 stated in the README's first paragraph, in LICENSE and in the window's About, with a NOTICE generated from the install manifest so a new download cannot ship unattributed.
+- ✅ **DD14** **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — One DockerDesk.exe with every verb behind an argument, an Inno Setup installer that is per-user with no administrator prompt, and an uninstall that asks before deleting the distribution.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

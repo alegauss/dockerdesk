@@ -331,28 +331,6 @@ not as a rectangle the size of the screen.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD14 One exe, an Inno Setup installer, and an uninstall that asks
-
-One `.exe`, self-contained, and an Inno Setup installer around it — the arrangement the
-tray app this borrows from already ships, so the build script, the version chain from
-the `.csproj` and the signing story are patterns to copy rather than decisions to make.
-
-Per-user by default, into `%LOCALAPPDATA%`, with no administrator prompt for the
-application itself. This matters more here than for an ordinary tray app: the audience
-is developers on managed corporate laptops, and a UAC prompt at install time is where a
-large share of them stop. The engine's WSL2 feature may still need one, which is why the
-preflight report says so before anything is downloaded rather than a dialog appearing
-halfway through.
-
-Uninstall removes what was installed and asks about what was created: the owned WSL2
-distro holds every image and volume the user has, and deleting gigabytes of their data
-without a question is unforgivable in a tool whose pitch is that it respects the
-machine.
-
-No bundled updater in this task. An installer that starts a background service to check
-for versions is the weight this project is an answer to; the release feed can be read by
-the window later, and that is a separate decision to argue separately.
-
 ### §DD15 CI: a second machine, and a release with checksums
 
 A Windows desktop application built on one developer's machine has one build

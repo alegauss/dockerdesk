@@ -39,6 +39,36 @@ These are binding, not aspirational — see the non-goals in
 - A model, prompts or API keys
 - A second Docker CLI
 
+## Installing
+
+One `.exe`, and an installer around it. Both are per-user: DockerDesk installs into
+`%LOCALAPPDATA%\DockerDesk` and **asks for no administrator prompt**, which is what
+reaches a managed corporate laptop — the audience Docker Desktop's terms send here. The
+engine's WSL2 feature may still need elevation of its own, and the installer runs the
+preflight and says so rather than failing halfway through a download.
+
+Windows 10 2004 (build 19041) or later, 64-bit. Nothing else: the executable carries its
+own .NET runtime, so a clean machine needs no prerequisite.
+
+Uninstalling removes what was installed and **asks about what was created**. The
+`dockerdesk` WSL2 distribution holds every image, container and volume you have, so it is
+never deleted without a question, and an unattended uninstall keeps it.
+
+The same executable is every verb — there is no second tool to find:
+
+```
+DockerDesk.exe                 the tray icon
+DockerDesk.exe --window        the tray, with the window open
+DockerDesk.exe --preflight     what this machine can host; --json for a script
+DockerDesk.exe --provision     download, verify and install the engine
+DockerDesk.exe --run           start the engine and serve the pipe until Ctrl+C
+DockerDesk.exe --help          every verb
+```
+
+A windowed program does not hold the prompt, so a typed verb prints *after* the prompt
+returns. Redirecting (`DockerDesk.exe --preflight > report.txt`) has neither problem, and
+is the form a script or an installer uses anyway.
+
 ## Licence and attribution
 
 DockerDesk is [Apache-2.0](LICENSE). Copyright DockerDesk contributors.
@@ -54,8 +84,15 @@ where the choice is actually made.
 ```
 dotnet build
 dotnet test
+build\build.cmd              one self-contained DockerDesk.exe
+build\build-installer.cmd    that, wrapped in dist\DockerDesk-Setup.exe
 ```
 
-Requires the .NET 10 SDK and Windows. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
+Requires the .NET 10 SDK and Windows; the installer also needs
+[Inno Setup 6](https://jrsoftware.org/isdl.php), found machine-wide, per-user or on the
+PATH. The version is stated once, in
+[Directory.Build.props](Directory.Build.props) — the installer reads it back off the
+built `.exe` rather than repeating it. The app icon is committed; `build\icon.mjs`
+regenerates it from `docs/logo.svg` and is not part of the build. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
 roadmap, changelog and rationale under `docs/` are written — they are governed by a tool
 and a hand edit is refused.

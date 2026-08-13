@@ -185,15 +185,32 @@ public sealed class TrayTests
         var failure = new DetachedLauncher().Launch(missing, "--run");
 
         Assert.NotNull(failure);
-        Assert.Contains("is not beside the tray", failure, StringComparison.Ordinal);
+        Assert.Contains("is not in", failure, StringComparison.Ordinal);
+        Assert.Contains(System.IO.Path.GetTempPath().TrimEnd('\\'), failure, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_engine_is_looked_for_beside_whatever_is_running()
+    public void The_engine_is_this_executable_and_not_a_file_beside_it()
     {
-        var path = EngineHolder.BesideThisProcess();
+        // DD14: one .exe. The engine used to be a second file expected in the same folder, and a
+        // copy that arrived without it had a Start engine menu item that could only apologise. What
+        // this asserts is that the holder drives something that exists — itself.
+        var path = EngineHolder.ThisProcess();
 
-        Assert.EndsWith(EngineHolder.EngineExecutable, path, StringComparison.Ordinal);
         Assert.True(System.IO.Path.IsPathRooted(path));
+        Assert.True(System.IO.File.Exists(path), $"{path} should be the running executable");
+    }
+
+    [Fact]
+    public void Both_verbs_go_to_the_same_executable()
+    {
+        var launcher = new FakeLauncher();
+        var holder = new EngineHolder(EngineHolder.ThisProcess(), launcher);
+
+        holder.Start();
+        holder.Stop();
+
+        Assert.Equal(holder.EnginePath, launcher.Launched[0].File);
+        Assert.Equal(holder.EnginePath, launcher.Launched[1].File);
     }
 }

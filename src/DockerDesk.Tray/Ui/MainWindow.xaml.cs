@@ -497,9 +497,7 @@ internal partial class MainWindow : Window
 
     private void ShowEngine(EngineState engine)
     {
-        var colour = StateIcon.ColourFor(engine);
-        EngineDot.Fill = new SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(colour.R, colour.G, colour.B));
+        EngineDot.Fill = Palette.EngineBrush(engine);
         EngineLabel.Text = engine switch
         {
             EngineState.Running => "Engine running",

@@ -1,17 +1,19 @@
 <!-- The one window, and it is a list of containers, because that is what the tool is opened for.
-     The chrome borrows claude-tray's: ThemeMode="System" so light and dark follow the OS, the
-     Fluent brushes by DynamicResource, and Segoe UI Variable — two apps by the same author that
-     look unrelated read as two unfinished apps. -->
+     The chrome borrows claude-tray's. The values live in Ui/Palette.cs and the converter in
+     Ui/Theme.xaml (DD34); what is left here is what is this window's own, plus the two things that
+     measurably cannot move — ThemeMode and the BasedOn button style, both of which render
+     differently from application scope. See Ui/Theme.cs. -->
 <Window x:Class="DockerDesk.Tray.Ui.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:DockerDesk.Tray.Ui"
         x:ClassModifier="internal"
         Title="DockerDesk"
         Width="1040" Height="560"
         MinWidth="880" MinHeight="360"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
-        FontFamily="Segoe UI Variable Text, Segoe UI">
+        FontFamily="{x:Static ui:Palette.Body}">
 
     <Window.Resources>
         <!-- A port that is published opens in a browser; one that is only exposed is plain text.
@@ -53,19 +55,16 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
-        <!-- Five visibilities on a row, each straight off a bool the row already exposes. The
-             framework ships this converter; five more DataTriggers would be XAML explaining a
-             boolean to itself. -->
-        <BooleanToVisibilityConverter x:Key="Shown" />
-
         <!-- BasedOn is load-bearing, not tidiness: a keyed style replaces the implicit one outright,
              so without this the row buttons fall back to the pre-Fluent chrome and render as light
-             grey rectangles on a dark window. -->
+             grey rectangles on a dark window. It cannot move to Theme.xaml, and that was measured:
+             ThemeMode puts Fluent in the WINDOW's resources, so the same BasedOn resolved at
+             application scope finds the pre-Fluent Button and quietly reintroduces the trap. -->
         <Style x:Key="RowAction" TargetType="Button"
                BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="10,3" />
             <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="FontSize" Value="12" />
             <Setter Property="MinWidth" Value="0" />
         </Style>
     </Window.Resources>
@@ -230,7 +229,7 @@
                          volume still mounted is an ordinary answer, and the daemon says it better
                          than any paraphrase this tool could write. -->
                     <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                               FontSize="12" Foreground="#E5484D"
+                               FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
                                Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
                   </StackPanel>
                 </DataTemplate>
@@ -338,7 +337,7 @@
                       <!-- An image in use cannot be removed and the engine names the container that
                            holds it. Passed through, because that names the row to deal with first. -->
                       <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                 FontSize="12" Foreground="#E5484D"
+                                 FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
                                  Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
                     </StackPanel>
                   </DataTemplate>
@@ -430,7 +429,7 @@
                         </StackPanel>
                       </Grid>
                       <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                 FontSize="12" Foreground="#E5484D"
+                                 FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
                                  Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
                     </StackPanel>
                   </DataTemplate>

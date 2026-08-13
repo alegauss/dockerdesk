@@ -20,13 +20,12 @@ public static class StateIcon
     /// <summary>The colour each state is drawn in.</summary>
     /// <param name="state">The state.</param>
     /// <returns>The colour.</returns>
-    public static Color ColourFor(EngineState state) => state switch
-    {
-        EngineState.Running => Color.FromArgb(0x2E, 0xA0, 0x43),
-        EngineState.Starting => Color.FromArgb(0xD2, 0x9A, 0x00),
-        EngineState.Stopped => Color.FromArgb(0x8B, 0x94, 0x9E),
-        _ => Color.FromArgb(0x8B, 0x94, 0x9E),
-    };
+    /// <remarks>
+    /// The value lives in <see cref="Ui.Palette"/> and this is the GDI+ edge of it (DD34). It used to
+    /// be the other way round — the bytes here, converted to a WPF brush by hand at one call site —
+    /// which meant the engine's colour had two homes and only one of them was ever looked at.
+    /// </remarks>
+    public static Color ColourFor(EngineState state) => Ui.Palette.EngineGdi(state);
 
     /// <summary>The words the tooltip says, for when the shape is not enough.</summary>
     /// <param name="state">The state.</param>

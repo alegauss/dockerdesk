@@ -63,10 +63,9 @@ internal static class WindowCapture
         var outPath = Path.GetFullPath(args[0]);
         var tab = args.Length == 2 ? args[1] : null;
 
-        var app = new System.Windows.Application
-        {
-            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
-        };
+        // The same application the tray makes, made the same way: a capture that resolved different
+        // chrome would be a picture of something nobody runs (DD34).
+        var app = Ui.Theme.Apply();
 
         // Not connected to anything, and it does not need to be: with no engine answering, the window
         // renders its own empty state, which is a picture of a real thing. A window drawn from a

@@ -1,0 +1,25 @@
+<!-- The chrome both windows share, declared once (DD34).
+
+     Deliberately small, and every omission was measured against a byte-identical capture rather
+     than reasoned about. What is here is what has no dependency on the theme.
+
+     NOT here, and each for its own reason:
+       - colour, which lives in Palette.cs as bytes, because GDI+ and WPF want different types and
+         markup reaches the value with {x:Static};
+       - the font stack, tried here as an implicit Style TargetType="Window" and silently ignored,
+         because an implicit style is keyed by the exact type and does not reach a subclass;
+       - the shared BasedOn button style, which resolves {x:Type Button} at APPLICATION scope where
+         Fluent is not — ThemeMode puts it in the window's resources — so moving it up reintroduced
+         the pre-Fluent fallback it exists to prevent;
+       - ThemeMode itself, which renders differently set on the Application or from code.
+
+     See Ui/Theme.cs. The pattern this follows is claude-tray's Brand: share the value, convert at
+     each edge, and let markup reach it with {x:Static}. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Visibilities straight off a bool the row already exposes. The framework ships this
+         converter; DataTriggers instead would be XAML explaining a boolean to itself. -->
+    <BooleanToVisibilityConverter x:Key="Shown" />
+
+</ResourceDictionary>

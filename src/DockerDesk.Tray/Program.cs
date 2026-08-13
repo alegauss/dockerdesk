@@ -89,16 +89,9 @@ internal sealed class TrayApplication : ApplicationContext
             return;
         }
 
-        // WPF needs an Application before a Window can resolve theme resources, and a WinForms
-        // process has none. One is enough, and it must not shut this process down when the window
-        // closes — the tray outlives the window.
-        if (System.Windows.Application.Current is null)
-        {
-            _ = new System.Windows.Application
-            {
-                ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
-            };
-        }
+        // WPF needs an Application carrying the chrome before a Window can resolve it, and a WinForms
+        // process has none. How that is made is Ui.Theme's business and not this one's (DD34).
+        Ui.Theme.Apply();
 
         _open = new Ui.MainWindow(_api, () => _shown, StartEngine);
         _open.Closed += (_, _) => _open = null;

@@ -70,30 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD34 One meaning, one declaration, and every window reduced to what is its own
-
-There is no `App.xaml`, no `ResourceDictionary` and no `Brand`. Every style this app has
-is declared inside the window that first needed it, which is why `MainWindow.xaml` and
-`LogWindow.xaml` each carry their own `BooleanToVisibilityConverter`, their own
-`BasedOn` button style with the same comment explaining the same Fluent trap, and the
-same `ThemeMode`, `FontFamily` and font-stack spelled out twice.
-
-The colour is the sharper case. `#E5484D` means one thing — *this is the engine's
-refusal, or stderr* — and it is written four times: three in `MainWindow.xaml` and once
-in `LogWindow.xaml`. None of the four is pinned by a test, so all four can move
-independently, and the failure is quiet: a failure line under a container row and a
-stderr line in its log window in two reds, saying two things where the point was one.
-The engine's own three states have a second, separate source in `StateIcon.ColourFor`,
-which is GDI+, and `ShowEngine` converts it to a WPF brush by hand at one call site.
-
-claude-tray met this exact problem and its answer is `Brand.cs`: the value, as bytes,
-declared once, with each edge converting — GDI+ for the tray icon, a frozen `Brush` for
-WPF, a hex string for anything that wants text. Its docstring says why a value and not a
-brush, and the reasoning transfers unchanged.
-
-So: one `Theme.xaml` merged at application scope for what is markup, one `Palette` for
-what is a value, and every window reduced to what is actually its own.
-
 ### §DD35 The shell owns the chrome and a list owns its page
 
 `MainWindow.xaml` is 447 lines and `MainWindow.xaml.cs` is 586, and between them they

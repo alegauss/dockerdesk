@@ -1,5 +1,6 @@
-import { hero, repoUrl } from "../../lib/site-content";
+import { hero, heroSession, repoUrl } from "../../lib/site-content";
 import { Rich } from "../ui/Rich";
+import { HeroSession } from "../HeroSession";
 
 export function Hero() {
   return (
@@ -27,6 +28,9 @@ export function Hero() {
             📋 Read the status
           </a>
         </div>
+
+        <div className="session-eyebrow">{heroSession.eyebrow}</div>
+        <HeroSession />
         <div className="hero-meta">
           {hero.meta.map((item) => (
             <span key={item}>{item}</span>

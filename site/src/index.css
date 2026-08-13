@@ -1231,3 +1231,155 @@ footer {
 .block-counts .bar-track {
   width: 120px;
 }
+
+/* ---------- hero session transcript (DD44) — a dark island, like the terminals ---------- */
+.session-eyebrow {
+  margin-top: 44px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.session {
+  max-width: 780px;
+  margin: 14px auto 0;
+  text-align: left;
+  background: #060f16;
+  border: 1px solid #22404f;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.9);
+}
+.session-ask {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #16303d;
+  background: #0b1a24;
+  font-size: 0.92rem;
+  color: #e9f2f8;
+}
+.session-ask-tag {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #67c3f2;
+  border: 1px solid rgba(103, 195, 242, 0.4);
+  border-radius: 6px;
+  padding: 3px 7px;
+}
+.session-ask-text {
+  color: #c8dbe6;
+  font-style: italic;
+}
+.session-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 16px 18px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  scroll-behavior: smooth;
+}
+.session-step + .session-step {
+  margin-top: 16px;
+}
+.session-cmd {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.session-prompt {
+  color: #4cc76a;
+  font-weight: 700;
+}
+.session-cmd code {
+  color: #e9f2f8;
+  font-family: inherit;
+  word-break: break-word;
+}
+.session-cost {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: #67c3f2;
+  font-size: 0.72rem;
+  background: rgba(46, 155, 214, 0.12);
+  border: 1px solid rgba(46, 155, 214, 0.3);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+.session-out {
+  margin-top: 6px;
+  color: #9db3c1;
+  white-space: pre-wrap;
+}
+.session-pack {
+  margin: 6px 0 0;
+  color: #c8dbe6;
+  background: #0a141c;
+  border: 1px solid #16303d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+.session-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid #16303d;
+  background: #0b1a24;
+}
+.session-cmp {
+  font-size: 0.76rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid #22404f;
+}
+.session-cmp.today {
+  color: #7d95a5;
+}
+.session-cmp.target {
+  color: #7ee6a0;
+  border-color: rgba(46, 160, 67, 0.45);
+  background: rgba(46, 160, 67, 0.1);
+}
+.session-note {
+  max-width: 780px;
+  margin: 14px auto 0;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  text-align: center;
+}
+.session-note code {
+  color: var(--accent-strong);
+}
+.session-note b {
+  color: var(--muted);
+}
+
+/* autoplay: hide steps only while the client is playing; SSR/no-JS shows them all */
+.session--playing .session-step {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.session--playing .session-step.in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .session-scroll {
+    scroll-behavior: auto;
+  }
+}

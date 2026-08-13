@@ -83,6 +83,64 @@ export const hero = {
   ],
 };
 
+/* ------------------------------------------------------------------ hero session */
+// The five-call session from DD23 §3.1, and the context pack from §4.2. The commands and
+// their flags are the real agent surface; the values are illustrative demo data. Every
+// cost is a target DD23 must prove or falsify — an acceptance criterion, never a
+// measurement, because the benchmark that would measure it has not been written (§4 of the
+// site constitution). Rendered as an autoplaying transcript that scrolls its own list (S7).
+
+export const heroSession = {
+  eyebrow: "What it costs an agent",
+  question:
+    "bring this project's stack up and tell me why the api container is not responding",
+  steps: [
+    {
+      cmd: "dockerdesk read context",
+      cost: "~150 tok",
+      // the context pack (§4.2): one budgeted payload in a terse line format, not JSON
+      pack: [
+        "engine  running  wsl:dockerdesk  api=v1.43  pipe=docker_engine  ctx=default(ok)",
+        "web     up 6m       healthy   svc:shop/web   :8080→80   listening",
+        "db      up 6m       healthy   svc:shop/db    :5432→5432 listening",
+        "api     exited 137  ×3/2m     svc:shop/api   OOM  limit=512m",
+        "disk    images 14G (4.2G dangling)  volumes 2.1G (1 unused)",
+        "compose ./docker-compose.yaml → shop  3 svc, 3 present",
+        "cursor  c:4f21a0",
+      ],
+    },
+    {
+      cmd: "dockerdesk read doctor api",
+      cost: "~200 tok",
+      out: "api  OOM-killed ×3  ·  mem_limit 512m too low  →  raise it in compose",
+    },
+    {
+      cmd: "dockerdesk read logs api --dedup --budget 1500 --out .dockerdesk/logs/api.log",
+      cost: "~300 tok",
+      out: "1 unique line ×3 (deduped from 41), written to file — then Grep, paying for matches only",
+    },
+    {
+      cmd: "dockerdesk do compose up --wait",
+      cost: "~100 tok",
+      out: "shop  3/3 ready  ·  api healthy in 4.2s  (this one still asks — it writes)",
+    },
+    {
+      cmd: "dockerdesk read verify svc:shop/api",
+      cost: "~80 tok",
+      out: ":8080 answers from Windows  ·  200 OK  ·  PASS",
+    },
+  ],
+  today: "Docker today: 15–30 calls · 30–60k tokens · 1–3 human round trips",
+  target: "This session: ≈5 calls · ~2–5k tokens · 0 human round trips",
+  note: [
+    "A scripted session — the costs are ",
+    { b: "targets DD23 must prove or falsify" },
+    ", acceptance criteria and not measurements. Steps 1, 2, 3 and 5 are reads, so one allowlist line — ",
+    { code: "Bash(dockerdesk read:*)" },
+    " — removes every prompt on the inspection path while step 4 still asks.",
+  ] as Rich,
+};
+
 /* ------------------------------------------------------------------ why */
 
 export const why = {

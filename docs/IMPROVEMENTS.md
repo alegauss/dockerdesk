@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD44 The hero is a session, and it does not steal the scroll
-
-The hero says what the tool is. What sells the argument is what it costs, and DD23
-section 3.1 already holds the artefact: five calls replacing fifteen, a context pack
-that answers the canonical question in its fourth line, and a verify that closes the
-loop with no human looking. Shio's hero is a scripted session for that reason - a reader
-who watches an agent operate the product understands the pitch in a way a paragraph does
-not deliver. The costs stay marked as targets rather than achievements until DD23
-measures them. The mechanism carries one rule with it. Shio shipped an autoplaying
-transcript that called scrollIntoView to keep the lit step visible, which scrolls every
-scrollable ancestor including the document, and so dragged any reader who had scrolled
-past the hero back to it every 2.6 seconds for as long as the script ran. The fix was
-that the list scrolls itself. We take the rule and its lint rather than the defect,
-which is what a reference implementation is for.
-
 ### §DD45 The ten laws, and the two actors
 
 The site sells a GUI with no licence fee. That was the pitch before DD23, and DD23

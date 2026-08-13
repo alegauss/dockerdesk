@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 8,
-      "shipped": 4,
+      "open": 7,
+      "shipped": 5,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 33,
-    "shipped": 18,
+    "open": 32,
+    "shipped": 19,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD44",
-      "status": "📋",
-      "block": "H",
-      "symptom": "The hero asserts what the tool is, so what it costs an agent per call is nowhere on the page",
-      "why": "An autoplaying transcript of the five-call session, scrolling its own list and never the window, because what is sold here is how cheaply an agent operates the machine.",
-      "deps": [
-        "DD40 ✅"
-      ]
-    },
-    {
       "id": "DD45",
       "status": "📋",
       "block": "H",
@@ -532,6 +522,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "The status rows are typed into the page, and five of them are already wrong about what has shipped",
       "why": "The status page and the landing summary are generated from roadkeep export --json on every build, so a shipped task moves its own row and no progress figure is typed.",
+      "deps": []
+    },
+    {
+      "id": "DD44",
+      "status": "✅",
+      "block": "H",
+      "symptom": "The hero asserts what the tool is, so what it costs an agent per call is nowhere on the page",
+      "why": "The hero autoplays the five-call agent session with its per-call token targets, and the transcript scrolls its own list rather than the window.",
       "deps": []
     }
   ],

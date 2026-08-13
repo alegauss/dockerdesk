@@ -30,8 +30,10 @@ its copy in a single module, its measured figures generated rather than typed, a
 DockerDesk's site is a **single hand-written 1080-line `docs/index.html`**: dark-only,
 one page, no second page reachable, every claim typed into the markup that displays it,
 and a status section listing DD7 as *in progress* and DD8–DD12 as *open* — all five of
-which have shipped. The two sites are selling the same thing in the same voice, and only
-one of them can be added to without retyping.
+which have shipped. Its footer states that `LICENSE` and `NOTICE` "are DD13 on the
+roadmap and not written yet", which stopped being true the day DD13 shipped both files.
+The two sites are selling the same thing in the same voice, and only one of them can be
+added to without retyping.
 
 This document is `shio-site` restated for DockerDesk, so the borrowing is **structural
 rather than cosmetic** — the same reasoning DD34 applies to claude-tray's design system.

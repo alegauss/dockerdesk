@@ -5,7 +5,7 @@ import { App } from "./App";
 // render(path) once per route, then patches the head from the same route table (S4). The
 // route metadata is re-exported so the prerender reads exactly the table the assertion in
 // routes.tsx has already checked against the component map.
-export { ROUTE_META, canonicalUrl, outputDir } from "./routes";
+export { ROUTE_META, canonicalUrl, outputDir, OG_IMAGE } from "./routes";
 
 /** The hydratable render written into the HTML file. */
 export function render(path: string): string {

@@ -13,6 +13,7 @@ import {
   ROUTE_META,
   canonicalUrl,
   outputDir,
+  OG_IMAGE,
 } from "../dist-server/entry-server.js";
 import { htmlToMarkdown } from "./markdown.mjs";
 
@@ -75,7 +76,11 @@ for (const meta of ROUTE_META) {
     `<meta property="og:title" content="${escapeHtml(meta.ogTitle)}" />`,
     `<meta property="og:description" content="${escapeHtml(meta.ogDescription)}" />`,
     `<meta property="og:url" content="${escapeHtml(canonical)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    `<meta property="og:image" content="${escapeHtml(OG_IMAGE)}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:image" content="${escapeHtml(OG_IMAGE)}" />`,
   ].join("\n    ");
   html = replaceOrThrow(html, "</head>", `  ${headBlock}\n  </head>`, "a </head>");
 

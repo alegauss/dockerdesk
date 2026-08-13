@@ -647,20 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD49 The social card, and the marks around it
-
-The og:image points at logo.svg. No major platform rasterises SVG for a card and none
-scales a 32-pixel mark to 1200 by 630, so every share of this link renders an empty
-rectangle with a domain under it - on the one surface where the project has no second
-chance to introduce itself. The fix is small and generated: an SVG carrying the mark,
-the name and the one-line claim, rasterised on every build, so the card cannot drift
-from the site the way a hand-exported image does. The favicon and the brand marks belong
-in the same task because they are the same asset set and the same question - what this
-looks like at 16 pixels, at 32, and at full width - and the answer is the tray's own
-vocabulary rather than a second mark, since the app already draws a filled disc, a
-broken ring and a plain ring for engine state and those shapes are the project's visual
-signature.
-
 ### §DD50 The publish job, gated by the build
 
 The site is whatever was last committed under docs/, served by Pages from a branch

@@ -12,6 +12,10 @@ import { features } from "./lib/features";
 export const SITE_ORIGIN = "https://alegauss.github.io";
 export const BASE = "/dockerdesk/";
 
+// The social card (§DD49), rasterised to dist/og.png. Absolute, because a platform
+// fetching the card is not on this origin.
+export const OG_IMAGE = `${SITE_ORIGIN}${BASE}og.png`;
+
 export type RouteMeta = {
   /** app path, leading slash: "/" or "/compare" or "/features/pipe" */
   path: string;

@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 3,
-      "shipped": 9,
+      "open": 2,
+      "shipped": 10,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 28,
-    "shipped": 23,
+    "open": 27,
+    "shipped": 24,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD49",
-      "status": "📋",
-      "block": "H",
-      "symptom": "The og image points at an svg, so every share of this link renders a card with no image at all",
-      "why": "A 1200 by 630 card rasterised from an svg on every build, with the favicon and the marks beside it, so a shared link does not introduce the project as an empty rectangle.",
-      "deps": [
-        "DD40 ✅"
-      ]
-    },
-    {
       "id": "DD50",
       "status": "📋",
       "block": "H",
@@ -522,6 +512,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "Everything is one scroll, so a pillar gets a paragraph and there is no page to link at",
       "why": "Five depth pages from one record each, whose route, title and description are read off the same record, so a pillar cannot ship half-declared or untitled.",
+      "deps": []
+    },
+    {
+      "id": "DD49",
+      "status": "✅",
+      "block": "H",
+      "symptom": "The og image points at an svg, so every share of this link renders a card with no image at all",
+      "why": "A 1200x630 og.png rasterised from public/og.svg on every build, with the mark and the tagline, and og:image points at it on every route.",
       "deps": []
     }
   ],

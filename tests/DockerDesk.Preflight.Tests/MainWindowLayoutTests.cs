@@ -76,17 +76,23 @@ public sealed class MainWindowLayoutTests
     }
 
     [Fact]
-    public void The_actions_column_is_wide_enough_for_the_five_buttons_a_running_row_shows()
+    public void The_actions_column_fits_the_three_controls_a_row_now_shows()
     {
-        // Measured against the window: Logs, Shell, Stop, Restart and Remove come to about 281
-        // device-independent pixels together, and at 236 the last one was clipped to a sliver.
+        // It was 320 for five buttons — Logs, Shell, Stop, Restart, Remove — and at 236 the last one
+        // was clipped to a sliver. DD36 moved three of them behind the overflow, so the column carries
+        // Logs, one verb and the ⋯ button: measured at about 160, and the number here is what stops it
+        // being shrunk to where the last one clips again.
         var widths = ColumnBlocks(
             Pages().Single(p => Path.GetFileName(p) == "ContainersPage.xaml"))[0];
 
         Assert.True(
             int.TryParse(widths[^1], out var actions),
             $"the actions column should be a fixed width, not '{widths[^1]}'");
-        Assert.True(actions >= 300, $"the actions column is {actions}, too narrow for five buttons");
+        Assert.True(actions >= 170, $"the actions column is {actions}, too narrow for three controls");
+        Assert.True(
+            actions <= 220,
+            $"the actions column is {actions}: three controls do not need what five did, and the "
+            + "space belongs to the columns that are read.");
     }
 
     [Fact]

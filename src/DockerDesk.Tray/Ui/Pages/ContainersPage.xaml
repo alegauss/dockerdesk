@@ -65,7 +65,7 @@
     <ColumnDefinition Width="0.7*" />
     <ColumnDefinition Width="1.1*" />
     <ColumnDefinition Width="1.2*" />
-    <ColumnDefinition Width="320" />
+    <ColumnDefinition Width="180" />
 </Grid.ColumnDefinitions>
 <TextBlock Grid.Column="0" Text="NAME" Style="{DynamicResource Header}" />
 <TextBlock Grid.Column="1" Text="IMAGE" Style="{DynamicResource Header}" />
@@ -97,14 +97,24 @@
                 <ColumnDefinition Width="0.7*" />
                 <ColumnDefinition Width="1.1*" />
                 <ColumnDefinition Width="1.2*" />
-                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="180" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
             <TextBlock Grid.Column="1" Text="{Binding Image}" TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <TextBlock Grid.Column="2" Text="{Binding State}"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <!-- A chip, because state is the column actually scanned and it used to be drawn in
+                 the same tertiary grey as the status restating it. The fill is translucent so one
+                 pair of bytes works on both surfaces, and it is resolved once per render rather
+                 than per row (Ui/RowStyle.cs). A chip is an assertion, so it carries the evidence
+                 for itself in its tooltip — and the evidence is more than the status column already
+                 shows, or the tooltip would be the same sentence twice. -->
+            <Border Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                    CornerRadius="5" Padding="8,2" Background="{Binding ChipFill}"
+                    ToolTip="{Binding StateEvidence}">
+                <TextBlock Text="{Binding State}" FontSize="12"
+                           Foreground="{Binding ChipText}" />
+            </Border>
             <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             <ItemsControl Grid.Column="4" ItemsSource="{Binding Ports}">
@@ -158,25 +168,34 @@
                      reading it changes nothing that could be in flight. -->
                 <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
                         Style="{DynamicResource RowAction}" />
-                <!-- The one button that is disabled rather than hidden, because
-                     "you cannot do this yet" and "this does not exist" are different
-                     answers and only the tooltip can tell them apart. -->
-                <Button Content="Shell" Tag="{Binding}" Click="OpenShell"
+                <!-- The one verb this row is opened for: a running container to be stopped, a
+                     stopped one to be started. The other three are one click deeper. -->
+                <Button Content="{Binding PrimaryVerb}" Tag="{Binding}" Click="PrimaryAction"
                         Style="{DynamicResource RowAction}"
-                        IsEnabled="{Binding CanShell}"
-                        ToolTip="{Binding ShellReason}" />
-                <Button Content="Start" Tag="{Binding}" Click="StartContainer"
+                        Visibility="{Binding HasPrimary, Converter={StaticResource Shown}}" />
+                <!-- Always drawn, never revealed on hover: the section is explicit that hiding a
+                     verb costs a discovery problem, and a button nobody can see is a verb nobody
+                     finds. One click deeper is not the same as hidden. -->
+                <Button Content="⋯" Click="OpenOverflow" Tag="{Binding}"
                         Style="{DynamicResource RowAction}"
-                        Visibility="{Binding CanStart, Converter={StaticResource Shown}}" />
-                <Button Content="Stop" Tag="{Binding}" Click="StopContainer"
-                        Style="{DynamicResource RowAction}"
-                        Visibility="{Binding CanStop, Converter={StaticResource Shown}}" />
-                <Button Content="Restart" Tag="{Binding}" Click="RestartContainer"
-                        Style="{DynamicResource RowAction}"
-                        Visibility="{Binding CanRestart, Converter={StaticResource Shown}}" />
-                <Button Content="Remove" Tag="{Binding}" Click="RemoveContainer"
-                        Style="{DynamicResource RowAction}"
-                        Visibility="{Binding CanRemove, Converter={StaticResource Shown}}" />
+                        ToolTip="Shell, restart and remove"
+                        Visibility="{Binding CanRemove, Converter={StaticResource Shown}}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <!-- Disabled rather than absent, because "you cannot do this yet" and
+                                 "this does not exist" are different answers and only the tooltip
+                                 tells them apart. It has more room here than on a cramped button. -->
+                            <MenuItem Header="Shell" Click="OpenShell" Tag="{Binding}"
+                                      IsEnabled="{Binding CanShell}"
+                                      ToolTip="{Binding ShellReason}" />
+                            <MenuItem Header="Restart" Click="RestartContainer" Tag="{Binding}"
+                                      IsEnabled="{Binding CanRestart}" />
+                            <Separator />
+                            <MenuItem Header="Remove…" Click="RemoveContainer" Tag="{Binding}"
+                                      IsEnabled="{Binding CanRemove}" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
                 <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                            Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />

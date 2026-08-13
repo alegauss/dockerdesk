@@ -22,10 +22,12 @@ the engine's state, and one window for containers, images and volumes.
   and a black-and-white screenshot. Windows 11 files an icon it has not seen before into
   the overflow behind the chevron, and nothing here promotes itself out of there: drag it
   onto the taskbar once and Windows remembers. Until then the state is on hover.
-- **One window.** Containers with their ports as links, their logs de-framed and
-  followed, and a shell in the terminal you already have. Images sorted by size with
-  dangling and in-use named. Volumes with what mounts them, because a volume is the one
-  thing here that does not come back.
+- **One window.** Containers with their state in a chip that says *which kind of stopped*
+  — a clean exit is muted, a kill is not — their ports as links, their logs de-framed and
+  followed, and a shell in the terminal you already have. Three controls per row rather
+  than six: Logs, the one verb the row was opened for, and an overflow that is always
+  drawn. Images sorted by size with dangling and in-use named. Volumes with what mounts
+  them, because a volume is the one thing here that does not come back.
 - **No daemon of its own.** Quitting the tray leaves the engine exactly as it was.
 
 ## What it is not

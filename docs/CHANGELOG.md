@@ -26,6 +26,7 @@
 - ✅ **DD35** **Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files** — The shell keeps the engine line, the terms and a nav strip; each list is a page built on first visit and kept alive, so a fourth adds a file rather than growing two.
 - ✅ **DD66** **Every container row threw while being measured, so the list has drawn nothing since the pages were split** — The two styles a row template is BasedOn moved into the page that uses them, where a StaticResource is legal, and a check refuses a DynamicResource on BasedOn.
 - ✅ **DD38** **No window can be drawn without a running daemon holding the containers the picture is meant to show** — The window takes a seam rather than the client, and a SampleMachine stands in at it, so --fixture draws every page from a machine that is the same everywhere.
+- ✅ **DD36** **A row says its state in plain text and carries six always-visible captions, so a list of forty reads as a form** — State is a tinted chip that tells a clean exit from a kill and carries its own evidence, and the six captions per row are Logs, one verb and an overflow that is always drawn.
 
 ## Block D — Container operations (what a user came to do)
 

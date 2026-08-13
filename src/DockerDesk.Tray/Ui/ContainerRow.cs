@@ -119,6 +119,99 @@ public sealed record ContainerRow(
         _ => "This container is not running. Start it before opening a shell.",
     };
 
+
+    /// <summary>
+    /// What the state chip asserts, in the three tones a glance tells apart (DD36).
+    /// </summary>
+    /// <remarks>
+    /// A clean exit is muted rather than red: it stopped because it was finished, and a migration
+    /// container that did its job is not a problem to draw attention to. Only a non-zero exit is bad,
+    /// which is the distinction the tertiary grey it used to be drawn in could not make.
+    /// </remarks>
+    public RowTone Tone => this switch
+    {
+        { IsRunning: true } => RowTone.Good,
+        { State: "paused" } or { State: "restarting" } or { State: "created" } => RowTone.Warn,
+        _ when ExitCode is 0 => RowTone.Muted,
+        { IsLive: false } => RowTone.Bad,
+        _ => RowTone.Muted,
+    };
+
+    /// <summary>
+    /// The exit code the daemon put in the status line, where it put one there.
+    /// </summary>
+    /// <remarks>
+    /// Parsed out of <c>Exited (137) 12 seconds ago</c> rather than asked for: it is already in the
+    /// list response, and an inspect per row to read one integer is the call this window does not make.
+    /// </remarks>
+    public int? ExitCode
+    {
+        get
+        {
+            var open = Status.IndexOf('(', StringComparison.Ordinal);
+            var close = Status.IndexOf(')', StringComparison.Ordinal);
+            return open >= 0 && close > open + 1
+                   && int.TryParse(
+                       Status.AsSpan(open + 1, close - open - 1),
+                       System.Globalization.NumberStyles.Integer,
+                       System.Globalization.CultureInfo.InvariantCulture,
+                       out var code)
+                ? code
+                : null;
+        }
+    }
+
+    /// <summary>
+    /// Why the chip says what it says.
+    /// </summary>
+    /// <remarks>
+    /// A chip is an assertion, so it owes evidence — and the evidence has to be more than the status
+    /// column already shows, or the tooltip is the same sentence twice. 137 is the one worth spelling
+    /// out: it is SIGKILL, it is what the kernel's memory limit looks like from here, and it is the
+    /// exit code the diagnostic half of this product exists for.
+    /// </remarks>
+    public string StateEvidence => this switch
+    {
+        { IsRunning: true } => Status.Length > 0 ? Status : "The daemon reports this container running.",
+        { State: "paused" } => "Paused: its processes are frozen, not stopped.",
+        { State: "restarting" } => "Restarting: the daemon is bringing it back up.",
+        { State: "created" } => "Created and never started.",
+        { ExitCode: 0 } => "Exited 0 — it finished and meant to.",
+        { ExitCode: 137 } => "Exited 137 — SIGKILL. Usually the memory limit, sometimes a stop that "
+            + "ran out of its grace period.",
+        { ExitCode: { } code } => $"Exited {code.ToString(System.Globalization.CultureInfo.InvariantCulture)} "
+            + "— it stopped and did not mean to. Its log is the next thing to read.",
+        _ => Status,
+    };
+
+    /// <summary>The fill the chip is drawn with, set once per render from <see cref="RowStyle"/>.</summary>
+    public System.Windows.Media.Brush? ChipFill { get; init; }
+
+    /// <summary>What the chip's word is written in.</summary>
+    public System.Windows.Media.Brush? ChipText { get; init; }
+
+    /// <summary>
+    /// The one verb this row is opened for, beside Logs.
+    /// </summary>
+    /// <remarks>
+    /// The other three moved behind the overflow (DD36): six word captions per row is two hundred of
+    /// them on a list of forty, and the eye has nothing to skip past. Which one this is depends on the
+    /// state, because a running container is opened to be stopped and a stopped one to be started.
+    /// </remarks>
+    public string PrimaryVerb => CanStop ? "Stop" : "Start";
+
+    /// <summary>Whether the primary verb is offered at all.</summary>
+    public bool HasPrimary => CanStop || CanStart;
+
+    /// <summary>Dress this row in the theme's brushes.</summary>
+    /// <param name="style">The brushes, resolved once for the whole render.</param>
+    /// <returns>The row, with its chip filled in.</returns>
+    public ContainerRow WithChip(RowStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        return this with { ChipFill = style.Fill(Tone), ChipText = style.Text(Tone) };
+    }
+
     /// <summary>Project one summary.</summary>
     /// <param name="container">What the API returned.</param>
     /// <returns>The row.</returns>

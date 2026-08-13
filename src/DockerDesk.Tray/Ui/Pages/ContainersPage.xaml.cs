@@ -65,7 +65,16 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             {
                 var containers = await _api.ContainersAsync().ConfigureAwait(true);
                 _activity.Prune(containers.Select(c => c.Id));
-                rows = [.. containers.Select(ContainerRow.From).Select(_activity.Dress)];
+
+                // Resolved once for the whole render rather than per row: this list is rebuilt on
+                // every engine event, and a FindResource per row is a dictionary walk per row.
+                var style = RowStyle.For(this);
+                rows =
+                [
+                    .. containers.Select(ContainerRow.From)
+                        .Select(_activity.Dress)
+                        .Select(row => row.WithChip(style)),
+                ];
             }
             catch (DockerApiException)
             {
@@ -187,6 +196,43 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
         }
     }
 
+    /// <summary>
+    /// The one verb the row shows, which is Stop for a live container and Start for anything else.
+    /// </summary>
+    /// <remarks>
+    /// Decided from the row rather than from two buttons with a visibility binding each: the row
+    /// already knows which verb it is offering, and reading it in two places is how the two answers
+    /// drift apart.
+    /// </remarks>
+    private void PrimaryAction(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: ContainerRow row })
+        {
+            Send(row, row.CanStop ? ContainerVerb.Stop : ContainerVerb.Start);
+        }
+    }
+
+    /// <summary>
+    /// Open the row's overflow, on a left click rather than only on a right one.
+    /// </summary>
+    /// <remarks>
+    /// A context menu that only answers the right button is the discovery problem the section warns
+    /// about wearing a different hat. Placed under the button so it reads as belonging to that row and
+    /// not to wherever the pointer happened to be.
+    /// </remarks>
+    private void OpenOverflow(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { ContextMenu: { } menu } button)
+        {
+            return;
+        }
+
+        menu.PlacementTarget = button;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.DataContext = button.Tag;
+        menu.IsOpen = true;
+    }
+
     private void StartContainer(object sender, RoutedEventArgs e) =>
         Act(sender, ContainerVerb.Start);
 
@@ -268,6 +314,8 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     {
         if (Containers.ItemsSource is IEnumerable<ContainerRow> rows)
         {
+            // The chip is carried through: a row going pending keeps the colour it already had, and
+            // re-resolving the brushes here would be the per-row lookup the render avoids.
             Containers.ItemsSource = rows.Select(_activity.Dress).ToList();
         }
     }

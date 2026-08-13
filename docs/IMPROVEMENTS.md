@@ -70,30 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD36 A row carries its state, not a wall of captions
-
-A container row today is five plain `TextBlock`s and up to six `Button`s with word
-captions — Logs, Shell, Start, Stop, Restart, Remove — in a fixed 320px column. At forty
-containers that is two hundred captions, and the eye has nothing to skip past. Nothing
-highlights on hover, so there is no feedback that a row is a row; a click anywhere but a
-button does nothing at all.
-
-State is the column actually scanned and the one drawn with the least: `running` and
-`exited` in the same tertiary grey as the status beside them, which restates it in the
-daemon's words. claude-tray's rows put that kind of fact in a tinted chip — a rounded
-`Border`, a translucent tint that works on both surfaces, and a tooltip carrying the
-evidence behind the claim, because a chip is an assertion. `RowStyle` resolves those
-brushes once per render, not per row.
-
-The actions are pressed once a session. Hiding them behind hover or a context menu — the
-pattern `SourceRowTemplate` already uses — costs a discovery problem, so the answer is
-not all-or-nothing: keep the one or two verbs a row is actually opened for visible, and
-move the rest. Logs stays visible in every state, for the reason DD9 gives.
-
-What must not be lost: the pending word, the engine's own refusal under the row, and
-Shell disabled-with-a-tooltip rather than hidden. Those are answers, and a redesign that
-drops them is a worse row that looks better.
-
 ### §DD37 A heading that sorts, and a box that narrows
 
 Every heading in this window is a dead `TextBlock`. NAME, IMAGE, STATE, REPOSITORY, SIZE

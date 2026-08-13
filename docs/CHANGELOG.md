@@ -7,6 +7,7 @@
 - ✅ **DD17** **No clean Windows is reachable from here, so a red preflight row and a real install have never been executed** — `vm.ps1` runs the product preflight inside a Windows 11 guest through vmrun and reads back what it said.
 - ✅ **DD3** **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — `dockerdesk-engine --run` starts the distro and daemon, serves \.\pipe\docker_engine, and reports Running only once the engine answers.
 - ✅ **DD16** **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — The row now asks what owns the docker command, resolving it off PATH the way a shell does and reading the registered WSL distributions, and it names every signal it found.
+- ✅ **DD18** **On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row** — The row asks `wsl --status` first, so a bare machine is named in milliseconds with the remedy that applies, and `--version` is only reached once something says WSL is there.
 
 ## Block B — The daemon client (talk to the engine)
 

@@ -43,6 +43,20 @@ public sealed record WslInstallation
     public bool CommandPresent { get; init; }
 
     /// <summary>
+    /// What <c>wsl --status</c> said about the feature itself being installed:
+    /// <see langword="false"/> where it reported it is not, <see langword="true"/> where it
+    /// answered normally, and <see langword="null"/> where it could not be asked.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="CommandPresent"/>, and the distinction is the whole of DD18:
+    /// <c>wsl.exe</c> ships in System32 on a Windows 11 that never had WSL, so its presence was
+    /// never the answer. This is the cheap question that separates "the launcher is here and the
+    /// feature is not" from "half installed", and asking it first is what stops the row costing
+    /// fifteen seconds to say nothing.
+    /// </remarks>
+    public bool? FeatureInstalled { get; init; }
+
+    /// <summary>
     /// The WSL version reported by <c>wsl --version</c>, or <see langword="null"/> on an
     /// installation too old to answer it — which is itself the answer.
     /// </summary>

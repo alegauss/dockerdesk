@@ -126,6 +126,24 @@ public static class PreflightInspection
             };
         }
 
+        if (wsl.FeatureInstalled is false)
+        {
+            // The most common machine this installer meets, and the one the row used to spend
+            // fifteen seconds failing to describe (DD18). `wsl.exe` ships in System32 whether or
+            // not the feature does, so the launcher being there says nothing — and the remedy is
+            // install, never update. `wsl --update` on this machine updates nothing.
+            return new PreflightCheck
+            {
+                Id = Rows.Wsl2,
+                Title = "WSL2",
+                Verdict = Verdict.Fail,
+                Detail = "not installed — wsl.exe ships with Windows, the feature does not",
+                Remedy = "Run `wsl.exe --install --no-distribution` in an administrator terminal, "
+                    + "then reboot.",
+                Blocking = true,
+            };
+        }
+
         if (wsl.KernelVersion is null)
         {
             // wsl.exe present and no kernel behind it is the half-installed state a Windows

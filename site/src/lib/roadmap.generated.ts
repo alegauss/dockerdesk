@@ -8,8 +8,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 4,
-      "shipped": 5,
+      "open": 3,
+      "shipped": 6,
       "retired": 0
     },
     {
@@ -43,7 +43,7 @@ export const roadmap: RoadmapData = {
     {
       "label": "F",
       "title": "F — Installer and distribution (free, Apache 2.0)",
-      "open": 1,
+      "open": 2,
       "shipped": 3,
       "retired": 0
     },
@@ -64,18 +64,10 @@ export const roadmap: RoadmapData = {
   ],
   "totals": {
     "open": 23,
-    "shipped": 29,
+    "shipped": 30,
     "retired": 0
   },
   "open": [
-    {
-      "id": "DD18",
-      "status": "📋",
-      "block": "A",
-      "symptom": "On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row",
-      "why": "That is the most common machine this installer meets, wsl --status names the state and the fix in milliseconds, and the remedy offered updates a WSL that is not installed.",
-      "deps": []
-    },
     {
       "id": "DD19",
       "status": "📋",
@@ -180,6 +172,14 @@ export const roadmap: RoadmapData = {
         "DD24",
         "DD14 ✅"
       ]
+    },
+    {
+      "id": "DD53",
+      "status": "📋",
+      "block": "F",
+      "symptom": "The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts",
+      "why": "A row measured on a bare Windows is unverifiable the moment that guest has WSL, and reverting is the one thing the harness documents and does not do.",
+      "deps": []
     },
     {
       "id": "DD23",
@@ -325,6 +325,14 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH",
       "why": "The row now asks what owns the docker command, resolving it off PATH the way a shell does and reading the registered WSL distributions, and it names every signal it found.",
+      "deps": []
+    },
+    {
+      "id": "DD18",
+      "status": "✅",
+      "block": "A",
+      "symptom": "On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row",
+      "why": "The row asks `wsl --status` first, so a bare machine is named in milliseconds with the remedy that applies, and `--version` is only reached once something says WSL is there.",
       "deps": []
     },
     {
@@ -520,5 +528,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD18"
+  "next": "DD19"
 };

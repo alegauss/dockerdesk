@@ -2,36 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD18 The WSL2 row asks the one question that hangs on a machine with no WSL
-
-`wsl.exe` ships in System32 on a Windows 11 that never had WSL, so its presence was
-never the answer, and the shipped probe knows that: it runs `wsl --version` for the
-kernel version. What that command does on such a machine could not be known until a
-clean one existed. It does not answer and it does not fail — it hangs, and the probe's
-own fifteen-second timeout ends it.
-
-Measured on a fresh Windows 11 guest, build 26200, through `scripts/vm.ps1 -Action
-preflight`:
-
-    [?   ]  WSL2   C:\WINDOWS\system32\wsl.exe did not finish within 15 seconds
-             -> Run `wsl --update` in an administrator terminal.
-
-Two defects in one row. The verdict is `Unknown`, which is honest and blocks — that part
-of the design held. But the report costs fifteen seconds of silence to say nothing, on
-the single most common machine this installer will meet, and the remedy it offers is
-`wsl --update`, which updates a WSL that is not installed.
-
-The same guest answers `wsl --status` immediately: exit code 50, and the sentence *"O
-Subsistema do Windows para Linux não está instalado. Você pode instalar executando
-'wsl.exe --install'"* — the right verdict and the right remedy, in milliseconds, from
-the tool itself. `--status` is also the older command, so a machine too old for
-`--version` answers it too.
-
-The fix is to ask the cheap question first and reach for `--version` only once something
-has said WSL is there. A timeout then becomes what it should always have been: the
-report admitting it could not read a fact, rather than the normal path for a bare
-machine.
-
 ### §DD19 HypervisorPresent answers I am virtualized, not I can host a hypervisor
 
 The virtualization row reads `Win32_ComputerSystem.HypervisorPresent` first and treats
@@ -344,6 +314,27 @@ What this must not become is a second place where the surface is described. The 
 names verbs and defers; every sentence explaining what a verb does lives in `--help`,
 which is one copy and is the one a caller already has. Two descriptions of one surface
 drift, and the one loaded every session is the one that drifts unnoticed.
+
+### §DD53 The guest drifts, and nothing takes it back
+
+`scripts/vm.ps1` line 14 says the guest "can be reverted to a clean snapshot between
+destructive runs", and line 18 says nothing reverts a snapshot "unless you ask for it by
+name". There is no name to ask: the `ValidateSet` on line 57 offers `doctor`,
+`preflight`, `run`, `start`, `engine` and `screenshot`, and none of them reverts.
+
+Measured while shipping DD18. That row was specified against a fresh Windows 11 guest,
+build 26200, that never had WSL — `wsl --version` hung there and the row cost fifteen
+seconds. Running the fix against the same guest reported `WSL 2.7.11.0, kernel
+6.18.33.2`: WSL had been installed there by earlier work, so the one machine the defect
+existed on no longer had it, and the exit-50 path shipped verified by unit tests alone.
+`Snapshot 1` was sitting right there in the doctor's own output.
+
+What this needs is a `revert` action that names the snapshot it is going to discard and
+refuses without confirmation, since a revert throws away whatever the guest holds. The
+harness already reads the snapshot list for the doctor, so the fact it needs is one it
+already has. The reason this is worth a task rather than a footnote is that DD19 and
+DD20 are both specified against particular machine states too, and each one is
+verifiable exactly once until this exists.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

@@ -17,6 +17,7 @@
 - 📋 **DD38** (deps: —) **No window can be drawn without a running daemon holding the containers the picture is meant to show** — claude-tray renders every page from a fixture behind a flag, which is what makes a screenshot reviewable and deterministic, and what gives DD22's capture something to photograph. → §DD38
 - 📋 **DD39** (deps: —) **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — A tool opened several times a day on a two-monitor desk is placed by hand every time, and the tab is the one piece of state the user set on purpose. → §DD39
 - 📋 **DD61** (deps: —) **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — The overlap check cannot answer for this: the intruder is not in front of the window, it is showing through it, so the copy leaks with every assertion satisfied. → §DD61
+- 📋 **DD66** (deps: DD35 ✅) **A window drawn from a fixture over a named pipe never returns, so DD38 cannot be built that way** — The page's first read hangs on the WPF dispatcher for six seconds without returning or throwing; the same call over the same daemon returns at once from a test thread. → §DD66
 
 ## Block D — Container operations (what a user came to do)
 

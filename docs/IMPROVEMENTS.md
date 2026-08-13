@@ -189,6 +189,30 @@ main window outright and make the script take a popup or nothing, which is what 
 actually for. The first keeps one script useful for both; the second is smaller and
 admits that a screen copy of a translucent window is not a thing worth making safe.
 
+### §DD66 The seam DD38 asked for is the one that works
+
+DD38 says "a fake `DockerApi`". It was attempted the other way first — serve the fixture
+from `FakeDockerDaemon` on a private pipe and hand the window a real `DockerApi` pointed
+at it — because that is the seam this repository already trusts everywhere else, and it
+exercises the real client, the real HTTP and the real JSON parsing.
+
+It does not work from a window. Instrumented, `ContainersPage.RefreshAsync` is entered
+with the engine reading `Running`, and `await _api.ContainersAsync()` then neither
+returns nor throws: no rows, no exception, nothing logged after the await, with the
+capture's settle raised from one second to six. The identical call against the identical
+daemon returns immediately from a test thread, which is how every agent-surface test
+runs. The difference is the WPF dispatcher, and the shape is a deadlock between it and
+the pipe client — not isolated further.
+
+What the failure looks like is worth recording, because it is quiet: the capture
+succeeds, the window renders, and what it renders is the XAML defaults — a header row
+with nothing under it, a prune button enabled because that is its markup value. Nothing
+says the read never completed.
+
+So the fixture should be injected rather than served: an interface over the ten methods
+the pages actually call, implemented by `DockerApi` and by a fixture, which is the
+literal reading of the section. It also removes the wait-for-the-pipe problem entirely.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

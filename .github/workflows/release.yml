@@ -1,0 +1,127 @@
+# DD15 — a release with checksums, held still before it is public.
+#
+# Fires on a tag, which is the deliberate act: nothing here runs on a push to a branch. What it
+# produces is a **draft** release, and that is the point — site.yml states this repository's rule
+# for publishing ("a deploy on every push is one nobody can hold still while reviewing it"), and a
+# release is the one artefact where a defect reaches people who cannot undo it. So the tag builds
+# and attaches everything, and a person presses Publish after looking.
+#
+# That gap is doing real work rather than being ceremony: CI cannot verify the engine install at
+# all. A hosted runner has no nested virtualization, so `--provision` has nowhere to import a WSL2
+# distribution. The draft is where the installer gets run on a machine that does — by hand, or
+# through scripts/vm.ps1 against the test guest — before anybody can download it.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# The tag must match <Version> in Directory.Build.props; the job refuses otherwise rather than
+# publishing an installer whose Add/Remove Programs entry disagrees with its own file name.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+# gh release create writes to this repository, and nothing here needs anything else.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: build, sign nothing, attach everything
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # --generate-notes reads the commits since the previous tag, and a shallow clone has none
+          # of them: the notes come out empty on a repository that has plenty to say.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # The gate, before anything is packaged. A release built from a red tree is the one thing
+      # worse than no release.
+      - name: Build
+        run: dotnet build --nologo
+
+      - name: Test
+        run: dotnet test --nologo
+
+      - name: Inno Setup
+        run: |
+          # The runner image usually ships it. Installing it unconditionally would add a minute to
+          # every release for nothing, so this looks in the same three places
+          # build\build-installer.cmd looks in, and only reaches for chocolatey if none of them has
+          # it. ${env:...} braces are required: ProgramFiles(x86) has parentheses in its name.
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LocalAppData\Programs\Inno Setup 6\ISCC.exe"
+          )
+          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($found) {
+            Write-Output "already here: $found"
+          } else {
+            Write-Output "not on this image; installing"
+            choco install innosetup --no-progress -y
+          }
+
+      # Publishes the single .exe and wraps it, exactly as a maintainer would locally. The same
+      # script, so a release cannot be built by a path nobody uses by hand.
+      - name: Publish and build the installer
+        run: .\build\build-installer.cmd
+
+      - name: The tag is the version the .exe carries
+        run: |
+          # DD14 put the version in one place and had the installer read it back off the built .exe.
+          # This is the other end of that chain: a tag naming a version the build did not produce
+          # would ship an installer whose file name and whose Add/Remove Programs entry disagree,
+          # and the only place that is cheap to catch is here.
+          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $built = (Get-Item $exe).VersionInfo.ProductVersion.Trim()
+          $tagged = "$env:GITHUB_REF_NAME" -replace '^v', ''
+          Write-Output "tag $env:GITHUB_REF_NAME, built $built"
+          if ($built -ne $tagged) {
+            throw "the tag says $tagged and the build says $built - change <Version> in Directory.Build.props, or move the tag"
+          }
+          "VERSION=$built" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Name the artefacts after the version, and sum them
+        run: |
+          $publish = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          Copy-Item $publish "dist\DockerDesk-$env:VERSION.exe"
+          Move-Item "dist\DockerDesk-Setup.exe" "dist\DockerDesk-Setup-$env:VERSION.exe"
+
+          # SHA-256, in the `<hash>  <name>` shape sha256sum -c reads, because a download whose
+          # integrity cannot be checked is a download a corporate proxy is right to block - and a
+          # corporate proxy is exactly what this project's audience is behind.
+          $lines = Get-ChildItem dist -Filter *.exe | Sort-Object Name | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+          }
+          if ($lines.Count -ne 2) { throw "expected two artefacts to sum, found $($lines.Count)" }
+          # ASCII with a trailing newline: this file is read by sha256sum on other people's
+          # machines, and a UTF-8 BOM makes the first line fail to parse there.
+          $lines | Out-File "dist\SHA256SUMS.txt" -Encoding ascii
+          Get-Content "dist\SHA256SUMS.txt"
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --draft: nothing is downloadable until a person publishes it.
+          # --verify-tag: refuse to invent a tag if this ever runs from something other than a push.
+          $assets = @(
+            "dist\DockerDesk-Setup-$env:VERSION.exe",
+            "dist\DockerDesk-$env:VERSION.exe",
+            "dist\SHA256SUMS.txt"
+          )
+          gh release create "$env:GITHUB_REF_NAME" `
+            --draft `
+            --verify-tag `
+            --title "DockerDesk $env:VERSION" `
+            --generate-notes `
+            $assets
+          Write-Output "drafted. Nothing is public until it is published by hand."

@@ -32,6 +32,7 @@
 
 - ✅ **DD13** **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — Apache-2.0 stated in the README's first paragraph, in LICENSE and in the window's About, with a NOTICE generated from the install manifest so a new download cannot ship unattributed.
 - ✅ **DD14** **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — One DockerDesk.exe with every verb behind an argument, an Inno Setup installer that is per-user with no administrator prompt, and an uninstall that asks before deleting the distribution.
+- ✅ **DD15** **Every release is built on one developer's machine, so the first download finds what that machine hid** — Two Windows workflows: a check that builds, tests and starts the published .exe on every push, and a tag that drafts a release carrying SHA-256 sums for a person to publish.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

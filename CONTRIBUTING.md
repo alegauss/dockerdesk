@@ -14,3 +14,24 @@ of insertion, so a hand edit is refused rather than reviewed. Use the commands i
 
 `roadkeep pick` names the next task that is ready and why it was chosen; `roadkeep brief
 <id>` prints everything it costs to start one, the non-goals included.
+
+## The gates
+
+Three workflows, and each runs exactly one of them so none can be satisfied by a copy
+nobody kept current:
+
+| Workflow | When | What it holds |
+|---|---|---|
+| [`check.yml`](.github/workflows/check.yml) | every push and PR | builds and tests on **Windows**, then runs the published single-file `.exe` — that it starts at all is the failure a local build cannot see |
+| [`roadkeep.yml`](.github/workflows/roadkeep.yml) | every push and PR | `roadkeep lint` over the three governed files |
+| [`release.yml`](.github/workflows/release.yml) | a `v*` tag | publishes the `.exe`, compiles the installer, attaches both with `SHA256SUMS.txt` as a **draft** release |
+
+Two things CI cannot do, stated here rather than implied by a green tick:
+
+- **It cannot verify the engine install.** A hosted runner has no nested virtualization, so
+  `--provision` has nowhere to import a WSL2 distribution. That is what the draft release is
+  for: run the installer on a real machine, or drive the test guest with
+  [`scripts/vm.ps1`](scripts/vm.ps1), before pressing Publish.
+- **A tag must match `<Version>`** in [Directory.Build.props](Directory.Build.props). The
+  release job refuses a mismatch rather than shipping an installer whose Add/Remove Programs
+  entry disagrees with its own file name.

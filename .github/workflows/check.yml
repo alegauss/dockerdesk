@@ -1,0 +1,115 @@
+# DD15 — the second machine.
+#
+# A Windows desktop application built on one developer's machine has one build environment, and
+# every bug that environment hides is found by the first person who downloads a release. This is
+# the other machine.
+#
+# windows-latest is not a preference. Cross-compiling a WPF application is not the thing under
+# test; what is under test is that the produced .exe *starts* on a Windows image nobody developed
+# on, which is exactly the failure a local build cannot see. So the last three steps run the
+# published single-file executable rather than only building it.
+#
+# roadkeep lint is deliberately NOT repeated here: .github/workflows/roadkeep.yml already runs it
+# on the same push and pull_request, through the action roadkeep publishes. A gate that runs twice
+# is one that can be satisfied by the copy nobody kept current.
+#
+# What this cannot check is the engine install. A hosted runner has no nested virtualization, so
+# `--provision` has nowhere to import a WSL2 distribution; that path stays a manual check against
+# the release candidate (scripts/vm.ps1 drives it), and saying so is better than a green tick that
+# means less than it appears to.
+
+name: check
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: build, test, and start the .exe
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          # The band, not a patch. The runner image ships whatever .NET it ships, and pinning a
+          # patch here is a build that breaks on a day nobody changed anything.
+          dotnet-version: "10.0.x"
+
+      # TreatWarningsAsErrors and EnforceCodeStyleInBuild are already on in
+      # Directory.Build.props, so there is nothing to add on the command line: a warning is
+      # already what stops this.
+      - name: Build
+        run: dotnet build --nologo
+
+      - name: Test
+        run: dotnet test --nologo
+
+      # Release, because that is the configuration the single-file self-contained properties are
+      # conditioned on — a Debug build proves nothing about the thing that gets shipped.
+      - name: Publish the one .exe
+        run: dotnet publish src\DockerDesk.Tray -c Release --nologo
+
+      - name: It is one file, and only one
+        run: |
+          $dir = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish"
+          $exe = Join-Path $dir "DockerDesk.exe"
+          if (-not (Test-Path $exe)) { throw "publish produced no $exe" }
+          # The claim DD14 rests on. A stray .dll here means the bundle stopped being
+          # self-contained and the installer would ship an .exe that cannot start on a clean
+          # machine — which is the one failure this whole workflow exists to catch.
+          $dlls = @(Get-ChildItem $dir -Filter *.dll)
+          if ($dlls.Count -gt 0) {
+            throw "$($dlls.Count) loose .dll(s) beside the .exe: $($dlls.Name -join ', ')"
+          }
+          $mb = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          Write-Output "one file, $mb MB"
+
+      - name: It starts, and says what it is
+        run: |
+          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          # A windowed executable with its output redirected writes to the handle it was given;
+          # PowerShell gives it a pipe, which is the same path the installer and scripts use.
+          $version = (& $exe --version | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "--version exited $LASTEXITCODE" }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "--version said '$version', which is not a version the installer can read"
+          }
+          Write-Output "started, and calls itself $version"
+
+      - name: The engine plan reaches nothing and still answers
+        run: |
+          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          $plan = (& $exe --plan | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw "--plan exited $LASTEXITCODE" }
+          # The pinned digests travel inside the assembly, so this is also the check that the
+          # embedded manifest survived the single-file bundling.
+          if ($plan -notmatch 'sha256\s+[0-9a-f]{64}') {
+            throw "--plan printed no pinned digest:`n$plan"
+          }
+          Write-Output "the pinned manifest survived the bundle"
+
+      - name: The preflight runs on a machine that is not the developer's
+        run: |
+          $exe = "src\DockerDesk.Tray\bin\Release\net10.0-windows\win-x64\publish\DockerDesk.exe"
+          # Asserted on having *run*, not on having passed. A hosted runner is a machine this
+          # product would refuse, and rightly — it has no WSL2 and no nested virtualization. What
+          # is worth knowing is that every probe reached a verdict there instead of throwing, which
+          # is the half a developer's own machine can never exercise.
+          $report = (& $exe --preflight | Out-String)
+          $code = $LASTEXITCODE
+          Write-Output $report
+          if ($report -notmatch 'what this machine can host') {
+            throw "the preflight printed no report (exit $code)"
+          }
+          if ($report -notmatch '\[(ok|FAIL|warn|\?)\s*\]') {
+            throw "the preflight reached no verdict on any row (exit $code)"
+          }
+          Write-Output "the preflight answered on a second machine, exit $code"
+
+          # This reset is the whole step. Every pwsh step ends with the runner's own
+          # `exit $LASTEXITCODE`, and the preflight is the one command here that is *expected* to
+          # exit 1 — a hosted runner has no WSL2, so it says so and returns 1. Without this line the
+          # step goes red with all of its assertions passing, and it does so only on CI: a
+          # developer's machine is healthy, the preflight exits 0, and the trap is invisible.
+          exit 0

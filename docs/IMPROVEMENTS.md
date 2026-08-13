@@ -331,28 +331,6 @@ not as a rectangle the size of the screen.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD15 CI: a second machine, and a release with checksums
-
-A Windows desktop application built on one developer's machine has one build
-environment, and every bug that environment hides is found by the first person who
-downloads a release. CI is the second machine, and on a project whose whole promise is
-"install this and Docker works", a broken release is the only defect that matters.
-
-Two jobs. A check on every push: build, run the test suite, and run the roadkeep lint
-that already governs the files in `docs/` — the gate this repository was wired with,
-which is worth nothing until something red stops a merge. Then a release job on a tag:
-publish the single-file executable, compile the installer, and attach both to the GitHub
-release with their SHA-256 sums, because a download whose integrity cannot be checked is
-a download a corporate proxy is right to block.
-
-The Windows runner is not optional. Cross-compiling a WPF application is not the thing
-under test — what is under test is that the produced `.exe` starts on a clean Windows
-image, which is exactly the failure a local build cannot see.
-
-What CI cannot do is verify the engine install: a hosted runner has no nested
-virtualization, so that path stays a manual check against the release candidate, and
-saying so here is better than a green tick that means less than it appears to.
-
 ### §DD32 Shipping the surface includes shipping how it is found
 
 A surface nobody discovers is one nobody uses, and the discovery cost is otherwise paid

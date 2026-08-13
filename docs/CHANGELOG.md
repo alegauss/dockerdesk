@@ -26,6 +26,7 @@
 ## Block E — Images, volumes and networks
 
 - ✅ **DD11** **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Images sorted by size, each row saying whether a container holds it or it is dangling, with per-image removal and a dangling-only prune that names the space before the click and after it.
+- ✅ **DD12** **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — Volumes with their sizes and what mounts them, the compose project read off the name, and a deletion that names all of it first because a volume is the one thing here that does not come back.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 

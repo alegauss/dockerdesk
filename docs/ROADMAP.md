@@ -15,12 +15,16 @@
 
 - 📋 **DD21** (deps: —) **The tray icon was not in the visible notification area while the tray was running, so the glance costs a click** — Windows 11 puts a new icon in the overflow by default, and a state indicator behind a chevron is not the thing the tray was built to be. → §DD21
 - 📋 **DD22** (deps: —) **Verifying a window copies the screen, so a capture twice photographed private content that was in front of it** — Rendering the window off-screen photographs nothing else, and claude-tray already carries both that verb and an overlap-checked screen copy for what a render cannot reach. → §DD22
+- 📋 **DD34** (deps: —) **The two windows redeclare their chrome and one red is spelled four times, so a meaning has four definitions** — A style that lives in whichever window needed it first drifts silently, and claude-tray declares the colours whose value is not a free choice once, converting at each edge. → §DD34
+- 📋 **DD35** (deps: DD34) **Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files** — claude-tray's shell owns only the chrome and each destination its own header and footer; here every list repeats the header, empty-state and refresh stanza in full. → §DD35
+- 📋 **DD36** (deps: DD34) **A row says its state in plain text and carries six always-visible captions, so a list of forty reads as a form** — State is the one column scanned down, and the actions are pressed once a session; a tinted chip and a hover-revealed action set are what claude-tray's rows already do. → §DD36
+- 📋 **DD37** (deps: DD35) **No heading sorts and no list filters, so finding one container among forty is done with the scrollbar** — The window is opened with one container in mind; a heading that reorders on click and a box that narrows are what turn a long list into an answer rather than a scroll. → §DD37
+- 📋 **DD38** (deps: —) **No window can be drawn without a running daemon holding the containers the picture is meant to show** — claude-tray renders every page from a fixture behind a flag, which is what makes a screenshot reviewable and deterministic, and what gives DD22's capture something to photograph. → §DD38
+- 📋 **DD39** (deps: —) **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — A tool opened several times a day on a two-monitor desk is placed by hand every time, and the tab is the one piece of state the user set on purpose. → §DD39
 
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
-
-- 📋 **DD12** (deps: DD7 ✅) **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — A volume is the one thing here that does not come back, so the list's job is making an irreversible deletion legible rather than reclaiming space. → §DD12
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 

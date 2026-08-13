@@ -182,29 +182,152 @@ nothing else, and the overlap-checked screen copy kept for what a render cannot 
 Until then, verifying a window on a machine with anything else open is a privacy
 incident waiting for its second turn, and it has already had one.
 
+### §DD34 One meaning, one declaration, and every window reduced to what is its own
+
+There is no `App.xaml`, no `ResourceDictionary` and no `Brand`. Every style this app has
+is declared inside the window that first needed it, which is why `MainWindow.xaml` and
+`LogWindow.xaml` each carry their own `BooleanToVisibilityConverter`, their own
+`BasedOn` button style with the same comment explaining the same Fluent trap, and the
+same `ThemeMode`, `FontFamily` and font-stack spelled out twice.
+
+The colour is the sharper case. `#E5484D` means one thing — *this is the engine's
+refusal, or stderr* — and it is written four times: three in `MainWindow.xaml` and once
+in `LogWindow.xaml`. None of the four is pinned by a test, so all four can move
+independently, and the failure is quiet: a failure line under a container row and a
+stderr line in its log window in two reds, saying two things where the point was one.
+The engine's own three states have a second, separate source in `StateIcon.ColourFor`,
+which is GDI+, and `ShowEngine` converts it to a WPF brush by hand at one call site.
+
+claude-tray met this exact problem and its answer is `Brand.cs`: the value, as bytes,
+declared once, with each edge converting — GDI+ for the tray icon, a frozen `Brush` for
+WPF, a hex string for anything that wants text. Its docstring says why a value and not a
+brush, and the reasoning transfers unchanged.
+
+So: one `Theme.xaml` merged at application scope for what is markup, one `Palette` for
+what is a value, and every window reduced to what is actually its own.
+
+### §DD35 The shell owns the chrome and a list owns its page
+
+`MainWindow.xaml` is 447 lines and `MainWindow.xaml.cs` is 586, and between them they
+own the engine banner, three lists, three header rows, three empty states, two prune
+confirmations, the log windows and the terminal launch. The three lists are not variants
+of one thing in the file; they are three hand-written copies of the same stanza — a
+header `Grid`, a `ListView` with a duplicated column set, an `Empty` panel, a
+`Refresh…Async`, a `Redress…`. DD12 and networks each add a fourth and a fifth copy.
+
+claude-tray splits this the other way. `MainWindow` there is 104 lines of XAML and 129
+of code-behind, and owns *only* the chrome: a nav strip of `RadioButton`s in one group,
+and a `DestinationHost` grid. Each destination is a `UserControl` with its own header,
+navigation and footer, built the first time it is navigated to and then kept alive
+collapsed, so a scan, a chart's history and a half-edited setting survive switching
+away. The heavier ones are split again by concern across partial classes.
+
+The parts of that worth taking are the ones that are structure and not taste: the shell
+owning the chrome, one page per list, pages built lazily and kept alive. The tab strip
+is a smaller question — WPF's default `TabItem` headers are the least-designed pixels in
+this window, and the accent-underline strip is what the sibling app already looks like.
+
+The test that pins each header's columns to its rows moves with the page it belongs to.
+
+### §DD36 A row carries its state, not a wall of captions
+
+A container row today is five plain `TextBlock`s and up to six `Button`s with word
+captions — Logs, Shell, Start, Stop, Restart, Remove — in a fixed 320px column. At forty
+containers that is two hundred captions, and the eye has nothing to skip past. Nothing
+highlights on hover, so there is no feedback that a row is a row; a click anywhere but a
+button does nothing at all.
+
+State is the column actually scanned and the one drawn with the least: `running` and
+`exited` in the same tertiary grey as the status beside them, which restates it in the
+daemon's words. claude-tray's rows put that kind of fact in a tinted chip — a rounded
+`Border`, a translucent tint that works on both surfaces, and a tooltip carrying the
+evidence behind the claim, because a chip is an assertion. `RowStyle` resolves those
+brushes once per render, not per row.
+
+The actions are pressed once a session. Hiding them behind hover or a context menu — the
+pattern `SourceRowTemplate` already uses — costs a discovery problem, so the answer is
+not all-or-nothing: keep the one or two verbs a row is actually opened for visible, and
+move the rest. Logs stays visible in every state, for the reason DD9 gives.
+
+What must not be lost: the pending word, the engine's own refusal under the row, and
+Shell disabled-with-a-tooltip rather than hidden. Those are answers, and a redesign that
+drops them is a worse row that looks better.
+
+### §DD37 A heading that sorts, and a box that narrows
+
+Every heading in this window is a dead `TextBlock`. NAME, IMAGE, STATE, REPOSITORY, SIZE
+— none does anything when clicked, and the order a list arrives in is the order it is
+read in. Images are sorted by size, which DD11 chose and is right as a default;
+containers are in whatever order the daemon returned them, which is creation order and
+answers nothing.
+
+There is no filter anywhere. A developer's machine carries thirty to sixty images and a
+dozen containers, and the only way to reach one is the scrollbar. The window is rarely
+opened to survey the machine; it is opened with one container in mind, and that is the
+case it serves worst.
+
+claude-tray templates a sorting heading as a `Button` whose template is a `TextBlock`:
+it looks like a label, behaves like a control, and its own comment gives the reason — a
+heading that reorders the list on click and offers no affordance is a feature only its
+author finds. Hover brightens it, and the sorted column carries a glyph.
+
+So: every heading sorts, each list keeps its default, and one filter box per list
+narrows by the fields already on the row — a name, an image, a repository, a port.
+Filtering is over the rows in hand, never a second call to the daemon, and it survives a
+refresh from the event stream — the part easy to get wrong. An empty result is a third
+empty state, saying what was typed.
+
+### §DD38 A window is drawn from a fixture, not from whatever is running
+
+Nothing here can be looked at without a running daemon behind it. Every window takes a
+`DockerApi` and asks it for the rows it draws, so seeing the images tab means having
+images, seeing a failure line means causing a failure, and seeing a pending row means
+catching a stop mid-flight. The three empty states, designed prose, are the hardest to
+reach on purpose.
+
+That has two costs. A change to the window is reviewed by describing it, and a
+screenshot is whatever the machine happened to be running that afternoon — which is also
+somebody's container names in a public README. And it is the reason DD22 exists at all:
+a capture verb needs something to capture, and today that something is the live screen.
+
+claude-tray solves it with fixtures and flags. `ContextFixture`, `AccountFixture`,
+`EnvironmentFixture` and `SampleRoot` build a known machine; `--settings`, `--stats`,
+`--context --window` and the capture flags render one page from it; `PageWindow` is a
+bare host that exists so a preview is the page and not the shell around it. The captures
+are deterministic, which is what makes them reviewable.
+
+The equivalent here is a fake `DockerApi` — a small set of containers, images and
+volumes chosen to cover running, exited, published and exposed ports, dangling and
+in-use images, an anonymous volume, a pending row and a refusal — plus a flag that opens
+any page against it. The fixture is also the fastest route to the empty states, which
+are otherwise reached by deleting things.
+
+### §DD39 The window remembers where it was and what was being read
+
+`WindowStartupLocation="CenterScreen"`, `Width="1040" Height="560"`, and nothing
+remembered. A tool opened several times a day lands in the middle of the primary monitor
+every time, at a size chosen for a laptop, on a desk that has two screens and a place
+this window belongs. The log window is `CenterOwner`, which is right for a child, and it
+too forgets whatever it was resized to.
+
+The tab is the sharper loss. Somebody clearing disk space works in Images; somebody
+debugging works in Containers. The tab is a piece of state the user set on purpose, and
+it is discarded the moment the window closes — including when it closes because the
+engine was restarted.
+
+None of this needs a settings file of its own. Window placement, the last destination,
+and later the sort and filter DD37 adds are a handful of values, and there is already an
+`ArtefactStore` and an `EnginePaths` that know where this application's data lives.
+
+Two things it must get right, because both are how this feature is usually got wrong. A
+saved rectangle is restored only if it still lands on a monitor that exists — a window
+remembered onto a laptop's docked second screen is a window that opens off-screen the
+next morning. And a maximised window is remembered as maximised plus its restore bounds,
+not as a rectangle the size of the screen.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
-
-### §DD12 Volumes: the irreversible list
-
-A volume is the one thing here that is not recreatable. An image re-pulls, a container
-rebuilds, and a deleted volume is a database that is gone — so this list has a different
-job from the image list: not reclaiming space, but making the irreversible act legible.
-
-Three columns carry it: the volume's name, its size on disk, and which containers mount
-it. The last one is why volumes get their own task rather than a tab on the images work.
-The engine's volume list does not report holders, so it is a join over the container
-list, and the `docker-compose` naming convention — `<project>_<volume>` — is what tells
-a user that the orphan they are looking at belonged to a project they deleted months
-ago.
-
-Anonymous volumes are the common orphan and the reason prune is offered at all: every
-`docker run -v /data` without a name leaves one behind, and nothing ever collects them.
-
-Deletion of a volume nothing mounts is confirmed once, naming it. Deletion of one still
-mounted is refused by the engine, and that refusal is correct — the answer is to deal
-with the container, which the dialog names.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 

@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD47 The /compare page, and the column each rival wins
-
-A visitor arrives having already decided against something, and the honest question is
-narrow: what does this do that Docker Desktop, Rancher Desktop, Podman Desktop or a
-hand-rolled WSL2 daemon does not. Prose cannot answer it, and a matrix of green ticks
-answers it in a way nobody believes. Shio's comparison page is built on the inverse
-rule, and that is why it is credible: every alternative gets a column for what it is
-genuinely better at, and when to pick it instead. Here those are real and short. Docker
-Desktop has Kubernetes, extensions, a build cloud and somebody to call. Rancher Desktop
-is cross-platform and ships Kubernetes. Podman is daemonless and rootless. A hand-rolled
-distro is free of this project entirely. What is left is the axis where this one wins: a
-per-user install with no admin prompt, nothing resident, the standard pipe so no tool
-needs telling, and an agent surface that splits reads from writes. Rows grouped by the
-law each comes from, so the matrix argues rather than tallies.
-
 ### §DD48 The five depth pages, one record each
 
 One scroll is one budget. The preflight has four rows and a diagnosis order that took an

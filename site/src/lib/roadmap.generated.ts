@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 5,
-      "shipped": 7,
+      "open": 4,
+      "shipped": 8,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 30,
-    "shipped": 21,
+    "open": 29,
+    "shipped": 22,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD47",
-      "status": "📋",
-      "block": "H",
-      "symptom": "A visitor weighing this against Docker Desktop, Rancher, Podman or a plain WSL2 daemon infers it from prose",
-      "why": "Checkable rows grouped by the law each comes from, and a column per alternative for what it is genuinely better at, because a matrix that wins every row is not believed.",
-      "deps": [
-        "DD40 ✅"
-      ]
-    },
-    {
       "id": "DD48",
       "status": "📋",
       "block": "H",
@@ -526,6 +516,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "Nobody configuring an agent can find the read and do split, or the one allowlist line that pays for it",
       "why": "A page for the agent's operator: the read/do split, the one allowlist line Bash(dockerdesk read:*), the DD32 plugin, and the refusals, marked as the designed Block-G surface.",
+      "deps": []
+    },
+    {
+      "id": "DD47",
+      "status": "✅",
+      "block": "H",
+      "symptom": "A visitor weighing this against Docker Desktop, Rancher, Podman or a plain WSL2 daemon infers it from prose",
+      "why": "A comparison matrix grouped by the law each row comes from, with a column per rival for what it genuinely wins, and a machine-readable table twin.",
       "deps": []
     }
   ],

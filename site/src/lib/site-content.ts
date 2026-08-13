@@ -40,12 +40,14 @@ export const navLinks = [
   { href: "#pipe", label: "The pipe" },
   { href: "#window", label: "Window" },
   { href: "/dockerdesk/claude-code/", label: "Claude Code" },
+  { href: "/dockerdesk/compare/", label: "Compare" },
   { href: "/dockerdesk/status/", label: "Status" },
 ] as const;
 
 export const footer = {
   links: [
     { href: "/dockerdesk/claude-code/", label: "Claude Code" },
+    { href: "/dockerdesk/compare/", label: "Compare" },
     { href: "/dockerdesk/status/", label: "Status" },
     { href: repoUrl, label: "GitHub" },
     { href: `${repoUrl}/blob/main/docs/ROADMAP.md`, label: "Roadmap" },
@@ -707,6 +709,82 @@ export const claudeCode = {
     { t: "No push", b: "And so does that." },
     { t: "No registry auth", b: "do compose shells out to yours." },
   ],
+};
+
+/* ------------------------------------------------------------------ /compare page */
+// §DD47 — a visitor arrives having already decided against something. The honest question
+// is narrow: what does this do that the alternative does not. A matrix of green ticks is
+// not believed, so every rival gets a column for what it is genuinely better at, and the
+// rows are grouped by the law each comes from so the matrix argues rather than tallies.
+
+export const compare = {
+  meta: {
+    title: "DockerDesk vs Docker Desktop, Rancher, Podman, plain WSL2",
+    description:
+      "What DockerDesk does that Docker Desktop, Rancher Desktop, Podman Desktop or a hand-rolled WSL2 daemon does not — and what each of those is genuinely better at.",
+    ogTitle: "DockerDesk — the honest comparison",
+    ogDescription:
+      "Checkable rows grouped by the law each comes from, and a column for what every alternative wins.",
+  },
+  eyebrow: "Against the alternatives",
+  heading: "What this does that the others do not — and where they win",
+  intro: [
+    "You arrive having already decided against something. A matrix that wins every row is one nobody believes, so this one is grouped by the law each row comes from, and every alternative keeps the column it genuinely wins.",
+  ] as Rich,
+  columns: ["DockerDesk", "Docker Desktop", "Rancher Desktop", "Podman Desktop", "WSL2 daemon"],
+  legend: [
+    { sym: "✓", label: "yes" },
+    { sym: "~", label: "partial" },
+    { sym: "✗", label: "no" },
+  ],
+  groups: [
+    {
+      law: "Cost & access",
+      rows: [
+        { cap: "Free at any headcount", cells: ["✓", "✗", "✓", "✓", "✓"] },
+        { cap: "Per-user install, no admin prompt", cells: ["✓", "✗", "✗", "~", "✗"] },
+      ],
+    },
+    {
+      law: "Footprint — nothing resident",
+      rows: [
+        { cap: "No service or VM held from every boot", cells: ["✓", "✗", "✗", "~", "~"] },
+      ],
+    },
+    {
+      law: "Compatibility",
+      rows: [
+        { cap: "Standard docker_engine pipe, no DOCKER_HOST", cells: ["✓", "✓", "✓", "✗", "✗"] },
+        { cap: "Cross-platform (macOS, Linux)", cells: ["✗", "✓", "✓", "✓", "✗"] },
+      ],
+    },
+    {
+      law: "For an agent",
+      rows: [
+        { cap: "Read/do split at the argv level", cells: ["✓†", "✗", "✗", "✗", "✗"] },
+      ],
+    },
+    {
+      law: "Breadth — where a rival wins",
+      rows: [
+        { cap: "Kubernetes built in", cells: ["✗", "✓", "✓", "~", "✗"] },
+        { cap: "Extensions / build cloud", cells: ["✗", "✓", "✗", "✗", "✗"] },
+        { cap: "Rootless, daemonless", cells: ["✗", "✗", "✗", "✓", "✗"] },
+        { cap: "Commercial support", cells: ["✗", "✓", "~", "~", "✗"] },
+      ],
+    },
+  ],
+  tableNote: "† designed under Block G — not shipped yet.",
+  winsHeading: "What each alternative is genuinely better at",
+  wins: [
+    { name: "Docker Desktop", body: "Kubernetes, an extensions marketplace, a build cloud, and somebody to call. Pick it when you need those, or want a vendor on the hook." },
+    { name: "Rancher Desktop", body: "Cross-platform and ships Kubernetes. Pick it on macOS or Linux, or for a Kubernetes dev loop." },
+    { name: "Podman Desktop", body: "Daemonless and rootless. Pick it when a rootless, no-daemon model is the requirement." },
+    { name: "Plain WSL2 daemon", body: "Free of this project entirely. Pick it if you would rather wire dockerd into WSL2 and manage the pipe yourself." },
+  ],
+  winsFooter: [
+    "What is left is the axis where this one wins: a per-user install with no admin prompt, nothing resident, the standard pipe so no tool needs telling, and an agent surface that splits reads from writes.",
+  ] as Rich,
 };
 
 /* ------------------------------------------------------------------ build */

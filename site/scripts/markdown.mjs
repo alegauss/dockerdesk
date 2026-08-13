@@ -123,6 +123,39 @@ function statusRow(node) {
   return `- ${mark} **${id} ${title}**${rest ? ` — ${rest}` : ""}`;
 }
 
+function cellsOf(tr) {
+  return tr.childNodes.filter(
+    (n) => n.nodeType === 1 && ["TH", "TD"].includes(n.rawTagName.toUpperCase()),
+  );
+}
+
+// A GitHub-flavoured markdown table, so the twin of a matrix is machine-readable. A row
+// with a single spanning cell (a group header) becomes a bold label row.
+function tableToMarkdown(table) {
+  const headTr = table.querySelector("thead tr") ?? table.querySelector("tr");
+  const headers = headTr ? cellsOf(headTr).map((c) => inlineTrim(c) || " ") : [];
+  const ncol = headers.length;
+  if (ncol === 0) return "";
+  const lines = [
+    `| ${headers.join(" | ")} |`,
+    `| ${headers.map(() => "---").join(" | ")} |`,
+  ];
+  const bodyRows = table.querySelectorAll("tbody tr");
+  const rows = bodyRows.length ? bodyRows : table.querySelectorAll("tr").slice(1);
+  for (const tr of rows) {
+    const cells = cellsOf(tr);
+    let row;
+    if (cells.length === 1) {
+      row = [`**${inlineTrim(cells[0])}**`, ...Array(Math.max(0, ncol - 1)).fill("")];
+    } else {
+      row = cells.map((c) => inlineTrim(c) || " ");
+      while (row.length < ncol) row.push("");
+    }
+    lines.push(`| ${row.join(" | ")} |`);
+  }
+  return lines.join("\n");
+}
+
 function blocks(node, out) {
   for (const child of node.childNodes) {
     if (child.nodeType === 3) {
@@ -144,6 +177,9 @@ function blocks(node, out) {
       if (code) out.push(fencedFrom(code));
     } else if (tag === "PRE") {
       out.push(fencedFrom(child));
+    } else if (tag === "TABLE") {
+      const md = tableToMarkdown(child);
+      if (md) out.push(md);
     } else if (HEADING[tag]) {
       const t = inlineTrim(child);
       if (t) out.push(`${HEADING[tag]} ${t}`);

@@ -2,7 +2,8 @@ import type { ComponentType } from "react";
 import { Landing } from "./pages/Landing";
 import { StatusPage } from "./pages/Status";
 import { ClaudeCode } from "./pages/ClaudeCode";
-import { claudeCode, meta } from "./lib/site-content";
+import { Compare } from "./pages/Compare";
+import { claudeCode, compare, meta } from "./lib/site-content";
 
 // The URL does not change (§6): the site stays at https://alegauss.github.io/dockerdesk/,
 // so canonical, og:url and every output path carry this base.
@@ -45,6 +46,13 @@ export const ROUTE_META: RouteMeta[] = [
     ogTitle: claudeCode.meta.ogTitle,
     ogDescription: claudeCode.meta.ogDescription,
   },
+  {
+    path: "/compare",
+    title: compare.meta.title,
+    description: compare.meta.description,
+    ogTitle: compare.meta.ogTitle,
+    ogDescription: compare.meta.ogDescription,
+  },
 ];
 
 // S4 — the route → component map. The client (App) and the prerender (entry-server) both
@@ -54,6 +62,7 @@ export const ROUTES: { path: string; component: ComponentType }[] = [
   { path: "/", component: Landing },
   { path: "/status", component: StatusPage },
   { path: "/claude-code", component: ClaudeCode },
+  { path: "/compare", component: Compare },
 ];
 
 /** The canonical/og:url for a route, carrying the base the URL never drops. */

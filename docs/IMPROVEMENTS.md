@@ -428,6 +428,28 @@ weighing against a command that matches the product. Whichever is chosen, one sp
 has to serve the executable, the documented invocations and the allowlist pattern
 together, because a pattern that disagrees with the executable matches nothing.
 
+### §DD63 A stamp with nothing to stamp is half a promise
+
+DD29 shipped the label, the plan and the confirm token, and every one of them is
+exercised only against fixtures: `AgentSurface.All` holds one `do` verb and it starts an
+engine. So `read changes` on a real machine answers "(nothing carries this session's
+label)" and always will, and the first bullet of DD29's own section — everything created
+through `do` is stamped — is true of an empty set.
+
+What closes it is the first verb that creates: `agent-budget.json` already carries a
+ceiling of 140 for `do compose up`, written when the surface was designed, so the shape
+is budgeted before it exists. Whatever lands there takes its labels from
+`SessionLabel.For` rather than assembling its own, because a create that forgot the
+stamp is invisible to the undo and indistinguishable from the user's own work — which is
+the symptom DD29 exists to remove, reintroduced one verb at a time.
+
+The thing to be careful about is compose specifically: `docker compose up` labels what
+it creates with its own project and service labels, and a container it made carries them
+whether this tool stamped it or not. Two label sets on one object is fine. A reclaim
+that inferred ownership from the compose project rather than from the session label
+would not be, because a project outlives a session and the user's own `docker compose
+up` writes the same project label.
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ### §DD59 The published surface is a path, not just prose

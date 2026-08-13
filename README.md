@@ -79,6 +79,7 @@ dockerdesk read doctor <name> why one container is not answering
 dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk read logs <name>   --since --level --dedup --budget --out
 dockerdesk read ports [port]  what holds a host port, which Docker cannot say
+dockerdesk read verify <name> proof that it answers; --request --wait --timeout
 dockerdesk read changes       what this session created, by its label
 dockerdesk do   engine start  brings the engine up
 dockerdesk do   reclaim       remove exactly that, and nothing else
@@ -140,6 +141,33 @@ so nothing new has to be learned to read them. The ports row is the one Docker s
 cannot answer: the daemon knows what was published and only Windows knows whether anything
 holds the socket. A mount this tool did not map is reported **unchecked** rather than broken,
 because a false "does not resolve" is worse than no answer.
+
+`read verify` closes the last gap an agent cannot close itself. `running` and *answering*
+are different facts, and until now the difference was settled by a person opening a
+browser and reporting back — the most expensive cycle in the system. So it connects to
+the published port **from Windows**, optionally asks for one path, and reads the health
+check's state *beside what the check printed*:
+
+```
+  [FAIL]  port     :8080→8080/tcp no answer (ConnectionRefused)
+           -> It is running and port 8080 refuses from Windows: the process inside
+              never bound, or bound 127.0.0.1 rather than 0.0.0.0.
+  [FAIL]  health   unhealthy, 3 failing in a row — last said: connect ECONNREFUSED 127.0.0.1:8080
+```
+
+`read doctor` says a port is **listening**, read from the socket table; this says it
+**accepts**, and the difference is the whole point — a published port with a dead process
+behind it is listening and answers nothing. A connect is the one thing on this surface
+that reaches something other than the daemon, so it is deliberately narrow: it opens and
+closes, and a request that would appear in somebody's access log needs `--request` and is
+a GET. The mount row stops at the Windows side and says `unchecked` for the rest, because
+counting inside the container means an exec — a POST — and buying one row is not worth
+what it costs the guarantee that a read is a read.
+
+`--wait --timeout 30s` is the same command as the readiness primitive. It returns the
+moment the condition holds, and on a timeout it prints the same report saying which rows
+did not pass — a sleep loop written by the caller has neither property, and pays for
+every poll.
 
 `read context` is the one that replaces a session's first five calls:
 

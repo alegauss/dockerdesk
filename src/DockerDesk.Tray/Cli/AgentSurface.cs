@@ -84,6 +84,8 @@ public static class AgentSurface
             "[port] — every published port, and what holds it on Windows"),
         new(AgentNamespace.Read, "ps", "read ps",
             "every container as one line each: name, state, image, ports"),
+        new(AgentNamespace.Read, "verify", "read verify",
+            "<name> [--request [:port]/path] [--wait] [--timeout 30s] — proof that it answers"),
         new(AgentNamespace.Do, "engine", "do engine",
             "start | stop — bring the engine up or take it down"),
         new(AgentNamespace.Do, "reclaim", "do reclaim",
@@ -181,6 +183,7 @@ public static class AgentSurface
             "logs" => ReadLogs(engine, rest, output),
             "ports" => ReadPorts(engine, rest, output, new PortOwners()),
             "ps" => ReadPs(engine, rest, output),
+            "verify" => ReadVerify(engine, rest, output, new ServiceProbe()),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
     }
@@ -814,6 +817,253 @@ public static class AgentSurface
         output.Write(text.ToString());
         return Ok;
     }
+
+    /// <summary>How long the wait sleeps between attempts.</summary>
+    /// <remarks>
+    /// Half a second. A readiness wait is the thing a caller currently writes as a sleep loop, and the
+    /// gap only has to be short enough that the answer is not stale and long enough that a starting
+    /// service is not asked forty times a second.
+    /// </remarks>
+    private static readonly TimeSpan PollGap = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// Proof that a service answers, and the readiness primitive that replaces a sleep loop (DD30).
+    /// </summary>
+    /// <remarks>
+    /// <c>--wait</c> is the second half and costs one call rather than a polling loop the caller writes:
+    /// it returns the moment the condition holds, and on a timeout it prints the same report saying
+    /// which rows did not pass. A sleep loop written by the caller has neither property — it pays for
+    /// every poll and it ends knowing only that time ran out.
+    /// </remarks>
+    /// <param name="engine">The read-only half of the engine.</param>
+    /// <param name="rest">Everything after the two words.</param>
+    /// <param name="output">Where the report goes.</param>
+    /// <param name="probe">What reaches the port from Windows.</param>
+    /// <param name="gap">How long to sleep between attempts, so a test does not.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int ReadVerify(
+        IEngineReads engine, string[] rest, TextWriter output, IServiceProbe probe, TimeSpan? gap = null)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(rest);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(probe);
+
+        var json = false;
+        var wait = false;
+        string? target = null;
+        string? request = null;
+        var timeout = TimeSpan.FromSeconds(30);
+
+        for (var i = 0; i < rest.Length; i++)
+        {
+            var argument = rest[i];
+            switch (argument)
+            {
+                case "--json":
+                    json = true;
+                    continue;
+                case "--wait":
+                    wait = true;
+                    continue;
+                case "--request" or "--timeout":
+                    if (i + 1 >= rest.Length)
+                    {
+                        return Refuse($"{argument} needs a value after it");
+                    }
+
+                    var value = rest[++i];
+                    if (string.Equals(argument, "--request", StringComparison.Ordinal))
+                    {
+                        request = value;
+                        continue;
+                    }
+
+                    if (!TryParseSeconds(value, out timeout))
+                    {
+                        return Refuse($"{value} is not a timeout: seconds, as 30 or 30s");
+                    }
+
+                    continue;
+                default:
+                    if (argument.StartsWith('-'))
+                    {
+                        return Refuse($"unexpected argument {argument}: read verify takes a name, "
+                            + "--request, --wait, --timeout and --json");
+                    }
+
+                    if (target is not null)
+                    {
+                        return Refuse($"unexpected argument {argument}: read verify takes one name");
+                    }
+
+                    target = argument;
+                    continue;
+            }
+        }
+
+        if (!Core.Agent.Address.TryParse(target, out var address, out var refusal))
+        {
+            return Refuse(refusal);
+        }
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                output.WriteLine("engine  stopped  nothing is answering the pipe");
+                return NotReady;
+            }
+
+            var deadline = DateTimeOffset.UtcNow + timeout;
+            Core.Preflight.PreflightReport report;
+            while (true)
+            {
+                var containers = engine.ContainersAsync().GetAwaiter().GetResult();
+                var summary = Match(containers, address);
+                ContainerInspect? inspect = null;
+                if (summary is not null)
+                {
+                    try
+                    {
+                        inspect = engine.InspectAsync(summary.Id).GetAwaiter().GetResult();
+                    }
+                    catch (DockerApiException)
+                    {
+                        // Gone between the list and the inspect. The rows still say what the list knew.
+                    }
+                }
+
+                var published = ServiceVerify.Published(inspect);
+                var running = string.Equals(inspect?.State.Status, "running", StringComparison.Ordinal)
+                    || string.Equals(summary?.State, "running", StringComparison.Ordinal);
+
+                // Nothing is probed for a container that is not running: a port it published would be
+                // answered by whatever took it, and reporting that as this service would be the
+                // confidently wrong answer this verb exists to prevent.
+                var answers = running
+                    ? published
+                        .Select(p => probe.Connect(p.Host, p.Container, ServiceVerify.Attempt))
+                        .ToList()
+                    : [];
+
+                RequestAnswer? answered = null;
+                if (request is not null && running)
+                {
+                    if (!TryTargetRequest(request, published, out var port, out var path, out var why))
+                    {
+                        return Refuse(why);
+                    }
+
+                    answered = probe.Get(port, path, ServiceVerify.Attempt);
+                }
+
+                report = ServiceVerify.Verify(
+                    new VerifyFacts(address, summary, inspect, answers, answered));
+
+                if (!wait || report.CanHostEngine || DateTimeOffset.UtcNow >= deadline)
+                {
+                    break;
+                }
+
+                Thread.Sleep(gap ?? PollGap);
+            }
+
+            output.Write(json
+                ? System.Text.Json.JsonSerializer.Serialize(
+                    report, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
+                    + Environment.NewLine
+                : Core.Preflight.ReportText.Render(
+                    report,
+                    heading: $"dockerdesk read verify {address}",
+                    summary: report.CanHostEngine
+                        ? "It answers."
+                        : (wait ? $"Still not answering after {Seconds(timeout)}: " : "Not answering: ")
+                            + string.Join(", ", report.Blockers.Select(b => b.Title))
+                            + ". The remedy on each row is the action."));
+
+            return report.CanHostEngine ? Ok : Failed;
+        }
+        catch (DockerApiException exception)
+        {
+            output.WriteLine($"engine  unreachable  {exception.Message}");
+            return NotReady;
+        }
+    }
+
+    /// <summary>Which port a <c>--request</c> goes to, and to what path.</summary>
+    /// <remarks>
+    /// A container publishing one port needs no <c>:port</c> and a container publishing several cannot
+    /// have one guessed for it: picking the lowest would answer confidently about the wrong service,
+    /// which is the failure mode this whole verb exists to remove.
+    /// </remarks>
+    private static bool TryTargetRequest(
+        string request,
+        IReadOnlyList<(int Host, string Container)> published,
+        out int port,
+        out string path,
+        out string why)
+    {
+        port = 0;
+        path = request;
+        why = "";
+
+        if (request.StartsWith(':'))
+        {
+            var slash = request.IndexOf('/', StringComparison.Ordinal);
+            if (slash < 2
+                || !int.TryParse(request[1..slash], System.Globalization.CultureInfo.InvariantCulture, out port))
+            {
+                why = $"{request} is not a request target: :8080/healthz, or /healthz where one port "
+                    + "is published";
+                return false;
+            }
+
+            path = request[slash..];
+            return true;
+        }
+
+        if (!request.StartsWith('/'))
+        {
+            why = $"{request} is not a path: it begins with a slash";
+            return false;
+        }
+
+        switch (published.Count)
+        {
+            case 1:
+                port = published[0].Host;
+                return true;
+            case 0:
+                why = "this container publishes no port, so there is nothing to request";
+                return false;
+            default:
+                why = "this container publishes "
+                    + string.Join(
+                        ", ",
+                        published.Select(p => p.Host.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+                    + $": name one, as --request :{published[0].Host.ToString(System.Globalization.CultureInfo.InvariantCulture)}{request}";
+                return false;
+        }
+    }
+
+    /// <summary>Seconds, written as a number or with an s after it.</summary>
+    private static bool TryParseSeconds(string value, out TimeSpan span)
+    {
+        span = default;
+        var digits = value.EndsWith('s') ? value[..^1] : value;
+        if (!int.TryParse(digits, System.Globalization.CultureInfo.InvariantCulture, out var seconds)
+            || seconds < 0)
+        {
+            return false;
+        }
+
+        span = TimeSpan.FromSeconds(seconds);
+        return true;
+    }
+
+    private static string Seconds(TimeSpan span) =>
+        ((int)span.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture) + "s";
 
     private static int RunDo(AgentVerb verb, string[] rest) => verb.Name switch
     {

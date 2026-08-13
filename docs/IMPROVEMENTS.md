@@ -336,29 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD30 Cheap textual proof, because the agent cannot look
-
-The daemon reporting `running` and the service actually answering are different facts,
-and the gap between them is where an agent stops being able to make progress. A
-container can be up with its port bound and answer nothing: the process died inside it,
-the app bound to `127.0.0.1` rather than `0.0.0.0`, the health check has never gone
-green, the bind mount resolved to an empty directory because a Windows path did not
-survive the hop into WSL.
-
-None of that is visible from the Engine API, and all of it is currently closed by you
-opening a browser and reporting back — which is the most expensive cycle in the system
-and the reason two of the three in the canonical task exist at all.
-
-So the surface returns cheap textual proof instead: the host port accepts a connection
-*from Windows*, an optional request returns a status, the health check's current state
-and its last output, each mount resolved with the file count on the far side. Pass or
-fail with a reason, and an exit code.
-
-The same command is the readiness primitive, which removes the other recurring failure:
-waiting is currently a sleep loop the caller writes, and a `--wait --timeout` that
-returns when the condition holds — or fails saying which part did not — replaces polling
-with one call that costs one answer.
-
 ### §DD31 A cursor over the stream the tray is already reading
 
 Everything else in these two blocks makes one session cheaper. This is the only one that

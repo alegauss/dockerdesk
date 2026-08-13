@@ -50,6 +50,10 @@ public sealed class AgentSurfaceTests
         ["doctor"] = ["shop-api-1"],
         ["logs"] = ["shop-api-1"],
         ["ports"] = [],
+
+        // Driven against the exited container on purpose. A verify of a running one would open a real
+        // socket from a unit test, and this guard is about the requests that reached the daemon.
+        ["verify"] = ["shop-api-1"],
     };
 
     /// <summary>The daemon every read verb in the registry can be driven against.</summary>

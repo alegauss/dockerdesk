@@ -117,7 +117,17 @@
       ],
       "do reclaim": 170,
       "do compose up": 140,
-      "read verify": 110
+      "$read verify": [
+        "Raised from 110 to 240 while DD30 shipped. The 110 was a section 3.1 target written before the",
+        "verb existed; a verify in which every row fails - port, request, health and mounts, each with",
+        "its remedy - renders at 226, and the first attempt was 242. Measured the same way `read doctor`",
+        "is, so the two entries mean the same thing and neither shape can grow unnoticed.",
+        "",
+        "What a caller actually pays is 48: a verify that passes is three green rows and one sentence,",
+        "and that is the shape a --wait loop repeats. The expensive one is the failing one, which is the",
+        "only one anybody reads - so it is the one with the ceiling on it."
+      ],
+      "read verify": 240
     }
   },
 

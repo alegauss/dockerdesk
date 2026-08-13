@@ -49,6 +49,7 @@
 - ✅ **DD27** **A container log is read unbounded, so a restart loop is paid for eight times in identical traces** — read logs takes a cursor, a level, a dedup that turned 634 estimated tokens into 95, a ceiling it never cuts in silence, and an --out that turns the read into a Grep.
 - ✅ **DD28** **Port is already allocated does not say what holds the port, and the answer is not in Docker at all** — A refusal carries the Windows fact that explains it: read ports names the pid holding a port, and cannot connect became three causes with three remedies.
 - ✅ **DD29** **What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing** — A confirm token computed over the printed list scopes cleanup to one session's label, so a stale plan refuses instead of deleting what arrived in between.
+- ✅ **DD30** **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — A connect from Windows, an optional GET and the health check's own output turn running into answering, and --wait makes the same call the readiness primitive.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

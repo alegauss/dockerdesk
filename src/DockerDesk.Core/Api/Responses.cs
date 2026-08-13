@@ -332,6 +332,29 @@ public sealed record ContainerHealth
     /// <summary>How many checks have failed in a row.</summary>
     [JsonPropertyName("FailingStreak")]
     public int FailingStreak { get; init; }
+
+    /// <summary>
+    /// The last few runs of the check, oldest first, as the daemon keeps them.
+    /// </summary>
+    /// <remarks>
+    /// Read for the newest entry's output, which is the sentence the check itself printed when it
+    /// decided. "unhealthy" names a verdict and nothing else; what the command said is the part
+    /// somebody can act on, and it is already on an inspect nobody was reading it from.
+    /// </remarks>
+    [JsonPropertyName("Log")]
+    public IReadOnlyList<HealthRun>? Log { get; init; }
+}
+
+/// <summary>One run of a container's health check.</summary>
+public sealed record HealthRun
+{
+    /// <summary>What the command exited with.</summary>
+    [JsonPropertyName("ExitCode")]
+    public int ExitCode { get; init; }
+
+    /// <summary>What it printed, which the daemon truncates itself.</summary>
+    [JsonPropertyName("Output")]
+    public string Output { get; init; } = "";
 }
 
 /// <summary>One mount a container carries.</summary>

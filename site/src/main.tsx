@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
 import { App } from "./App";
+import { toAppPath } from "./routes";
 import "./index.css";
 
 const root = document.getElementById("root");
@@ -8,8 +9,13 @@ if (!root) {
   throw new Error("#root is missing from index.html");
 }
 
-createRoot(root).render(
+// The prerender wrote the static markup for this path; the client hydrates it in place
+// rather than throwing it away and re-rendering (§DD41).
+const path = toAppPath(window.location.pathname);
+
+hydrateRoot(
+  root,
   <StrictMode>
-    <App />
+    <App path={path} />
   </StrictMode>,
 );

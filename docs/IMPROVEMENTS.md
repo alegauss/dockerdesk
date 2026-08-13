@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD41 The prerender, and the route pair the build refuses to break
-
-A static host serves files, so ten routes are ten HTML files, and each needs its own
-title, description, canonical and og:url or it is a duplicate of the landing page to
-anything reading it. The mechanism is Shio's: one render per route, the head patched by
-replace-or-throw, so a drifted template fails the build rather than shipping a page
-under another route's title. The part worth taking deliberately is the pair. A route
-lives in two places - the map the client and the prerender both read, and the table
-carrying its metadata - and both failures are silent. A route with no page prerenders
-the landing page under somebody else's title; a page missing from the table never gets a
-file at all. Asserting the two against each other at import time, in both directions,
-turns each into a red build. No router: navigation is plain full loads, because every
-route is a static file anyway, and a framework that owns routing is a thing that breaks
-when Vite moves. Adding a page stays two rows, and the build refuses one.
-
 ### §DD42 The Markdown twin, the manifest, and llms.txt
 
 DD23 says the primary operator is a coding agent. This site answers one in hydrated

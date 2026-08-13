@@ -1,23 +1,11 @@
 import { useEffect } from "react";
-import { Nav } from "./components/Nav";
-import { Footer } from "./components/Footer";
-import { Hero } from "./components/sections/Hero";
-import { Why } from "./components/sections/Why";
-import { Preflight } from "./components/sections/Preflight";
-import { Engine } from "./components/sections/Engine";
-import { Pipe } from "./components/sections/Pipe";
-import { Tray } from "./components/sections/Tray";
-import { WindowSection } from "./components/sections/WindowSection";
-import { NotResident } from "./components/sections/NotResident";
-import { NonGoals } from "./components/sections/NonGoals";
-import { Status } from "./components/sections/Status";
-import { Build } from "./components/sections/Build";
+import { componentFor } from "./routes";
 
-// The landing section order is the argument, not a feature list (§5): why → preflight →
-// engine → the pipe (the mechanism) → tray → window → nothing resident → non-goals → the
-// honest status → build from source. DD44/DD45 reshape the opening once the hero session
-// and the two-actor/laws sections land.
-export function App() {
+// The client shell. No router: the page is chosen from the route map by the current path,
+// and every cross-route link is a plain full load, because each route is a static file the
+// prerender already wrote (§DD41). The same App is what entry-server renders on the build
+// side, so client and static file agree by construction.
+export function App({ path }: { path: string }) {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
     if (!("IntersectionObserver" in window)) {
@@ -38,23 +26,8 @@ export function App() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [path]);
 
-  return (
-    <>
-      <Nav />
-      <Hero />
-      <Why />
-      <Preflight />
-      <Engine />
-      <Pipe />
-      <Tray />
-      <WindowSection />
-      <NotResident />
-      <NonGoals />
-      <Status />
-      <Build />
-      <Footer />
-    </>
-  );
+  const Page = componentFor(path);
+  return <Page />;
 }

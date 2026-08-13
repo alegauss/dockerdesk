@@ -29,6 +29,24 @@
       name="description"
       content="A free Windows desktop app that installs upstream Moby into a WSL2 distribution it owns, serves the docker_engine pipe your existing tools already look for, and shows your containers in one window. Per-user install, no admin, nothing resident."
     />
+
+    <!--
+      scripts/prerender.mjs patches the title, description, canonical and og:url per route
+      by replace-or-throw, and inlines the rendered body into the root element. og:image is
+      DD49. Note: no closing head or script token may appear in a comment here, or the Vite
+      asset injection and the prerender both anchor to it instead of the real one.
+    -->
+
+    <!-- Reveal-on-scroll starts at opacity 0 and is lifted by the client observer (S7).
+         With no JS the prerendered text is still in the DOM; this makes it visible too. -->
+    <noscript>
+      <style>
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

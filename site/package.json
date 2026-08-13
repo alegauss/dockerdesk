@@ -6,7 +6,9 @@
   "description": "The public site for DockerDesk — copy in one module, sections only render it (DD40).",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.mjs",
+    "build:client": "vite build",
+    "prerender": "vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.mjs",
     "typecheck": "tsc -b",
     "preview": "vite preview"
   },

@@ -37,3 +37,4 @@
 ## Block H — The public surface (the site a reader and an agent both read)
 
 - ✅ **DD40** **The site is one hand-written page, dark-only, with every claim typed into the markup that displays it** — The landing page renders from a Vite React Tailwind workspace: copy in one content module the sections iterate, and the theme follows the OS.
+- ✅ **DD41** **A static host needs a file per route, and nothing checks that a route has a page or a page a title** — Each route prerenders to its own file with a replace-or-throw head, and the route map and metadata table assert against each other in both directions at import time.

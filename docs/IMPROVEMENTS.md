@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD40 The workspace, and the landing page ported into it
-
-The current page is 1080 lines of hand-written HTML, of which 300 are a stylesheet and
-the rest is copy welded to the markup that shows it. Nothing is wrong with it as a
-single page; what it cannot do is become a second one. A route needs a file, a claim
-needs one home a reviewer can check, and a theme needs somewhere to keep a choice.
-Shio's site answers all three with Vite, React 19, TypeScript, Tailwind v4 and
-shadcn/ui, and the argument for the same stack is not fashion: the two sites become one
-thing for one person to maintain, and the sibling has already paid for every decision in
-it. The copy moves to one module the sections iterate (S3). The theme follows the OS,
-which is what the product already does and what its site contradicts in public (S6).
-Vite's base is the project path, because the URL does not change. The landing page ports
-what already works first - the pipe diagram, the non-goals, the honest status, the four
-commands - so this is a lift with one behaviour added and nothing lost.
-
 ### §DD41 The prerender, and the route pair the build refuses to break
 
 A static host serves files, so ten routes are ten HTML files, and each needs its own

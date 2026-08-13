@@ -36,3 +36,4 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
+- ✅ **DD40** **The site is one hand-written page, dark-only, with every claim typed into the markup that displays it** — The landing page renders from a Vite React Tailwind workspace: copy in one content module the sections iterate, and the theme follows the OS.

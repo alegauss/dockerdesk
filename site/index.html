@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/dockerdesk/logo.svg" />
+
+    <!--
+      The theme follows the OS, and a stored choice wins over it (S6). This runs before
+      first paint: the tokens the body background reads are keyed off data-theme, so a
+      class applied after hydration is a visible flash of the wrong theme. Kept inline and
+      dependency-free for that reason. DD41 patches the rest of this <head> per route.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("dd-theme");
+          if (stored === "dark" || stored === "light") {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {
+          /* private mode, or no storage — fall through to the OS preference */
+        }
+      })();
+    </script>
+
+    <title>DockerDesk — Docker on Windows, without Docker Desktop</title>
+    <meta
+      name="description"
+      content="A free Windows desktop app that installs upstream Moby into a WSL2 distribution it owns, serves the docker_engine pipe your existing tools already look for, and shows your containers in one window. Per-user install, no admin, nothing resident."
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

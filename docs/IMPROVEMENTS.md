@@ -336,33 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD28 Every refusal carries the Windows fact that explains it
-
-`port is already allocated` is the refusal an agent cannot act on. The daemon knows a
-bind failed; it does not know what holds the socket, and no Docker command anywhere can
-tell it. A Windows process can, and this one is already running.
-
-So every refusal on this surface carries the fix, what is allowed, the nearest match and
-a minimal correct example — and, where Windows knows something the daemon does not, the
-fact that explains it:
-
-```json
-{ "type": "…/errors/port-allocated", "status": 409,
-  "heldBy": { "pid": 14032, "image": "node.exe", "path": "d:\\Git\\other-project" },
-  "fix": "Stop process 14032, or change the host port in docker-compose.yaml:12" }
-```
-
-`heldBy` is the argument for this product having an agent surface at all. A JSON
-re-wrapping of what `docker` already says adds nothing, since `--format json` exists.
-The joins the Engine API cannot make are the whole of the value, and they are available
-here only because this is a Windows process rather than a client.
-
-The same shape covers the two rows already on the backlog: a rival engine answering the
-pipe (DD16) and a stale context sending the CLI elsewhere (DD20) both currently surface
-as `cannot connect to the Docker daemon`, which is one sentence for three unrelated
-causes with three unrelated remedies. An error that costs a round trip to interpret is a
-defect, and one that names the wrong cause is worse than none.
-
 ### §DD29 A label is the audit trail, and a scoped reclaim is the undo
 
 An agent that starts three containers and a volume to reproduce a defect has no way to

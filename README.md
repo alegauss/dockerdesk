@@ -78,8 +78,26 @@ dockerdesk read context       the whole machine in one budgeted payload
 dockerdesk read doctor <name> why one container is not answering
 dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk read logs <name>   --since --level --dedup --budget --out
+dockerdesk read ports [port]  what holds a host port, which Docker cannot say
 dockerdesk do   engine start  brings the engine up
 ```
+
+`port is already allocated` is the refusal an agent cannot act on: the daemon knows a bind
+failed and no Docker command anywhere knows what holds the socket. A Windows process does:
+
+```
+$ dockerdesk read ports 135
+port 135 is already held on this machine
+  heldBy    pid 2416  svchost.exe  (path not readable by this process)
+  fix       Stop process 2416 (svchost.exe), or publish a different host port.
+```
+
+That join is the argument for this surface existing — a JSON re-wrapping of what `docker`
+already says adds nothing, since `--format json` exists. Every refusal carries the fact
+that explains it, a fix, and where it applies the nearest matching name. And
+`cannot connect to the Docker daemon` — one sentence for three unrelated causes — is now
+three: a **rival engine** on the pipe, a **context pointing elsewhere**, or an **engine
+that is simply stopped**, each with its own remedy and its own stable `type`.
 
 `read logs` is the one with a contract, because logs are the largest token sink here. A
 container that restarted eight times writes the same trace eight times: **634 estimated

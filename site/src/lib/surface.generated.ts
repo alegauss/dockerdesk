@@ -20,6 +20,7 @@ export const surface: SurfaceData = {
     "tokens": 5000
   },
   "ceilings": {
+    "read ports": 120,
     "read ps": 320,
     "do engine": 40,
     "read context": 200,
@@ -32,6 +33,7 @@ export const surface: SurfaceData = {
     "read context",
     "read doctor",
     "read logs",
+    "read ports",
     "read ps",
     "do engine"
   ]

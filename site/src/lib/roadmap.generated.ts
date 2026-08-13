@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 6,
-      "shipped": 5,
+      "open": 5,
+      "shipped": 6,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 22,
-    "shipped": 40,
+    "open": 21,
+    "shipped": 41,
     "retired": 0
   },
   "open": [
@@ -194,18 +194,6 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD54",
         "DD55"
-      ]
-    },
-    {
-      "id": "DD28",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Port is already allocated does not say what holds the port, and the answer is not in Docker at all",
-      "why": "The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete.",
-      "deps": [
-        "DD24 ✅",
-        "DD16 ✅",
-        "DD20 ✅"
       ]
     },
     {
@@ -496,6 +484,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD28",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Port is already allocated does not say what holds the port, and the answer is not in Docker at all",
+      "why": "A refusal carries the Windows fact that explains it: read ports names the pid holding a port, and cannot connect became three causes with three remedies.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -600,5 +596,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD28"
+  "next": "DD29"
 };

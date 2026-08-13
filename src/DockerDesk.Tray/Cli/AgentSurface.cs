@@ -78,6 +78,8 @@ public static class AgentSurface
             "<name> — why one container is not answering, as a verdict and a remedy"),
         new(AgentNamespace.Read, "logs", "read logs",
             "<name> [--since t:..] [--level x] [--dedup] [--budget n] [--out path]"),
+        new(AgentNamespace.Read, "ports", "read ports",
+            "[port] — every published port, and what holds it on Windows"),
         new(AgentNamespace.Read, "ps", "read ps",
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Do, "engine", "do engine",
@@ -172,6 +174,7 @@ public static class AgentSurface
             "context" => ReadContext(engine, rest, output),
             "doctor" => ReadDoctor(engine, rest, output),
             "logs" => ReadLogs(engine, rest, output),
+            "ports" => ReadPorts(engine, rest, output, new PortOwners()),
             "ps" => ReadPs(engine, rest, output),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
@@ -510,6 +513,120 @@ public static class AgentSurface
         {
             return Refuse($"could not write {outPath}: {exception.Message}");
         }
+    }
+
+    /// <summary>
+    /// Every published port beside what holds it on Windows (DD28).
+    /// </summary>
+    /// <remarks>
+    /// The join the Engine API cannot make. The daemon knows what was published and only Windows knows
+    /// which process owns the socket, so <c>port is already allocated</c> — the one refusal an agent
+    /// cannot act on — becomes one it can. Given a port, this answers about that port whether Docker
+    /// published it or not, which is exactly the case the daemon has nothing to say about.
+    /// </remarks>
+    internal static int ReadPorts(
+        IEngineReads engine, string[] rest, TextWriter output, IPortOwners owners)
+    {
+        ArgumentNullException.ThrowIfNull(owners);
+
+        var json = false;
+        int? single = null;
+        foreach (var argument in rest)
+        {
+            if (string.Equals(argument, "--json", StringComparison.Ordinal))
+            {
+                json = true;
+            }
+            else if (int.TryParse(argument, System.Globalization.CultureInfo.InvariantCulture, out var port)
+                && port is > 0 and <= 65535)
+            {
+                single = port;
+            }
+            else
+            {
+                return Refuse($"unexpected argument {argument}: read ports takes a port and --json");
+            }
+        }
+
+        // Asked about one port, the answer does not need the engine at all: whatever holds it holds it,
+        // and the interesting case is precisely the one where Docker is not what holds it.
+        if (single is { } only)
+        {
+            var holder = owners.Holding(only);
+            if (holder is null)
+            {
+                output.Write(json
+                    ? "{\"port\":" + only.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + ",\"heldBy\":null}" + Environment.NewLine
+                    : $"port {only} is free{Environment.NewLine}");
+                return Ok;
+            }
+
+            var problem = AgentProblem.PortAllocated(only, holder);
+            output.Write(json ? problem.ToJson() : problem.ToText());
+            return Ok;
+        }
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                return RefuseWith(CannotConnect(), json, output);
+            }
+
+            var containers = engine.ContainersAsync().GetAwaiter().GetResult();
+            var rows = new List<string>();
+            foreach (var container in containers.OrderBy(c => c.DisplayName, StringComparer.Ordinal))
+            {
+                foreach (var published in container.PublishedPorts)
+                {
+                    // "8080->80/tcp" — the host port is what Windows knows about.
+                    var arrow = published.IndexOf("->", StringComparison.Ordinal);
+                    if (arrow <= 0
+                        || !int.TryParse(published[..arrow], System.Globalization.CultureInfo.InvariantCulture, out var host))
+                    {
+                        continue;
+                    }
+
+                    var holder = owners.Holding(host);
+                    rows.Add(
+                        $"{container.DisplayName}  {published}  "
+                        + (holder is null
+                            ? "nothing listening"
+                            : $"pid {holder.Pid.ToString(System.Globalization.CultureInfo.InvariantCulture)} {holder.Image}"));
+                }
+            }
+
+            output.Write(rows.Count == 0
+                ? "(no published ports)" + Environment.NewLine
+                : string.Join(Environment.NewLine, rows) + Environment.NewLine);
+            return Ok;
+        }
+        catch (DockerApiException)
+        {
+            return RefuseWith(CannotConnect(), json, output);
+        }
+    }
+
+    /// <summary>
+    /// Which of the three unrelated causes of "cannot connect" this machine has.
+    /// </summary>
+    /// <remarks>
+    /// DD16 already reads what owns the docker command and DD20 already reads where the CLI points, and
+    /// both facts were being thrown away at the moment somebody needed them.
+    /// </remarks>
+    private static AgentProblem CannotConnect()
+    {
+        var facts = new Core.Preflight.Windows.WindowsMachineFacts();
+        return AgentProblem.CannotConnect(
+            facts.RivalEngines, facts.DockerClient, DockerApi.DefaultPipeName);
+    }
+
+    /// <summary>Print a refusal in whichever form was asked for, and return its exit code.</summary>
+    private static int RefuseWith(AgentProblem problem, bool json, TextWriter output)
+    {
+        output.Write(json ? problem.ToJson() : problem.ToText());
+        return NotReady;
     }
 
     /// <summary>The container this address names, by name and never by id.</summary>

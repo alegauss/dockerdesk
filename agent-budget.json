@@ -88,6 +88,7 @@
         "The entries with no verb behind them yet are the constitution's section 3.1 targets, kept as",
         "the acceptance criteria the verb that lands is judged against."
       ],
+      "read ports": 120,
       "read ps": 320,
       "do engine": 40,
       "read context": 200,

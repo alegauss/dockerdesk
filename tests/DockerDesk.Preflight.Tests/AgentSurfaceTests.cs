@@ -48,6 +48,7 @@ public sealed class AgentSurfaceTests
         ["ps"] = [],
         ["doctor"] = ["shop-api-1"],
         ["logs"] = ["shop-api-1"],
+        ["ports"] = [],
     };
 
     /// <summary>The daemon every read verb in the registry can be driven against.</summary>

@@ -83,11 +83,17 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startupicon"; Description: "Start {#MyAppName} with Windows"; GroupDescription: "Startup:"
 ; The engine is not started by installing. A resident background service is a stated non-goal, and
 ; an installer that leaves a container engine running is the weight this project is an answer to.
-Name: "pathentry"; Description: "Add the docker CLI folder to my PATH"; GroupDescription: "Command line:"
+Name: "pathentry"; Description: "Put docker and dockerdesk on my PATH"; GroupDescription: "Command line:"
 
 [Files]
 ; One file. That is DD14: one .exe to publish, to sign, to install and to hand somebody.
 Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+
+; DD24. The agent surface is reached as `dockerdesk read ...`, which is the literal string an
+; allowlist entry matches - `Bash(dockerdesk read:*)`. The .exe lives in {app} and only {app}\bin is
+; on PATH, so without this the one command the whole read/do split exists to make grantable does not
+; resolve at all. A forwarder rather than a second PATH entry: one name on PATH, one thing to remove.
+Source: "dockerdesk.cmd"; DestDir: "{app}\bin"; Flags: ignoreversion; Tasks: pathentry
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

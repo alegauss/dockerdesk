@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 10,
-      "shipped": 1,
+      "open": 9,
+      "shipped": 2,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 26,
-    "shipped": 35,
+    "open": 25,
+    "shipped": 36,
     "retired": 0
   },
   "open": [
@@ -165,7 +165,7 @@ export const roadmap: RoadmapData = {
       "symptom": "An agent meeting this machine has no way to know the surface exists, so it reaches for docker",
       "why": "A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches.",
       "deps": [
-        "DD24",
+        "DD24 ✅",
         "DD14 ✅"
       ]
     },
@@ -197,23 +197,13 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD24",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Reading a container and deleting a volume are one allowlist decision, so every read costs an approval",
-      "why": "The docker CLI mixes reads and writes in one verb namespace, so no rule permits inspection without permitting deletion, and every read stops to ask you.",
-      "deps": [
-        "DD23 ✅"
-      ]
-    },
-    {
       "id": "DD25",
       "status": "📋",
       "block": "G",
       "symptom": "Learning what this machine is running costs five commands, and it repeats in full every session",
       "why": "Discovery is answered by a truncating human-readable table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines.",
       "deps": [
-        "DD24"
+        "DD24 ✅"
       ]
     },
     {
@@ -223,7 +213,7 @@ export const roadmap: RoadmapData = {
       "symptom": "Why a container is not answering is a join across five commands, and inspect is read for four fields",
       "why": "One inspect is three to six hundred lines of JSON paid in full, and the join that turns those fields into a conclusion has no command at all.",
       "deps": [
-        "DD24"
+        "DD24 ✅"
       ]
     },
     {
@@ -243,7 +233,7 @@ export const roadmap: RoadmapData = {
       "symptom": "Port is already allocated does not say what holds the port, and the answer is not in Docker at all",
       "why": "The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete.",
       "deps": [
-        "DD24",
+        "DD24 ✅",
         "DD16 ✅",
         "DD20 ✅"
       ]
@@ -255,7 +245,7 @@ export const roadmap: RoadmapData = {
       "symptom": "What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing",
       "why": "Prune is scoped to the whole machine and is the one command nobody delegates, so leftovers stay rather than risk a volume the session did not create.",
       "deps": [
-        "DD24"
+        "DD24 ✅"
       ]
     },
     {
@@ -286,7 +276,7 @@ export const roadmap: RoadmapData = {
       "symptom": "A client with no shell cannot reach this surface at all, the CLI being the only head there is",
       "why": "A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does.",
       "deps": [
-        "DD24"
+        "DD24 ✅"
       ]
     },
     {
@@ -504,6 +494,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD24",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Reading a container and deleting a volume are one allowlist decision, so every read costs an approval",
+      "why": "read and do are separate argv namespaces so one allowlist line grants every read, and a test drives each read verb and requires every request it made to be a GET.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -600,5 +598,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD24"
+  "next": "DD25"
 };

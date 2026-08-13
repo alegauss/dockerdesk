@@ -336,32 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD24 Read and write, separated where a permission rule can see them
-
-The head this needs is a console binary beside `dockerdesk-preflight`, which already
-establishes the shape: `--json`, `--help`, and an exit code that means something. What
-is new is the split.
-
-`docker ps` and `docker rm -f -v` are one string to an allowlist. A user either grants
-the whole verb namespace — which permits deleting a volume — or approves every call by
-hand. `dockerdesk read …` beside `dockerdesk do …` makes the rule expressible in one
-line, and what that buys is not keystrokes: most of the calls in a diagnosis mutate
-nothing, and each of them currently costs the most expensive unit there is, which is
-stopping to ask you.
-
-`read` is a promise and not a naming convention. A verb under it that writes is a
-defect, and the guard belongs in a test rather than in review.
-
-Two constraints from the constitution land here rather than later, because retrofitting
-either is a rewrite. Addresses are names — a compose service as
-`svc:<project>/<service>`, a container as its name — since a 64-hex id changes on
-recreate and then has to be threaded across calls by hand. And every response shape
-registers a ceiling with the budget DD23 gates, so the limit exists before the first
-payload does.
-
-The surface stays a shape over the Engine API. No `build`, no `push`, no registry
-credentials: what `docker` already answers well is not re-wrapped.
-
 ### §DD25 One call that replaces the session's first five
 
 The first thing any session does is ask what this machine is doing, and today that is

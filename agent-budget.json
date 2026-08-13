@@ -82,6 +82,14 @@
       "tokens": 5000
     },
     "shapes": {
+      "about": [
+        "A ceiling per response shape, and every verb the surface registers has to have one here -",
+        "asserted by AgentBudgetTests, so the limit exists before the first payload does (DD24).",
+        "The entries with no verb behind them yet are the constitution's section 3.1 targets, kept as",
+        "the acceptance criteria the verb that lands is judged against."
+      ],
+      "read ps": 320,
+      "do engine": 40,
       "read context": 200,
       "read doctor": 260,
       "read logs": 400,

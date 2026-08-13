@@ -229,6 +229,8 @@ internal static class Program
 
         switch (route.Surface)
         {
+            case Cli.Surface.Agent:
+                return Cli.AgentSurface.Run(route.Arguments);
             case Cli.Surface.CaptureWindow:
                 return Cli.WindowCapture.Run(route.Arguments);
             case Cli.Surface.Preflight:

@@ -69,6 +69,34 @@ DockerDesk.exe --capture-window <png> [tab]
 DockerDesk.exe --help          every verb
 ```
 
+## The agent surface
+
+DockerDesk's other operator is a coding agent, and the split that matters to one is in argv:
+
+```
+dockerdesk read ps            every container, one line each — mutates nothing
+dockerdesk do   engine start  brings the engine up
+```
+
+`docker ps` and `docker rm -f -v` are the same string to an allowlist, so a rule either
+grants the whole verb namespace — which permits deleting a volume — or every call stops to
+ask. Separating them makes the rule one line:
+
+```jsonc
+// .claude/settings.json
+"allow": ["Bash(dockerdesk read:*)"]
+```
+
+**`read` is a promise, not a prefix.** A verb under it that writes is a defect, and two
+things keep that honest: a read verb is handed a handle with no start, remove or prune on
+it, and a test drives every registered read verb and requires every request it made to be
+a `GET`. Addresses are names — a container by its name, a compose service as
+`svc:<project>/<service>` — because an id changes when a container is recreated.
+
+Every response shape has a ceiling in [`agent-budget.json`](agent-budget.json), and a test
+fails a build that made one more expensive. See
+[docs/specs/DD23-agent-first-dockerdesk.md](docs/specs/DD23-agent-first-dockerdesk.md).
+
 `--capture-window` renders the window's own content and never photographs the screen, so it
 cannot catch anything that happens to be in front of it — and it needs no desktop at all,
 which a screen copy does. [`scripts/Capture-Window.ps1`](scripts/Capture-Window.ps1) is the

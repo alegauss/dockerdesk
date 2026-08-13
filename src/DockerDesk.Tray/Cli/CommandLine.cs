@@ -18,6 +18,9 @@ public enum Surface
     /// <summary>Every verb there is, on the console.</summary>
     Help,
 
+    /// <summary>The agent surface: <c>read</c> and <c>do</c> (DD24).</summary>
+    Agent,
+
     /// <summary>A PNG of the window, rendered rather than photographed.</summary>
     CaptureWindow,
 
@@ -97,6 +100,15 @@ public static class CommandLine
             return new Route(Surface.Engine, OpenWindow: false, arguments);
         }
 
+        // The agent surface, and it is a bare word rather than a flag on purpose: an allowlist matches
+        // the literal prefix `dockerdesk read`, and a flag would put the two halves in one namespace
+        // again — which is the whole thing DD24 exists to undo.
+        if (string.Equals(first, AgentSurface.ReadVerb, StringComparison.Ordinal)
+            || string.Equals(first, AgentSurface.DoVerb, StringComparison.Ordinal))
+        {
+            return new Route(Surface.Agent, OpenWindow: false, arguments);
+        }
+
         if (string.Equals(first, CaptureWindowVerb, StringComparison.Ordinal))
         {
             // The verb is dropped: what follows is the output path and an optional tab.
@@ -135,6 +147,8 @@ public static class CommandLine
         With no arguments it is the tray icon. Everything else is a console verb and prints
         into the terminal it was started from.
 
+          read <verb>      the agent surface, which mutates nothing
+          do <verb>        the agent surface that does
           {WindowVerb}         the tray, with the window open straight away
           {CaptureWindowVerb} <out.png> [tab]
                            render the window to a PNG off-screen, photographing nothing else

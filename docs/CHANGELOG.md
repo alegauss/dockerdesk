@@ -43,6 +43,7 @@
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 - ✅ **DD23** **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A benchmark measures the canonical task at 11711 estimated tokens over six calls, and agent-budget.json is the ceiling it reads, so a response that grew fails a build.
+- ✅ **DD24** **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — read and do are separate argv namespaces so one allowlist line grants every read, and a test drives each read verb and requires every request it made to be a GET.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

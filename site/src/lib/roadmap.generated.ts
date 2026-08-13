@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 4,
-      "shipped": 8,
+      "open": 3,
+      "shipped": 9,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 29,
-    "shipped": 22,
+    "open": 28,
+    "shipped": 23,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD48",
-      "status": "📋",
-      "block": "H",
-      "symptom": "Everything is one scroll, so a pillar gets a paragraph and there is no page to link at",
-      "why": "One page per pillar from one record each, with the route, the title and the description read off the same record, so a new pillar cannot ship half-declared or untitled.",
-      "deps": [
-        "DD41 ✅"
-      ]
-    },
-    {
       "id": "DD49",
       "status": "📋",
       "block": "H",
@@ -524,6 +514,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "A visitor weighing this against Docker Desktop, Rancher, Podman or a plain WSL2 daemon infers it from prose",
       "why": "A comparison matrix grouped by the law each row comes from, with a column per rival for what it genuinely wins, and a machine-readable table twin.",
+      "deps": []
+    },
+    {
+      "id": "DD48",
+      "status": "✅",
+      "block": "H",
+      "symptom": "Everything is one scroll, so a pillar gets a paragraph and there is no page to link at",
+      "why": "Five depth pages from one record each, whose route, title and description are read off the same record, so a pillar cannot ship half-declared or untitled.",
       "deps": []
     }
   ],

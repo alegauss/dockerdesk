@@ -1710,3 +1710,97 @@ footer {
   font-size: 0.98rem;
   line-height: 1.6;
 }
+
+/* ---------- /features depth pages (DD48) ---------- */
+.feature-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.25s;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(46, 155, 214, 0.5);
+  box-shadow: 0 18px 40px -22px rgba(46, 155, 214, 0.6);
+}
+.feature-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.feature-card p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  flex: 1 1 auto;
+}
+.feature-card-go {
+  margin-top: 14px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.feature-back {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.feature-body {
+  max-width: 780px;
+  margin: 40px auto 0;
+}
+.feature-section {
+  margin-bottom: 34px;
+}
+.feature-section h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.feature-section p {
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+.feature-section .feat-list {
+  margin-top: 8px;
+}
+.feature-link {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.feature-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 780px;
+  margin: 20px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.feature-nav-link {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  max-width: 48%;
+}
+.feature-nav-link:hover {
+  color: var(--accent);
+}
+.feature-nav-link.next {
+  text-align: right;
+  margin-left: auto;
+}

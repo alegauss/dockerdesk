@@ -3,7 +3,9 @@ import { Landing } from "./pages/Landing";
 import { StatusPage } from "./pages/Status";
 import { ClaudeCode } from "./pages/ClaudeCode";
 import { Compare } from "./pages/Compare";
+import { FeaturePage } from "./pages/Feature";
 import { claudeCode, compare, meta } from "./lib/site-content";
+import { features } from "./lib/features";
 
 // The URL does not change (§6): the site stays at https://alegauss.github.io/dockerdesk/,
 // so canonical, og:url and every output path carry this base.
@@ -53,6 +55,15 @@ export const ROUTE_META: RouteMeta[] = [
     ogTitle: compare.meta.ogTitle,
     ogDescription: compare.meta.ogDescription,
   },
+  // §DD48 — the depth pages' metadata is read off the same records as their routes and
+  // pages below, so a pillar cannot ship with a route and no title, or a page and no route.
+  ...features.map((f) => ({
+    path: `/features/${f.slug}`,
+    title: f.title,
+    description: f.description,
+    ogTitle: f.ogTitle,
+    ogDescription: f.ogDescription,
+  })),
 ];
 
 // S4 — the route → component map. The client (App) and the prerender (entry-server) both
@@ -63,6 +74,13 @@ export const ROUTES: { path: string; component: ComponentType }[] = [
   { path: "/status", component: StatusPage },
   { path: "/claude-code", component: ClaudeCode },
   { path: "/compare", component: Compare },
+  ...features.map((f) => ({
+    path: `/features/${f.slug}`,
+    // one stable component per record, bound to it (§DD48)
+    component: function BoundFeature() {
+      return <FeaturePage record={f} />;
+    },
+  })),
 ];
 
 /** The canonical/og:url for a route, carrying the base the URL never drops. */

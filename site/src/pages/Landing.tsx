@@ -8,6 +8,7 @@ import { Engine } from "../components/sections/Engine";
 import { Pipe } from "../components/sections/Pipe";
 import { Tray } from "../components/sections/Tray";
 import { WindowSection } from "../components/sections/WindowSection";
+import { FeatureIndex } from "../components/sections/FeatureIndex";
 import { NotResident } from "../components/sections/NotResident";
 import { NonGoals } from "../components/sections/NonGoals";
 import { Status } from "../components/sections/Status";
@@ -29,6 +30,7 @@ export function Landing() {
       <Pipe />
       <Tray />
       <WindowSection />
+      <FeatureIndex />
       <NotResident />
       <NonGoals />
       <Status />

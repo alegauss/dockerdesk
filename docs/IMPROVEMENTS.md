@@ -647,20 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD48 The five depth pages, one record each
-
-One scroll is one budget. The preflight has four rows and a diagnosis order that took an
-argument to get right; the pipe has an ACL that is the whole reason it is not a port;
-provisioning has seven steps and three pinned digests; the window has six lists and
-their designed empty states; the agent surface has a context pack, a doctor and a
-teaching error with a Windows join. Each is a paragraph today and none has a page to
-link at - from a README, from an issue, from a search result for the question it
-answers. Five pages, one record each: the route, the title, the description and the body
-read off the same record, so a new pillar is one entry and the route pair refuses it
-half-declared. This is Shio's feature-content shape, and the reason it derives the
-routes from the records rather than listing them separately is that a hand-maintained
-sixth page is the one that ships with no title.
-
 ### §DD49 The social card, and the marks around it
 
 The og:image points at logo.svg. No major platform rasterises SVG for a card and none

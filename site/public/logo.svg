@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="DockerDesk">
+  <defs>
+    <linearGradient id="dd-body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3AAEE8"/>
+      <stop offset="1" stop-color="#1C6BA4"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="34" fill="url(#dd-body)"/>
+  <!-- three containers, the list the window is opened for -->
+  <rect x="32" y="42" width="70" height="18" rx="5" fill="#ffffff" opacity=".95"/>
+  <rect x="32" y="69" width="94" height="18" rx="5" fill="#ffffff" opacity=".78"/>
+  <rect x="32" y="96" width="52" height="18" rx="5" fill="#ffffff" opacity=".62"/>
+  <!-- the engine state, as the tray draws it: a filled disc means running -->
+  <circle cx="118" cy="116" r="15" fill="#2EA043" stroke="#0E2029" stroke-width="6"/>
+</svg>

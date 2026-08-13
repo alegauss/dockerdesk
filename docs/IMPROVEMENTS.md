@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD46 The /claude-code page
-
-The read/do split is the highest-leverage decision in DD23 and it is invisible to the
-person who would benefit from it. Listing containers and deleting a volume are one
-string to an allowlist, so a user either grants every docker call - which permits
-deleting a volume - or approves each one; splitting the verbs in argv makes it one line
-of settings, and what that buys is not keystrokes but the removal of a human round trip
-from the ninety per cent of agent Docker work that mutates nothing. That is a page
-rather than a bullet: the one allowlist line, the calls a session opens with, what each
-returns and roughly what it costs, and the plugin that makes the surface discoverable at
-install time. Shio's equivalent page is where its plugin install command lives, and DD32
-is the same task on this side - a surface nobody discovers is one nobody uses, which is
-the reverse dependency this block creates. The page states the refusals too: no model,
-no prompts, no keys, no build, no push, no registry auth.
-
 ### §DD47 The /compare page, and the column each rival wins
 
 A visitor arrives having already decided against something, and the honest question is

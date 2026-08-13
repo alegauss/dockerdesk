@@ -33,22 +33,22 @@ export const meta = {
 export const repoUrl = "https://github.com/alegauss/dockerdesk";
 export const parentUrl = "https://alegauss.github.io/";
 
+// Section anchors (#x) act on the landing page; the page links are base-absolute so they
+// resolve the same from every route. The brand and footer link home the same way.
 export const navLinks = [
   { href: "#operator", label: "Agent" },
-  { href: "#why", label: "Why" },
-  { href: "#preflight", label: "Preflight" },
-  { href: "#engine", label: "Engine" },
   { href: "#pipe", label: "The pipe" },
-  { href: "#tray", label: "Tray" },
   { href: "#window", label: "Window" },
-  { href: "#status", label: "Status" },
+  { href: "/dockerdesk/claude-code/", label: "Claude Code" },
+  { href: "/dockerdesk/status/", label: "Status" },
 ] as const;
 
 export const footer = {
   links: [
+    { href: "/dockerdesk/claude-code/", label: "Claude Code" },
+    { href: "/dockerdesk/status/", label: "Status" },
     { href: repoUrl, label: "GitHub" },
     { href: `${repoUrl}/blob/main/docs/ROADMAP.md`, label: "Roadmap" },
-    { href: `${repoUrl}/blob/main/docs/CHANGELOG.md`, label: "Changelog" },
     { href: `${repoUrl}/blob/main/CONTRIBUTING.md`, label: "Contributing" },
   ],
   // The trademark disclaimer is not up for revision (§1). DD13 shipped LICENSE and NOTICE,
@@ -628,6 +628,85 @@ export const status = {
   ] as Rich,
   roadmapUrl: `${repoUrl}/blob/main/docs/ROADMAP.md`,
   improvementsUrl: `${repoUrl}/blob/main/docs/IMPROVEMENTS.md`,
+};
+
+/* ------------------------------------------------------------------ /claude-code page */
+// §DD46 — the page for the agent's operator. The read/do split is the highest-leverage
+// decision in DD23 and it is invisible to the person who would benefit from it. The whole
+// surface is designed (Block G) and the plugin is DD32 (Block F); the page says so, and
+// links its status, so a reader is never told a shipped thing that is not.
+
+export const claudeCode = {
+  meta: {
+    title: "DockerDesk for Claude Code — the read/do split",
+    description:
+      "The agent surface: one allowlist line splits reads from writes, so the 90% of agent Docker work that mutates nothing stops asking. Designed under Block G.",
+    ogTitle: "DockerDesk for Claude Code",
+    ogDescription:
+      "The read/do split, the one allowlist line, and the plugin that makes the surface discoverable — the designed agent surface.",
+  },
+  eyebrow: "For the agent's operator",
+  heading: "Configure it once, and the reads stop asking",
+  intro: [
+    "Listing containers and deleting a volume are one string to an allowlist, so a user either grants every ",
+    { code: "docker" },
+    " call — which permits deleting a volume — or approves each one. Splitting the verbs in argv makes it one line of settings, and what that buys is not keystrokes: it is the removal of a human round trip from the 90% of agent Docker work that mutates nothing.",
+  ] as Rich,
+  status: [
+    "This is the designed surface, not a shipped one — the CLI is ",
+    { b: "Block G" },
+    " and the plugin is ",
+    { b: "DD32" },
+    ", both open. Follow them on the status page; nothing here is downloadable yet.",
+  ] as Rich,
+  allowlistHeading: "The one line that pays for it",
+  allowlistLead: "One entry in .claude/settings.json:",
+  allowlistLine: "Bash(dockerdesk read:*)",
+  allowlistNote: [
+    { code: "read" },
+    " is a promise, not a naming convention: a verb under it that writes is a defect. So this single grant removes every prompt on the inspection path, while every ",
+    { code: "do" },
+    " still asks.",
+  ] as Rich,
+  readHeading: "read — the inspection path (no prompt)",
+  read: [
+    { v: "context", d: "the whole machine in one budgeted, terse payload — engine, services, ports, disk, cursor" },
+    { v: "doctor <name>", d: "the diagnostic join: the verdict and the remedy for one container" },
+    { v: "logs <name>", d: "deduped and budgeted, written to a file the agent Greps — paying for matches, not the whole log" },
+    { v: "ps", d: "the container list, addressed by name, with a cursor" },
+    { v: "ports", d: "what is published, and whether it actually listens from Windows" },
+    { v: "disk", d: "images and volumes — what is dangling, what is unused" },
+    { v: "changes --since <cur>", d: "the delta since last session, so N+1 is cheaper than N" },
+    { v: "verify <target>", d: "cheap textual proof a service answers — the agent cannot see" },
+    { v: "path <name>", d: "resolve a name to its id and paths" },
+  ],
+  doHeading: "do — the mutating path (still asks)",
+  do: [
+    { v: "start · stop · restart", d: "lifecycle, by name" },
+    { v: "rm", d: "remove, behind a confirm token" },
+    { v: "compose", d: "shells out to the compose you already have, with --wait" },
+    { v: "engine", d: "start or stop the engine itself" },
+    { v: "reclaim", d: "an undo scoped to this session's own labels" },
+    { v: "prune", d: "the machine-wide cleanup — still explicit, never implicit" },
+  ],
+  pluginHeading: "The plugin that makes it discoverable",
+  pluginBody: [
+    "A surface nobody discovers is one nobody uses, and the moment it is discoverable is the moment the installer runs. So the Claude Code plugin — the skill, the allowlist entry, and a project brief generated from the live machine — is ",
+    { code: "DD32" },
+    ", filed under the installer because that is what it is.",
+  ] as Rich,
+  refusesHeading: "What it deliberately refuses",
+  refusesLead: [
+    "DockerDesk is the substrate; the intelligence is the caller's. It is a CLI over the Engine API and facts Windows already knows — not a second Docker CLI (P10).",
+  ] as Rich,
+  refuses: [
+    { t: "No model", b: "It calls no LLM." },
+    { t: "No prompts", b: "It stores none." },
+    { t: "No API keys", b: "There is no secret to hold." },
+    { t: "No build", b: "That stays docker's." },
+    { t: "No push", b: "And so does that." },
+    { t: "No registry auth", b: "do compose shells out to yours." },
+  ],
 };
 
 /* ------------------------------------------------------------------ build */

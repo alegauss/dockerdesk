@@ -5,7 +5,7 @@ export function Footer() {
     <footer>
       <div className="wrap">
         <div className="foot-grid">
-          <a className="foot-brand" href="#top">
+          <a className="foot-brand" href="/dockerdesk/">
             <img src="/dockerdesk/logo.svg" alt="" />
             DockerDesk
           </a>

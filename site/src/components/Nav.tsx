@@ -6,7 +6,7 @@ export function Nav() {
     <nav>
       <div className="wrap">
         <div className="nav-left">
-          <a className="brand" href="#top">
+          <a className="brand" href="/dockerdesk/">
             <img src="/dockerdesk/logo.svg" alt="" />
             DockerDesk
           </a>

@@ -47,7 +47,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD46** (deps: DD40 ✅) **Nobody configuring an agent can find the read and do split, or the one allowlist line that pays for it** — A page for the agent's operator: the allowlist entry, the calls a session opens with, the plugin that makes the surface discoverable, and what it deliberately refuses. → §DD46
 - 📋 **DD47** (deps: DD40 ✅) **A visitor weighing this against Docker Desktop, Rancher, Podman or a plain WSL2 daemon infers it from prose** — Checkable rows grouped by the law each comes from, and a column per alternative for what it is genuinely better at, because a matrix that wins every row is not believed. → §DD47
 - 📋 **DD48** (deps: DD41 ✅) **Everything is one scroll, so a pillar gets a paragraph and there is no page to link at** — One page per pillar from one record each, with the route, the title and the description read off the same record, so a new pillar cannot ship half-declared or untitled. → §DD48
 - 📋 **DD49** (deps: DD40 ✅) **The og image points at an svg, so every share of this link renders a card with no image at all** — A 1200 by 630 card rasterised from an svg on every build, with the favicon and the marks beside it, so a shared link does not introduce the project as an empty rectangle. → §DD49

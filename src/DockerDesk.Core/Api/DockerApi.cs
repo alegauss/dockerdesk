@@ -154,6 +154,51 @@ public sealed class DockerApi : IDisposable
         return await GetAsync<List<ContainerSummary>>(query, cancellation).ConfigureAwait(false);
     }
 
+    /// <summary>Every image the daemon holds, dangling ones included.</summary>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The images, in the order the daemon returned them.</returns>
+    public async Task<IReadOnlyList<ImageSummary>> ImagesAsync(
+        CancellationToken cancellation = default) =>
+        await GetAsync<List<ImageSummary>>("images/json?all=0", cancellation).ConfigureAwait(false);
+
+    /// <summary>
+    /// Remove one image.
+    /// </summary>
+    /// <remarks>
+    /// Without <paramref name="force"/> the daemon refuses an image a container still references
+    /// and names the container in the refusal, which is the sentence the user needs — so force is
+    /// not the default and the refusal is not swallowed.
+    /// </remarks>
+    /// <param name="id">The image's id.</param>
+    /// <param name="force">Whether to remove it despite a container referencing it.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task RemoveImageAsync(
+        string id, bool force = false, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return SendAsync(
+            HttpMethod.Delete, $"images/{Uri.EscapeDataString(id)}?force={(force ? 1 : 0)}",
+            cancellation);
+    }
+
+    /// <summary>
+    /// Delete dangling images and report what came back.
+    /// </summary>
+    /// <remarks>
+    /// The <c>dangling=true</c> filter is stated rather than left to the default. The same endpoint
+    /// with <c>dangling=false</c> is <c>prune -a</c>, which deletes every image no *running*
+    /// container uses — on a developer's machine that is most of them, and it is not a thing to
+    /// arrive at by omitting a parameter.
+    /// </remarks>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>What was deleted and how much space came back.</returns>
+    public Task<ImagesPruned> PruneDanglingImagesAsync(CancellationToken cancellation = default) =>
+        PostJsonAsync<ImagesPruned>(
+            "images/prune?filters=" + Uri.EscapeDataString("""{"dangling":["true"]}"""),
+            new { },
+            cancellation);
+
     /// <summary>
     /// Everything the daemon knows about one container.
     /// </summary>

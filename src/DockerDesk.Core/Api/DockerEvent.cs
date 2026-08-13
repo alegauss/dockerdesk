@@ -59,4 +59,17 @@ public sealed record DockerEvent
         Type == "container" && Action is
             "create" or "start" or "stop" or "die" or "kill" or "destroy"
             or "pause" or "unpause" or "restart" or "rename" or "update";
+
+    /// <summary>
+    /// Whether an image list rendered before this event is now wrong.
+    /// </summary>
+    /// <remarks>
+    /// Not the same set as the container one. An image arriving or going is obvious; a container
+    /// being created or destroyed is here because the image list's other column is what holds each
+    /// image, and that answer changes without any image changing. A container merely starting or
+    /// stopping does not: it held the image either way.
+    /// </remarks>
+    public bool ChangesTheImageList =>
+        (Type == "image" && Action is "pull" or "import" or "load" or "delete" or "untag" or "tag")
+        || (Type == "container" && Action is "create" or "destroy");
 }

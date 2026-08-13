@@ -62,6 +62,13 @@ internal sealed class TrayApplication : ApplicationContext
             {
                 _ui.Post(_ => _ = _open?.RefreshAsync(e.Id), null);
             }
+
+            // Images are their own list with their own reasons to change, and the window decides
+            // whether anybody is looking at them.
+            if (e.ChangesTheImageList)
+            {
+                _ui.Post(_ => _ = _open?.RefreshImagesIfShowingAsync(), null);
+            }
         };
         _events.Start();
 

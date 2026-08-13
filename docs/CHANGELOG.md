@@ -25,6 +25,8 @@
 
 ## Block E — Images, volumes and networks
 
+- ✅ **DD11** **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Images sorted by size, each row saying whether a container holds it or it is dangling, with per-image removal and a dangling-only prune that names the space before the click and after it.
+
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)

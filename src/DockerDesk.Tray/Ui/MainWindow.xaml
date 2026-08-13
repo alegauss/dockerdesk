@@ -73,19 +73,29 @@
     <Grid Margin="20,16,20,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- The engine's own state, in words. The list below is a view of this thing. -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
+        <!-- The engine's own state, in words. Everything below is a view of this thing. -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
             <Ellipse x:Name="EngineDot" Width="10" Height="10" VerticalAlignment="Center" />
             <TextBlock x:Name="EngineLabel" Margin="8,0,0,0" FontSize="14"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
         </StackPanel>
 
-        <Grid Grid.Row="1" x:Name="HeaderRow" Margin="10,0,10,6">
+        <!-- Two tabs rather than two windows: containers and images are one question about one
+             machine, and the answer to "can I delete this image" is a container in the other list. -->
+        <TabControl Grid.Row="1" x:Name="Tabs" BorderThickness="0" Background="Transparent"
+                    SelectionChanged="TabChanged">
+          <TabItem Header="Containers">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" x:Name="HeaderRow" Margin="10,0,10,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.2*" />
                 <ColumnDefinition Width="1.3*" />
@@ -101,7 +111,7 @@
             <TextBlock Grid.Column="4" Text="PORTS" Style="{StaticResource Header}" />
         </Grid>
 
-        <ListView Grid.Row="2" x:Name="Containers" BorderThickness="0"
+        <ListView Grid.Row="1" x:Name="Containers" BorderThickness="0"
                   Background="Transparent"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemContainerStyle>
@@ -223,7 +233,7 @@
 
         <!-- Empty is designed, not a blank grid: the two reasons a list is empty read differently,
              and only one of them is something the user can do anything about. -->
-        <StackPanel Grid.Row="2" x:Name="Empty" VerticalAlignment="Center"
+        <StackPanel Grid.Row="1" x:Name="Empty" VerticalAlignment="Center"
                     HorizontalAlignment="Center" Visibility="Collapsed">
             <TextBlock x:Name="EmptyHeadline" FontSize="20" HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -235,5 +245,111 @@
                     Padding="18,8" HorizontalAlignment="Center" Visibility="Collapsed"
                     Click="StartEngine" />
         </StackPanel>
+            </Grid>
+          </TabItem>
+
+          <TabItem Header="Images">
+            <Grid Margin="0,10,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+
+              <!-- The total, and what prune would give back, both named before anything is clicked:
+                   "are you sure" about an unknown quantity is a question nobody can answer. -->
+              <Grid Grid.Row="0" Margin="10,0,10,10">
+                <TextBlock x:Name="ImageTotalsLine" VerticalAlignment="Center" FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <TextBlock x:Name="ImageOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
+                             FontSize="12" TextWrapping="Wrap" MaxWidth="420"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                  <!-- Dangling only. `prune -a` deletes every image no *running* container uses,
+                       which on a developer's machine is most of them, and that is not a thing to
+                       put one click away. -->
+                  <Button x:Name="PruneImages" Content="Prune dangling" Click="PruneDangling"
+                          Style="{StaticResource RowAction}" />
+                </StackPanel>
+              </Grid>
+
+              <Grid Grid.Row="1" x:Name="ImageHeaderRow" Margin="10,0,10,6">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="2*" />
+                  <ColumnDefinition Width="1*" />
+                  <ColumnDefinition Width="0.8*" />
+                  <ColumnDefinition Width="2*" />
+                  <ColumnDefinition Width="120" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="REPOSITORY" Style="{StaticResource Header}" />
+                <TextBlock Grid.Column="1" Text="TAG" Style="{StaticResource Header}" />
+                <TextBlock Grid.Column="2" Text="SIZE" Style="{StaticResource Header}" />
+                <TextBlock Grid.Column="3" Text="USED BY" Style="{StaticResource Header}" />
+              </Grid>
+
+              <ListView Grid.Row="2" x:Name="Images" BorderThickness="0"
+                        Background="Transparent"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.ItemContainerStyle>
+                  <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="10,8" />
+                  </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <!-- Same as ImageHeaderRow's, character for character; a test asserts it. -->
+                          <ColumnDefinition Width="2*" />
+                          <ColumnDefinition Width="1*" />
+                          <ColumnDefinition Width="0.8*" />
+                          <ColumnDefinition Width="2*" />
+                          <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Repository}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Tag}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="2" Text="{Binding SizeText}"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <!-- The join, in one cell: what holds this image, or that nothing does. -->
+                        <TextBlock Grid.Column="3" Text="{Binding Status}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Grid.Column="4" Orientation="Horizontal">
+                          <Button Content="Remove" Tag="{Binding}" Click="RemoveImage"
+                                  Style="{StaticResource RowAction}"
+                                  Visibility="{Binding IsIdle, Converter={StaticResource Shown}}" />
+                          <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
+                                     Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                     Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
+                        </StackPanel>
+                      </Grid>
+                      <!-- An image in use cannot be removed and the engine names the container that
+                           holds it. Passed through, because that names the row to deal with first. -->
+                      <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                 FontSize="12" Foreground="#E5484D"
+                                 Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListView.ItemTemplate>
+              </ListView>
+
+              <StackPanel Grid.Row="2" x:Name="ImagesEmpty" VerticalAlignment="Center"
+                          HorizontalAlignment="Center" Visibility="Collapsed">
+                <TextBlock x:Name="ImagesEmptyHeadline" FontSize="20" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                <TextBlock x:Name="ImagesEmptyDetail" Margin="0,8,0,0" FontSize="13"
+                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
+            </Grid>
+          </TabItem>
+        </TabControl>
     </Grid>
 </Window>

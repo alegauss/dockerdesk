@@ -186,27 +186,6 @@ incident waiting for its second turn, and it has already had one.
 
 ## Block E — Images, volumes and networks
 
-### §DD11 Images: sorted by size, with dangling and in-use named
-
-Images are where the disk goes. A year of pulling base images leaves tens of gigabytes
-in layers, most of it dangling — untagged intermediates no container references — and on
-a laptop with a 512 GB SSD that is a real problem a GUI is genuinely better at solving
-than a command line, because the fix is a judgement over a list.
-
-So the list is sorted by size, states the total, and marks what is dangling and what a
-container still uses. Those two facts are what make the decision, and the CLI's answer
-to "which of these can I delete" is three commands and a mental join.
-
-Removal is per image, and prune is the bulk door: dangling only by default, with the
-reclaimable total named before the click and reported after it. `prune -a` is
-deliberately not offered as one button — it deletes every image no *running* container
-uses, which on a developer's machine is most of them, and the second half of that
-sentence is not on the command's own warning.
-
-An image in use cannot be removed, and the engine says which container holds it. That
-answer is passed through, not paraphrased, since it names the row the user has to deal
-with first.
-
 ### §DD12 Volumes: the irreversible list
 
 A volume is the one thing here that is not recreatable. An image re-pulls, a container

@@ -174,12 +174,27 @@ public sealed class RowActivity
     public ContainerRow Dress(ContainerRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        return row with
-        {
-            Pending = _pending.TryGetValue(row.Id, out var verb)
-                ? ContainerAction.PendingLabel(verb)
-                : null,
-            Failure = _failures.TryGetValue(row.Id, out var failure) ? failure : null,
-        };
+        return row with { Pending = PendingFor(row.Id), Failure = FailureFor(row.Id) };
     }
+
+    /// <summary>
+    /// The same, for an image row.
+    /// </summary>
+    /// <remarks>
+    /// Images are rebuilt from the daemon on every refresh exactly as containers are, and a removal
+    /// that is refused has the same thing to say in the same place. One tracker, two shapes of row.
+    /// </remarks>
+    /// <param name="row">The freshly projected row.</param>
+    /// <returns>The same row, carrying whatever is known about it.</returns>
+    public ImageRow Dress(ImageRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        return row with { Pending = PendingFor(row.Id), Failure = FailureFor(row.Id) };
+    }
+
+    private string? PendingFor(string id) =>
+        _pending.TryGetValue(id, out var verb) ? ContainerAction.PendingLabel(verb) : null;
+
+    private string? FailureFor(string id) =>
+        _failures.TryGetValue(id, out var failure) ? failure : null;
 }

@@ -20,7 +20,6 @@
 
 ## Block E — Images, volumes and networks
 
-- 📋 **DD11** (deps: DD7 ✅) **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Reclaiming disk is a judgement over a list, which is what a GUI is better at than three CLI commands and a mental join. → §DD11
 - 📋 **DD12** (deps: DD7 ✅) **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — A volume is the one thing here that does not come back, so the list's job is making an irreversible deletion legible rather than reclaiming space. → §DD12
 
 ## Block F — Installer and distribution (free, Apache 2.0)

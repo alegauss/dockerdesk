@@ -44,12 +44,18 @@ public sealed class MainWindowLayoutTests
     }
 
     [Fact]
-    public void The_header_and_the_rows_are_laid_out_on_the_same_columns()
+    public void Every_header_is_laid_out_on_the_same_columns_as_the_rows_under_it()
     {
+        // The file order is header, then the row template it captions, per tab. Pairing them this
+        // way is what makes adding a tab safe: a new pair is checked by the same rule.
         var blocks = ColumnBlocks();
 
-        Assert.Equal(2, blocks.Count);
-        Assert.Equal(blocks[0], blocks[1]);
+        Assert.NotEmpty(blocks);
+        Assert.True(blocks.Count % 2 == 0, $"{blocks.Count} column blocks: one is unpaired");
+        for (var pair = 0; pair < blocks.Count; pair += 2)
+        {
+            Assert.Equal(blocks[pair], blocks[pair + 1]);
+        }
     }
 
     [Fact]
@@ -63,5 +69,17 @@ public sealed class MainWindowLayoutTests
             int.TryParse(widths[^1], out var actions),
             $"the actions column should be a fixed width, not '{widths[^1]}'");
         Assert.True(actions >= 300, $"the actions column is {actions}, too narrow for five buttons");
+    }
+
+    [Fact]
+    public void Both_tabs_are_present_and_the_containers_one_is_first()
+    {
+        var xaml = File.ReadAllText(RepositoryFile("src/DockerDesk.Tray/Ui/MainWindow.xaml"));
+        var headers = Regex.Matches(xaml, @"<TabItem Header=""([^""]+)""")
+            .Select(match => match.Groups[1].Value)
+            .ToList();
+
+        // The index the code-behind tests for is positional, so the order is not cosmetic.
+        Assert.Equal(["Containers", "Images"], headers);
     }
 }

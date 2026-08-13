@@ -56,6 +56,68 @@ public sealed record PortBinding
         : $"{PrivatePort}/{Type}";
 }
 
+/// <summary>An image, as the list endpoint reports it.</summary>
+public sealed record ImageSummary
+{
+    /// <summary>The full id, <c>sha256:…</c>.</summary>
+    [JsonPropertyName("Id")]
+    public string Id { get; init; } = "";
+
+    /// <summary>
+    /// Its tags, or nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// The daemon reports an untagged image either as an empty list or as the single string
+    /// <c>&lt;none&gt;:&lt;none&gt;</c> depending on version and how it lost its tag, so both mean
+    /// dangling and a reader that only knows one of them under-reports the thing this list exists
+    /// to find.
+    /// </remarks>
+    [JsonPropertyName("RepoTags")]
+    public IReadOnlyList<string>? RepoTags { get; init; }
+
+    /// <summary>How many bytes it occupies, layers included.</summary>
+    [JsonPropertyName("Size")]
+    public long Size { get; init; }
+
+    /// <summary>When it was created, in seconds since the epoch.</summary>
+    [JsonPropertyName("Created")]
+    public long Created { get; init; }
+
+    /// <summary>The twelve characters every Docker tool shows, without the algorithm prefix.</summary>
+    public string ShortId
+    {
+        get
+        {
+            var digest = Id.StartsWith("sha256:", StringComparison.Ordinal) ? Id[7..] : Id;
+            return digest.Length > 12 ? digest[..12] : digest;
+        }
+    }
+}
+
+/// <summary>What a prune reclaimed.</summary>
+public sealed record ImagesPruned
+{
+    /// <summary>What went, one entry per deleted or untagged layer.</summary>
+    [JsonPropertyName("ImagesDeleted")]
+    public IReadOnlyList<DeletedImage>? ImagesDeleted { get; init; }
+
+    /// <summary>How many bytes came back.</summary>
+    [JsonPropertyName("SpaceReclaimed")]
+    public long SpaceReclaimed { get; init; }
+}
+
+/// <summary>One line of what a delete or a prune did.</summary>
+public sealed record DeletedImage
+{
+    /// <summary>The image that was removed outright.</summary>
+    [JsonPropertyName("Deleted")]
+    public string? Deleted { get; init; }
+
+    /// <summary>The tag that was dropped, where the image itself survived.</summary>
+    [JsonPropertyName("Untagged")]
+    public string? Untagged { get; init; }
+}
+
 /// <summary>What the daemon answers when an exec is created.</summary>
 public sealed record ExecCreated
 {
@@ -112,9 +174,20 @@ public sealed record ContainerSummary
     [JsonPropertyName("Id")]
     public string Id { get; init; } = "";
 
-    /// <summary>The image it was created from.</summary>
+    /// <summary>The image it was created from, as a name.</summary>
     [JsonPropertyName("Image")]
     public string Image { get; init; } = "";
+
+    /// <summary>
+    /// The id of that image, which is what an image list has to be joined on.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Image"/> is whatever name the container was created with and a tag moves; the id
+    /// is what says this container is holding that row. Joining on the name is how a list reports
+    /// an image as free while something is still using it.
+    /// </remarks>
+    [JsonPropertyName("ImageID")]
+    public string ImageId { get; init; } = "";
 
     /// <summary>One word: running, exited, created, paused.</summary>
     [JsonPropertyName("State")]

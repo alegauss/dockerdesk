@@ -70,29 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD35 The shell owns the chrome and a list owns its page
-
-`MainWindow.xaml` is 447 lines and `MainWindow.xaml.cs` is 586, and between them they
-own the engine banner, three lists, three header rows, three empty states, two prune
-confirmations, the log windows and the terminal launch. The three lists are not variants
-of one thing in the file; they are three hand-written copies of the same stanza — a
-header `Grid`, a `ListView` with a duplicated column set, an `Empty` panel, a
-`Refresh…Async`, a `Redress…`. DD12 and networks each add a fourth and a fifth copy.
-
-claude-tray splits this the other way. `MainWindow` there is 104 lines of XAML and 129
-of code-behind, and owns *only* the chrome: a nav strip of `RadioButton`s in one group,
-and a `DestinationHost` grid. Each destination is a `UserControl` with its own header,
-navigation and footer, built the first time it is navigated to and then kept alive
-collapsed, so a scan, a chart's history and a half-edited setting survive switching
-away. The heavier ones are split again by concern across partial classes.
-
-The parts of that worth taking are the ones that are structure and not taste: the shell
-owning the chrome, one page per list, pages built lazily and kept alive. The tab strip
-is a smaller question — WPF's default `TabItem` headers are the least-designed pixels in
-this window, and the accent-underline strip is what the sibling app already looks like.
-
-The test that pins each header's columns to its rows moves with the page it belongs to.
-
 ### §DD36 A row carries its state, not a wall of captions
 
 A container row today is five plain `TextBlock`s and up to six `Button`s with word

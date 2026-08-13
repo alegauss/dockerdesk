@@ -1,0 +1,171 @@
+<!-- The containers list, which is what the window is opened for. Its header, its rows, its four
+     verbs and its two empty states, and nothing about the engine banner or the strip above it: the
+     shell owns the chrome and a list owns its page (DD35).
+
+     The styles it draws with stay in MainWindow.Resources and are reached with DynamicResource, not
+     StaticResource. That is not a preference: a StaticResource is resolved while this control is
+     parsed, when it is not yet in the window's tree, and the Fluent Button these are BasedOn lives in
+     the WINDOW's resources because ThemeMode puts it there (DD34). -->
+<UserControl x:Class="DockerDesk.Tray.Ui.Pages.ContainersPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:DockerDesk.Tray.Ui"
+             x:ClassModifier="internal">
+<Grid Margin="0,10,0,0">
+  <Grid.RowDefinitions>
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="*" />
+  </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" x:Name="HeaderRow" Margin="10,0,10,6">
+<Grid.ColumnDefinitions>
+    <ColumnDefinition Width="1.2*" />
+    <ColumnDefinition Width="1.3*" />
+    <ColumnDefinition Width="0.7*" />
+    <ColumnDefinition Width="1.1*" />
+    <ColumnDefinition Width="1.2*" />
+    <ColumnDefinition Width="320" />
+</Grid.ColumnDefinitions>
+<TextBlock Grid.Column="0" Text="NAME" Style="{DynamicResource Header}" />
+<TextBlock Grid.Column="1" Text="IMAGE" Style="{DynamicResource Header}" />
+<TextBlock Grid.Column="2" Text="STATE" Style="{DynamicResource Header}" />
+<TextBlock Grid.Column="3" Text="STATUS" Style="{DynamicResource Header}" />
+<TextBlock Grid.Column="4" Text="PORTS" Style="{DynamicResource Header}" />
+        </Grid>
+
+        <ListView Grid.Row="1" x:Name="Containers" BorderThickness="0"
+      Background="Transparent"
+      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+<ListView.ItemContainerStyle>
+    <Style TargetType="ListViewItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+</ListView.ItemContainerStyle>
+<ListView.ItemTemplate>
+    <DataTemplate>
+      <StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <!-- Character for character the same as HeaderRow's, and a test asserts
+                     it: a header whose columns have drifted from the rows under it puts
+                     every caption over the wrong cell, and nothing but looking at the
+                     window says so. -->
+                <ColumnDefinition Width="1.2*" />
+                <ColumnDefinition Width="1.3*" />
+                <ColumnDefinition Width="0.7*" />
+                <ColumnDefinition Width="1.1*" />
+                <ColumnDefinition Width="1.2*" />
+                <ColumnDefinition Width="320" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock Grid.Column="1" Text="{Binding Image}" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBlock Grid.Column="2" Text="{Binding State}"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <ItemsControl Grid.Column="4" ItemsSource="{Binding Ports}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <!-- One of the two shows. A DataTrigger rather than a converter:
+                             the whole condition is IsLink, and a converter class would
+                             be a file to explain that. -->
+                        <Grid>
+                            <Button Content="{Binding Text}" Tag="{Binding Url}"
+                                    Click="OpenPort" ToolTip="{Binding Url}">
+                                <Button.Style>
+                                    <Style TargetType="Button"
+                                           BasedOn="{DynamicResource PortLink}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLink}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <TextBlock Text="{Binding Text}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock"
+                                           BasedOn="{DynamicResource PortText}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLink}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- The four verbs, or the one word that says the click landed. Optimistic:
+                 the row goes pending on press and the event stream is what takes it
+                 back out, because a stop can take the daemon's full ten seconds. -->
+            <StackPanel Grid.Column="5" Orientation="Horizontal">
+                <!-- First, and offered in every state including pending: the log is the
+                     one artefact a container that exited two seconds in leaves, and
+                     reading it changes nothing that could be in flight. -->
+                <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
+                        Style="{DynamicResource RowAction}" />
+                <!-- The one button that is disabled rather than hidden, because
+                     "you cannot do this yet" and "this does not exist" are different
+                     answers and only the tooltip can tell them apart. -->
+                <Button Content="Shell" Tag="{Binding}" Click="OpenShell"
+                        Style="{DynamicResource RowAction}"
+                        IsEnabled="{Binding CanShell}"
+                        ToolTip="{Binding ShellReason}" />
+                <Button Content="Start" Tag="{Binding}" Click="StartContainer"
+                        Style="{DynamicResource RowAction}"
+                        Visibility="{Binding CanStart, Converter={StaticResource Shown}}" />
+                <Button Content="Stop" Tag="{Binding}" Click="StopContainer"
+                        Style="{DynamicResource RowAction}"
+                        Visibility="{Binding CanStop, Converter={StaticResource Shown}}" />
+                <Button Content="Restart" Tag="{Binding}" Click="RestartContainer"
+                        Style="{DynamicResource RowAction}"
+                        Visibility="{Binding CanRestart, Converter={StaticResource Shown}}" />
+                <Button Content="Remove" Tag="{Binding}" Click="RemoveContainer"
+                        Style="{DynamicResource RowAction}"
+                        Visibility="{Binding CanRemove, Converter={StaticResource Shown}}" />
+                <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Where the click was, in the engine's own words. A port already in use or a
+             volume still mounted is an ordinary answer, and the daemon says it better
+             than any paraphrase this tool could write. -->
+        <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
+                   FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
+                   Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
+      </StackPanel>
+    </DataTemplate>
+</ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Empty is designed, not a blank grid: the two reasons a list is empty read differently,
+ and only one of them is something the user can do anything about. -->
+        <StackPanel Grid.Row="1" x:Name="Empty" VerticalAlignment="Center"
+        HorizontalAlignment="Center" Visibility="Collapsed">
+<TextBlock x:Name="EmptyHeadline" FontSize="20" HorizontalAlignment="Center"
+           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+<TextBlock x:Name="EmptyDetail" Margin="0,8,0,0" FontSize="13"
+           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
+           TextWrapping="Wrap"
+           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+<Button x:Name="EmptyStart" Content="Start the engine" Margin="0,18,0,0"
+        Padding="18,8" HorizontalAlignment="Center" Visibility="Collapsed"
+        Click="StartEngine" />
+        </StackPanel>
+</Grid>
+</UserControl>

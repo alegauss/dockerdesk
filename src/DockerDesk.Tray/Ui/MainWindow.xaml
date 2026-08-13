@@ -67,12 +67,56 @@
             <Setter Property="Margin" Value="0,0,6,0" />
             <Setter Property="MinWidth" Value="0" />
         </Style>
+
+        <!-- A destination in the strip. Window chrome, so it is quiet: secondary text, an accent
+             underline under the selected one, and a subtle hover fill. Borrowed from claude-tray's
+             NavDest, whose reasoning applies unchanged. -->
+        <Style x:Key="NavDest" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="3" />
+                            </Grid.RowDefinitions>
+                            <Border x:Name="Hit" Grid.Row="0" Background="Transparent"
+                                    CornerRadius="6" Padding="16,9">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border x:Name="Bar" Grid.Row="1" Margin="10,0" CornerRadius="2"
+                                    Visibility="Hidden"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hit" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="20,16,20,16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /><!-- the engine, in words -->
+            <RowDefinition Height="Auto" /><!-- the nav strip -->
+            <RowDefinition Height="*" />   <!-- the selected page -->
         </Grid.RowDefinitions>
 
         <!-- The engine's own state, in words. Everything below is a view of this thing. -->
@@ -88,365 +132,32 @@
             <Button Content="About" Click="ShowAbout" HorizontalAlignment="Right"
                     Style="{StaticResource RowAction}" Margin="0" />
         </Grid>
+        <!-- The nav strip, borrowed from claude-tray rather than left as TabItem headers: quiet text
+             with an accent underline under the selected one. Two apps by the same author that look
+             unrelated read as two unfinished apps, and a TabControl also tears its content down on
+             every switch, which is the opposite of what a page kept alive is for.
 
-        <!-- Two tabs rather than two windows: containers and images are one question about one
-             machine, and the answer to "can I delete this image" is a container in the other list. -->
-        <TabControl Grid.Row="1" x:Name="Tabs" BorderThickness="0" Background="Transparent"
-                    SelectionChanged="TabChanged">
-          <TabItem Header="Containers">
-            <Grid Margin="0,10,0,0">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-              </Grid.RowDefinitions>
+             RadioButtons rather than hand-toggled Borders: one destination is selected at a time by
+             construction, and the group is arrow-key navigable for free. No IsChecked in the markup —
+             ticking one navigates, and during InitializeComponent there is nothing to navigate to. -->
+        <Border Grid.Row="1" Margin="0,0,0,4"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            <StackPanel x:Name="Strip" Orientation="Horizontal" HorizontalAlignment="Left">
+                <RadioButton x:Name="NavContainers" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Containers"
+                             Tag="Containers" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavImages" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Images"
+                             Tag="Images" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavVolumes" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Volumes"
+                             Tag="Volumes" Checked="Destination_Checked" />
+            </StackPanel>
+        </Border>
 
-        <Grid Grid.Row="0" x:Name="HeaderRow" Margin="10,0,10,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.2*" />
-                <ColumnDefinition Width="1.3*" />
-                <ColumnDefinition Width="0.7*" />
-                <ColumnDefinition Width="1.1*" />
-                <ColumnDefinition Width="1.2*" />
-                <ColumnDefinition Width="320" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="NAME" Style="{StaticResource Header}" />
-            <TextBlock Grid.Column="1" Text="IMAGE" Style="{StaticResource Header}" />
-            <TextBlock Grid.Column="2" Text="STATE" Style="{StaticResource Header}" />
-            <TextBlock Grid.Column="3" Text="STATUS" Style="{StaticResource Header}" />
-            <TextBlock Grid.Column="4" Text="PORTS" Style="{StaticResource Header}" />
-        </Grid>
-
-        <ListView Grid.Row="1" x:Name="Containers" BorderThickness="0"
-                  Background="Transparent"
-                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="10,8" />
-                </Style>
-            </ListView.ItemContainerStyle>
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                  <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <!-- Character for character the same as HeaderRow's, and a test asserts
-                                 it: a header whose columns have drifted from the rows under it puts
-                                 every caption over the wrong cell, and nothing but looking at the
-                                 window says so. -->
-                            <ColumnDefinition Width="1.2*" />
-                            <ColumnDefinition Width="1.3*" />
-                            <ColumnDefinition Width="0.7*" />
-                            <ColumnDefinition Width="1.1*" />
-                            <ColumnDefinition Width="1.2*" />
-                            <ColumnDefinition Width="320" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Grid.Column="1" Text="{Binding Image}" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Column="2" Text="{Binding State}"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <ItemsControl Grid.Column="4" ItemsSource="{Binding Ports}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <!-- One of the two shows. A DataTrigger rather than a converter:
-                                         the whole condition is IsLink, and a converter class would
-                                         be a file to explain that. -->
-                                    <Grid>
-                                        <Button Content="{Binding Text}" Tag="{Binding Url}"
-                                                Click="OpenPort" ToolTip="{Binding Url}">
-                                            <Button.Style>
-                                                <Style TargetType="Button"
-                                                       BasedOn="{StaticResource PortLink}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsLink}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                        <TextBlock Text="{Binding Text}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock"
-                                                       BasedOn="{StaticResource PortText}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsLink}" Value="False">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- The four verbs, or the one word that says the click landed. Optimistic:
-                             the row goes pending on press and the event stream is what takes it
-                             back out, because a stop can take the daemon's full ten seconds. -->
-                        <StackPanel Grid.Column="5" Orientation="Horizontal">
-                            <!-- First, and offered in every state including pending: the log is the
-                                 one artefact a container that exited two seconds in leaves, and
-                                 reading it changes nothing that could be in flight. -->
-                            <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
-                                    Style="{StaticResource RowAction}" />
-                            <!-- The one button that is disabled rather than hidden, because
-                                 "you cannot do this yet" and "this does not exist" are different
-                                 answers and only the tooltip can tell them apart. -->
-                            <Button Content="Shell" Tag="{Binding}" Click="OpenShell"
-                                    Style="{StaticResource RowAction}"
-                                    IsEnabled="{Binding CanShell}"
-                                    ToolTip="{Binding ShellReason}" />
-                            <Button Content="Start" Tag="{Binding}" Click="StartContainer"
-                                    Style="{StaticResource RowAction}"
-                                    Visibility="{Binding CanStart, Converter={StaticResource Shown}}" />
-                            <Button Content="Stop" Tag="{Binding}" Click="StopContainer"
-                                    Style="{StaticResource RowAction}"
-                                    Visibility="{Binding CanStop, Converter={StaticResource Shown}}" />
-                            <Button Content="Restart" Tag="{Binding}" Click="RestartContainer"
-                                    Style="{StaticResource RowAction}"
-                                    Visibility="{Binding CanRestart, Converter={StaticResource Shown}}" />
-                            <Button Content="Remove" Tag="{Binding}" Click="RemoveContainer"
-                                    Style="{StaticResource RowAction}"
-                                    Visibility="{Binding CanRemove, Converter={StaticResource Shown}}" />
-                            <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                       Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Where the click was, in the engine's own words. A port already in use or a
-                         volume still mounted is an ordinary answer, and the daemon says it better
-                         than any paraphrase this tool could write. -->
-                    <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                               FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
-                               Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
-                  </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-
-        <!-- Empty is designed, not a blank grid: the two reasons a list is empty read differently,
-             and only one of them is something the user can do anything about. -->
-        <StackPanel Grid.Row="1" x:Name="Empty" VerticalAlignment="Center"
-                    HorizontalAlignment="Center" Visibility="Collapsed">
-            <TextBlock x:Name="EmptyHeadline" FontSize="20" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-            <TextBlock x:Name="EmptyDetail" Margin="0,8,0,0" FontSize="13"
-                       HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <Button x:Name="EmptyStart" Content="Start the engine" Margin="0,18,0,0"
-                    Padding="18,8" HorizontalAlignment="Center" Visibility="Collapsed"
-                    Click="StartEngine" />
-        </StackPanel>
-            </Grid>
-          </TabItem>
-
-          <TabItem Header="Images">
-            <Grid Margin="0,10,0,0">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-              </Grid.RowDefinitions>
-
-              <!-- The total, and what prune would give back, both named before anything is clicked:
-                   "are you sure" about an unknown quantity is a question nobody can answer. -->
-              <Grid Grid.Row="0" Margin="10,0,10,10">
-                <TextBlock x:Name="ImageTotalsLine" VerticalAlignment="Center" FontSize="13"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                  <TextBlock x:Name="ImageOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
-                             FontSize="12" TextWrapping="Wrap" MaxWidth="420"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                  <!-- Dangling only. `prune -a` deletes every image no *running* container uses,
-                       which on a developer's machine is most of them, and that is not a thing to
-                       put one click away. -->
-                  <Button x:Name="PruneImages" Content="Prune dangling" Click="PruneDangling"
-                          Style="{StaticResource RowAction}" />
-                </StackPanel>
-              </Grid>
-
-              <Grid Grid.Row="1" x:Name="ImageHeaderRow" Margin="10,0,10,6">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="2*" />
-                  <ColumnDefinition Width="1*" />
-                  <ColumnDefinition Width="0.8*" />
-                  <ColumnDefinition Width="2*" />
-                  <ColumnDefinition Width="120" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="REPOSITORY" Style="{StaticResource Header}" />
-                <TextBlock Grid.Column="1" Text="TAG" Style="{StaticResource Header}" />
-                <TextBlock Grid.Column="2" Text="SIZE" Style="{StaticResource Header}" />
-                <TextBlock Grid.Column="3" Text="USED BY" Style="{StaticResource Header}" />
-              </Grid>
-
-              <ListView Grid.Row="2" x:Name="Images" BorderThickness="0"
-                        Background="Transparent"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.ItemContainerStyle>
-                  <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="10,8" />
-                  </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                  <DataTemplate>
-                    <StackPanel>
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <!-- Same as ImageHeaderRow's, character for character; a test asserts it. -->
-                          <ColumnDefinition Width="2*" />
-                          <ColumnDefinition Width="1*" />
-                          <ColumnDefinition Width="0.8*" />
-                          <ColumnDefinition Width="2*" />
-                          <ColumnDefinition Width="120" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Repository}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Grid.Column="1" Text="{Binding Tag}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <!-- The join, in one cell: what holds this image, or that nothing does. -->
-                        <TextBlock Grid.Column="3" Text="{Binding Status}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Grid.Column="4" Orientation="Horizontal">
-                          <Button Content="Remove" Tag="{Binding}" Click="RemoveImage"
-                                  Style="{StaticResource RowAction}"
-                                  Visibility="{Binding IsIdle, Converter={StaticResource Shown}}" />
-                          <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
-                                     Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                     Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
-                        </StackPanel>
-                      </Grid>
-                      <!-- An image in use cannot be removed and the engine names the container that
-                           holds it. Passed through, because that names the row to deal with first. -->
-                      <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                 FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
-                                 Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
-                    </StackPanel>
-                  </DataTemplate>
-                </ListView.ItemTemplate>
-              </ListView>
-
-              <StackPanel Grid.Row="2" x:Name="ImagesEmpty" VerticalAlignment="Center"
-                          HorizontalAlignment="Center" Visibility="Collapsed">
-                <TextBlock x:Name="ImagesEmptyHeadline" FontSize="20" HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <TextBlock x:Name="ImagesEmptyDetail" Margin="0,8,0,0" FontSize="13"
-                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-              </StackPanel>
-            </Grid>
-          </TabItem>
-
-          <TabItem Header="Volumes">
-            <Grid Margin="0,10,0,0">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-              </Grid.RowDefinitions>
-
-              <Grid Grid.Row="0" Margin="10,0,10,10">
-                <TextBlock x:Name="VolumeTotalsLine" VerticalAlignment="Center" FontSize="13"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                  <TextBlock x:Name="VolumeOutcome" VerticalAlignment="Center" Margin="0,0,10,0"
-                             FontSize="12" TextWrapping="Wrap" MaxWidth="420"
-                             Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                  <!-- Anonymous only. A named volume is somebody's database, and the endpoint's
-                       `all=true` that would take those is not sent and not offered. -->
-                  <Button x:Name="PruneVolumes" Content="Prune anonymous" Click="PruneAnonymous"
-                          Style="{StaticResource RowAction}" />
-                </StackPanel>
-              </Grid>
-
-              <Grid Grid.Row="1" x:Name="VolumeHeaderRow" Margin="10,0,10,6">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="2.4*" />
-                  <ColumnDefinition Width="0.8*" />
-                  <ColumnDefinition Width="2*" />
-                  <ColumnDefinition Width="120" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="NAME" Style="{StaticResource Header}" />
-                <TextBlock Grid.Column="1" Text="SIZE" Style="{StaticResource Header}" />
-                <TextBlock Grid.Column="2" Text="MOUNTED BY" Style="{StaticResource Header}" />
-              </Grid>
-
-              <ListView Grid.Row="2" x:Name="Volumes" BorderThickness="0"
-                        Background="Transparent"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.ItemContainerStyle>
-                  <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="10,8" />
-                  </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                  <DataTemplate>
-                    <StackPanel>
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <!-- Same as VolumeHeaderRow's; a test asserts it. -->
-                          <ColumnDefinition Width="2.4*" />
-                          <ColumnDefinition Width="0.8*" />
-                          <ColumnDefinition Width="2*" />
-                          <ColumnDefinition Width="120" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Name}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Grid.Column="1" Text="{Binding SizeText}"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <!-- "nothing mounts it" is the row somebody is looking for. -->
-                        <TextBlock Grid.Column="2" Text="{Binding Holders}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Grid.Column="3" Orientation="Horizontal">
-                          <Button Content="Delete" Tag="{Binding}" Click="RemoveVolume"
-                                  Style="{StaticResource RowAction}"
-                                  Visibility="{Binding IsIdle, Converter={StaticResource Shown}}" />
-                          <TextBlock Text="{Binding Pending}" VerticalAlignment="Center"
-                                     Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                     Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
-                        </StackPanel>
-                      </Grid>
-                      <TextBlock Text="{Binding Failure}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                 FontSize="12" Foreground="{x:Static ui:Palette.DangerBrush}"
-                                 Visibility="{Binding HasFailure, Converter={StaticResource Shown}}" />
-                    </StackPanel>
-                  </DataTemplate>
-                </ListView.ItemTemplate>
-              </ListView>
-
-              <StackPanel Grid.Row="2" x:Name="VolumesEmpty" VerticalAlignment="Center"
-                          HorizontalAlignment="Center" Visibility="Collapsed">
-                <TextBlock x:Name="VolumesEmptyHeadline" FontSize="20" HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <TextBlock x:Name="VolumesEmptyDetail" Margin="0,8,0,0" FontSize="13"
-                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="440"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-              </StackPanel>
-            </Grid>
-          </TabItem>
-        </TabControl>
+        <!-- Every page that has been visited stays here, collapsed: a scroll position and a list
+             already read survive switching away, and a page nobody opened is never built. -->
+        <Grid x:Name="DestinationHost" Grid.Row="2" />
     </Grid>
 </Window>

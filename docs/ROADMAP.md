@@ -33,7 +33,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD31** (deps: DD25 ✅, DD7 ✅) **Every session re-derives the whole machine, because nothing states what moved since the last one** — The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first. → §DD31
 - 💭 **DD33** (deps: DD24 ✅) **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does. → §DD33
 - 📋 **DD58** (deps: DD54) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58
 - 📋 **DD63** (deps: DD29 ✅) **No verb on this surface creates anything, so the session stamp has nothing to stamp** — agent-budget.json already reserves a ceiling for do compose up, and DD29's label is reachable only from tests until a do verb creates something. → §DD63

@@ -63,6 +63,22 @@ public interface IEngineReads
     /// </remarks>
     Task<IReadOnlyList<VolumeSummary>> VolumesAsync(CancellationToken cancellation = default);
 
+    /// <summary>What the daemon says happened between two moments.</summary>
+    /// <param name="since">The start of the window.</param>
+    /// <param name="until">
+    /// The end of it, which is what makes this a read rather than a subscription: without it
+    /// <c>/events</c> never ends.
+    /// </param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The events, oldest first.</returns>
+    /// <remarks>
+    /// A GET, and the daemon's own bounded history — which is why DD31 needs no ring of its own and no
+    /// channel to the tray. It also answers the constraint the section put on the feed: the daemon
+    /// reports what the <i>user</i> did from the tray exactly as it reports what an agent did.
+    /// </remarks>
+    Task<IReadOnlyList<DockerEvent>> EventsAsync(
+        DateTimeOffset since, DateTimeOffset until, CancellationToken cancellation = default);
+
     /// <summary>A container's log, as the daemon frames it.</summary>
     /// <param name="id">The container.</param>
     /// <param name="tail">How many lines of history to open with.</param>

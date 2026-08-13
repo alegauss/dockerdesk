@@ -106,7 +106,13 @@
         "ceiling of 115. It is a listing rather than a payload: one line per object, and the number that",
         "matters is not this one - the alternative to this verb is `docker ps -a` plus `docker volume ls`",
         "plus the caller deciding by eye which rows are its own, which is 1906 tokens for the container",
-        "list alone and a guess at the end of it."
+        "list alone and a guess at the end of it.",
+        "",
+        "DD31 put the delta under the same ceiling, because it is the same verb answering the same",
+        "question over a window. Four objects moving - one of them a crash loop - is 49 measured, against",
+        "102 for the whole context pack: that ratio IS the task. The ceiling is enforced in code as",
+        "ChangeFeed.CeilingTokens and a test holds the two numbers equal, so a busy machine truncates",
+        "with a count rather than answering with something larger than the pack it was meant to replace."
       ],
       "read changes": 115,
       "$do reclaim": [

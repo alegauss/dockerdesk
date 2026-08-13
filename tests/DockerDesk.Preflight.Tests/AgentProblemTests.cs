@@ -319,6 +319,10 @@ public sealed class AgentProblemTests
         public Task<IReadOnlyList<VolumeSummary>> VolumesAsync(CancellationToken cancellation = default) =>
             throw new InvalidOperationException("the engine was asked and should not have been");
 
+        public Task<IReadOnlyList<DockerEvent>> EventsAsync(
+            DateTimeOffset since, DateTimeOffset until, CancellationToken cancellation = default) =>
+            throw new InvalidOperationException("the engine was asked and should not have been");
+
         public Task<Stream> LogsAsync(
             string id,
             int tail = 2000,

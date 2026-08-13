@@ -50,6 +50,7 @@
 - ✅ **DD28** **Port is already allocated does not say what holds the port, and the answer is not in Docker at all** — A refusal carries the Windows fact that explains it: read ports names the pid holding a port, and cannot connect became three causes with three remedies.
 - ✅ **DD29** **What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing** — A confirm token computed over the printed list scopes cleanup to one session's label, so a stale plan refuses instead of deleting what arrived in between.
 - ✅ **DD30** **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — A connect from Windows, an optional GET and the health check's own output turn running into answering, and --wait makes the same call the readiness primitive.
+- ✅ **DD31** **Every session re-derives the whole machine, because nothing states what moved since the last one** — read changes --since is a delta over the daemon's own bounded history, collapsed per object, and it refuses rather than skipping when the cursor reaches past it.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

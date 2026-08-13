@@ -73,7 +73,7 @@ public static class AgentSurface
     public static readonly IReadOnlyList<AgentVerb> All =
     [
         new(AgentNamespace.Read, "changes", "read changes",
-            "[--session id] — what this session created, by its label and never by a timestamp"),
+            "[--since t:..] what moved on this machine; [--session id] only what I made"),
         new(AgentNamespace.Read, "context", "read context",
             "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
         new(AgentNamespace.Read, "doctor", "read doctor",
@@ -189,18 +189,40 @@ public static class AgentSurface
     }
 
     /// <summary>
-    /// What this session created, said by its label (DD29).
+    /// What moved (DD31), and with <c>--session</c> what this session made (DD29).
     /// </summary>
     /// <remarks>
-    /// The read half of the undo. It answers from <see cref="SessionLabel.Key"/> and never from a
-    /// creation time: a timestamp window would sweep in whatever the user happened to start that
-    /// afternoon, and being wrong about that in a listing whose next line is a delete is the failure
-    /// mode this whole task exists to remove.
+    /// One verb, because they are one idea seen from two sides: what changed, optionally narrowed to
+    /// what changed <i>that is mine</i>. <c>--since</c> makes it a delta and is the only thing on this
+    /// surface that makes the <b>next</b> session cheaper — a follow-up syncs on
+    /// <c>worker restarted ×3, exited 137</c> rather than re-deriving the machine from DD25's pack.
+    ///
+    /// <para>The history is the daemon's own. It needs no ring here and no channel to the tray, it
+    /// answers whether the tray is running or not, and it satisfies the constraint the section put on
+    /// the feed for free: a container the <i>user</i> stopped from the tray is in it, because the daemon
+    /// does not know or care which of them asked.</para>
+    ///
+    /// <para><c>--session</c> without <c>--since</c> is DD29's listing unchanged, and it is state rather
+    /// than history on purpose: what this session created is answered by the label the objects carry, so
+    /// it is still true after the daemon's event ring has rolled past it.</para>
     /// </remarks>
-    private static int ReadChanges(IEngineReads engine, string[] rest, TextWriter output)
+    /// <param name="engine">The read-only half of the engine.</param>
+    /// <param name="rest">Everything after the two words.</param>
+    /// <param name="output">Where the payload goes.</param>
+    /// <param name="now">When this ran, so a test's window is a fixed one.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int ReadChanges(
+        IEngineReads engine, string[] rest, TextWriter output, DateTimeOffset? now = null)
     {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(rest);
+        ArgumentNullException.ThrowIfNull(output);
+
         var json = false;
+        var mine = false;
         string? session = null;
+        DateTimeOffset? since = null;
+
         for (var i = 0; i < rest.Length; i++)
         {
             switch (rest[i])
@@ -209,19 +231,34 @@ public static class AgentSurface
                     json = true;
                     continue;
                 case "--session":
+                    mine = true;
                     if (i + 1 < rest.Length && !rest[i + 1].StartsWith('-'))
                     {
                         session = rest[++i];
                     }
 
                     continue;
+                case "--since":
+                    if (i + 1 >= rest.Length)
+                    {
+                        return Refuse("--since needs a cursor after it");
+                    }
+
+                    if (!ChangeFeed.TryParseCursor(rest[++i], out var at, out var why))
+                    {
+                        return Refuse(why!);
+                    }
+
+                    since = at;
+                    continue;
                 default:
-                    return Refuse(
-                        $"unexpected argument {rest[i]}: read changes takes --session and --json");
+                    return Refuse($"unexpected argument {rest[i]}: read changes takes --since, "
+                        + "--session and --json");
             }
         }
 
         session ??= SessionLabel.Resolve();
+        var until = now ?? DateTimeOffset.UtcNow;
 
         try
         {
@@ -230,14 +267,39 @@ public static class AgentSurface
                 return RefuseWith(CannotConnect(), json, output);
             }
 
-            var plan = Reclaim.Plan(
-                session,
-                engine.ContainersAsync().GetAwaiter().GetResult(),
-                engine.VolumesAsync().GetAwaiter().GetResult(),
-                includeVolumes: true);
+            // Asked only about this session, with no window: the label answers it from state, which
+            // outlives the daemon's ring and is the form DD29's undo reads.
+            if (mine && since is null)
+            {
+                var plan = Reclaim.Plan(
+                    session,
+                    engine.ContainersAsync().GetAwaiter().GetResult(),
+                    engine.VolumesAsync().GetAwaiter().GetResult(),
+                    includeVolumes: true);
 
-            output.Write(json ? Reclaim.RenderJson(plan) : Reclaim.RenderChanges(plan));
-            return Ok;
+                output.Write(json ? Reclaim.RenderJson(plan) : Reclaim.RenderChanges(plan));
+                return Ok;
+            }
+
+            var events = engine
+                .EventsAsync(since ?? until - ChangeFeed.DefaultWindow, until)
+                .GetAwaiter().GetResult();
+
+            if (mine)
+            {
+                // The daemon attaches an object's labels to its events, so narrowing costs no extra
+                // call. An event carrying no labels at all is somebody else's by definition.
+                events = [.. events.Where(e =>
+                    e.Actor.Attributes.TryGetValue(SessionLabel.Key, out var stamped)
+                    && string.Equals(stamped, session, StringComparison.Ordinal))];
+            }
+
+            var delta = ChangeFeed.Collapse(events, until);
+            output.Write(json ? ChangeFeed.RenderJson(delta) : ChangeFeed.Render(delta));
+
+            // The delta is complete or it says it is not, and the exit code carries that so a script
+            // does not have to read the text for the one thing it must not miss.
+            return delta.TooOld ? Failed : Ok;
         }
         catch (DockerApiException)
         {

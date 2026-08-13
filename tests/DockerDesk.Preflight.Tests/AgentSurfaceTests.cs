@@ -64,6 +64,7 @@ public sealed class AgentSurfaceTests
         .Json(Path("containers/aaaaaaaaaaaa0000/json"), """{"Id":"aaaaaaaaaaaa0000","State":{"Status":"exited","ExitCode":137}}""")
         .Json(Path("images/json?all=0"), "[]")
         .Json(Path("volumes"), """{"Volumes":[]}""")
+        .JsonPrefix(Path("events?"), "")
         .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0&timestamps=0"), "200 OK", "")
         .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=2000&follow=0&timestamps=1"), "200 OK", "");
 
@@ -87,6 +88,7 @@ public sealed class AgentSurfaceTests
                 .Json(Path("containers/aaaaaaaaaaaa0000/json"), """{"Id":"aaaaaaaaaaaa0000","State":{"Status":"exited","ExitCode":137}}""")
                 .Json(Path("images/json?all=0"), "[]")
                 .Json(Path("volumes"), """{"Volumes":[]}""")
+                .JsonPrefix(Path("events?"), "")
                 .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=200&follow=0&timestamps=0"), "200 OK", "")
                 .Fails(Path("containers/aaaaaaaaaaaa0000/logs?stdout=1&stderr=1&tail=2000&follow=0&timestamps=1"), "200 OK", "");
             using var api = new DockerApi(daemon.PipeName);
@@ -171,8 +173,8 @@ public sealed class AgentSurfaceTests
         // failed the moment the context pack needed three more reads, which is the point of writing it
         // this way rather than as a count.
         Assert.Equal(
-            ["ContainersAsync", "ImagesAsync", "InspectAsync", "LogsAsync", "PingAsync",
-             "VersionAsync", "VolumesAsync"],
+            ["ContainersAsync", "EventsAsync", "ImagesAsync", "InspectAsync", "LogsAsync",
+             "PingAsync", "VersionAsync", "VolumesAsync"],
             reachable.OrderBy(n => n, StringComparer.Ordinal));
         foreach (var forbidden in new[] { "Start", "Stop", "Remove", "Prune", "Restart", "Run" })
         {

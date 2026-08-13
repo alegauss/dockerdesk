@@ -11,6 +11,7 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
 {
     private readonly CancellationTokenSource _stopping = new();
     private readonly Dictionary<string, Func<string>> _routes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _prefixes = new(StringComparer.Ordinal);
     private readonly List<string> _requested = [];
     private readonly Lock _guard = new();
     private readonly Task _serving;
@@ -47,6 +48,24 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
         lock (_guard)
         {
             _routes[path] = () => response;
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Answer anything beginning with <paramref name="prefix"/>, where an exact route does not.
+    /// </summary>
+    /// <remarks>
+    /// For <c>/events?since=..&amp;until=..</c>, whose query carries a clock. A caller that can fix its
+    /// own clock should still use <see cref="Json"/> and assert the exact URL; this is for the guards
+    /// that drive every registered verb and cannot.
+    /// </remarks>
+    internal FakeDockerDaemon JsonPrefix(string prefix, string json)
+    {
+        lock (_guard)
+        {
+            _prefixes[prefix] = Http("200 OK", "application/json", json);
         }
 
         return this;
@@ -103,7 +122,9 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
             {
                 response = _routes.TryGetValue(path, out var canned)
                     ? canned()
-                    : Http("404 Not Found", "text/plain", $"no route for {path}");
+                    : _prefixes.FirstOrDefault(p =>
+                        path.StartsWith(p.Key, StringComparison.Ordinal)).Value
+                      ?? Http("404 Not Found", "text/plain", $"no route for {path}");
             }
 
             var bytes = Encoding.UTF8.GetBytes(response);

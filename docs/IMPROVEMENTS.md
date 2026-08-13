@@ -336,29 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD31 A cursor over the stream the tray is already reading
-
-Everything else in these two blocks makes one session cheaper. This is the only one that
-makes the *next* session cheaper, which over a week is the larger number.
-
-`read changes --since <cursor>` returns what moved: `worker restarted ×3, exited 137`
-and nothing else. A follow-up session syncs in one small call rather than re-deriving
-the machine from DD25's pack, and the pack's own cursor is what it is given.
-
-Architecturally this is nearly free here, which is the reason it is worth doing rather
-than deferring. The tray is already a long-running process holding `/events` open — that
-is what DD7's container list is fed by — so a change feed is a cursor over a stream that
-is already running, plus a bounded ring behind it. The comparable feature in an
-agent-native CMS required building a server to hold the audit trail; here the server is
-the icon the user already started.
-
-Two constraints. The ring is bounded, so a cursor older than it must be answered with
-`too old, re-read the context` rather than with a silent partial — the failure mode of a
-delta that quietly skips is worse than no delta, because nothing downstream can detect
-it. And the feed reports what the *user* did too: a container you stopped from the tray
-is a change, and a feed that only reports the agent's own writes is a memory of its
-intentions rather than of the machine.
-
 ### §DD33 MCP is a second head, and it is not free
 
 The constitution inverts the usual order and lands every capability on the CLI first, so

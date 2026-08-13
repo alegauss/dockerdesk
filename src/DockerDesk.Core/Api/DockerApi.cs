@@ -259,6 +259,54 @@ public sealed class DockerApi : IDisposable, Agent.IEngineRemovals
         PostJsonAsync<VolumesPruned>("volumes/prune", new { }, cancellation);
 
     /// <summary>
+    /// What happened between two moments, from the daemon's own bounded history.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="until"/> is what makes this finite. <c>/events</c> with only a <c>since</c> is a
+    /// subscription that replays the history and then holds the connection open forever, which is
+    /// correct for the tray and wrong for a command that has to return.
+    /// </remarks>
+    /// <param name="since">The start of the window.</param>
+    /// <param name="until">The end of it.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The events, oldest first.</returns>
+    public async Task<IReadOnlyList<DockerEvent>> EventsAsync(
+        DateTimeOffset since, DateTimeOffset until, CancellationToken cancellation = default)
+    {
+        var window = $"events?since={Seconds(since)}&until={Seconds(until)}";
+        await using var stream = await StreamAsync(window, cancellation).ConfigureAwait(false);
+        using var reader = new StreamReader(stream);
+
+        var events = new List<DockerEvent>();
+        while (await reader.ReadLineAsync(cancellation).ConfigureAwait(false) is { } line)
+        {
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            try
+            {
+                if (JsonSerializer.Deserialize<DockerEvent>(line) is { } moved)
+                {
+                    events.Add(moved);
+                }
+            }
+            catch (JsonException)
+            {
+                // One unreadable line is not a failed read. The daemon adds fields between versions
+                // and a delta missing one event is better than a delta that threw.
+            }
+        }
+
+        return events;
+    }
+
+    /// <summary>Whole seconds since the epoch, which is the only form /events takes.</summary>
+    private static string Seconds(DateTimeOffset at) =>
+        at.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
     /// Everything the daemon knows about one container.
     /// </summary>
     /// <remarks>

@@ -80,7 +80,7 @@ dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk read logs <name>   --since --level --dedup --budget --out
 dockerdesk read ports [port]  what holds a host port, which Docker cannot say
 dockerdesk read verify <name> proof that it answers; --request --wait --timeout
-dockerdesk read changes       what this session created, by its label
+dockerdesk read changes       what moved; --since for a delta, --session for mine
 dockerdesk do   engine start  brings the engine up
 dockerdesk do   reclaim       remove exactly that, and nothing else
 ```
@@ -185,6 +185,31 @@ container not responding* — `OOM limit=512M` — with no second call. Order is
 the payload caches and a diff means something, the ceiling is hard and a truncated payload
 **says how many rows went** rather than cutting silently, and the cursor fingerprints the
 machine rather than the text. `--json` is there for callers that parse.
+
+Everything above makes one session cheaper. `read changes --since` makes the **next** one
+cheaper, which over a week is the larger number — a follow-up syncs on what moved instead
+of re-deriving the machine:
+
+```
+$ dockerdesk read changes --since t:2026-08-13T11:45:00Z
+shop-api-1              stopped
+shop-db-1               running
+shop-worker-1           restarted ×2, exited 137
+shop_data               created
+cursor  t:2026-08-13T12:00:00Z
+```
+
+**49 estimated tokens against 102 for the whole pack**, and it is collapsed per object
+rather than per event: a container that crash-looped emits twelve lines saying one thing,
+and the count with the exit code beside it is what a caller was going to reduce them to.
+The history is the daemon's own, so this needs no resident process of its own and answers
+whether the tray is running or not — and it reports what **you** did from the tray too,
+because the daemon does not know which of you asked.
+
+The daemon keeps its last 256 events. A cursor reaching past them is answered with
+`too old, re-read the context` and a non-zero exit, never with a silent partial: a delta
+that quietly skips is worse than no delta, because nothing downstream can detect it. The
+same rule bounds a busy machine — rows go from the end and how many went is stated.
 
 What an agent created is indistinguishable from what you created, so the only cleanup on
 offer is `prune` — scoped to the whole machine, unable to tell this afternoon's

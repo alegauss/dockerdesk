@@ -99,6 +99,54 @@ overflow makes finding the icon its own problem. Or the product could show its o
 behind a verb, the way `--capture-window` already renders on request, which keeps the
 driving inside the process that owns the menu and costs one more surface.
 
+### §DD69 §DD66 The water belongs at the foot of the window, and only moves because the engine does
+
+The site's identity is water: the mark is an orca cresting a wave, so `Waves.tsx` closes
+the hero into it and opens the footer out of it, in three blues and a foam. None of that
+reaches the window, whose lowest strip is sixteen pixels of margin and then the frame —
+the one place here with nothing to say.
+
+The obvious version is wrong. A decorative band inside a utility window is scenery, and
+`index.css` already states the test it fails: scenery that outshines the copy is a bug.
+Fluent accepts perpetual motion only where the motion informs. So the water drifts while
+the engine runs and lies flat and still while it does not — a second reading of the
+state the dot and its word already carry, which is L8's order: shape and word first,
+this only reinforcing.
+
+The geometry is the site's own numbers rather than a lookalike — three layers at
+72/26/720, 100/16/480 and 122/11/360 over a 2880 span, drifting in 43s, 31s and 22s,
+foam on the front crest. Seamless because 1440 divides every period. Colour joins
+`Palette` as bytes, translucent the way `RowStyle`'s chip fill already is, so one set
+serves both surfaces.
+
+Three things must switch it off: a hidden window, `ClientAreaAnimation` off, and
+`RenderCapability.Tier` 0. And `--capture-window` must stay byte-identical, so a capture
+holds phase zero — the review harness rests on that.
+
+### §DD70 §DD70 Motion that explains a change, which is the only motion Fluent asks for
+
+Fluent's motion exists to answer one question: did that change, or did I misread it?
+Nothing in this window answers it. A refresh arriving from the event stream replaces the
+rows under the cursor with no transition, so a container that appeared and a container
+that was always there are drawn identically. The engine dot is amber while `Starting`
+and then green, and amber is the only thing saying that a wait is in progress rather
+than a state that has settled.
+
+Two moves, both of the kind that ends: a dot that breathes while the engine is starting
+and stops the moment it is running or stopped, and a row that fades in as it joins the
+list and out as it leaves. Neither invents information. The dot restates `Starting`,
+which the label beside it already says in words; the fade says only where the eye should
+look, which is the change.
+
+This is ranked above §DD69 on interface quality and below it on identity, so it is a
+second task rather than a rider on the first: one is scenery made honest, the other is
+the framework's own contract with a reader.
+
+The constraints are §DD69's, and for the same reasons. Under `ClientAreaAnimation` off
+or `RenderCapability.Tier` 0, both moves must resolve to their end state immediately
+rather than to a slower version of themselves. And `--capture-window` must still produce
+a byte-identical PNG, which a row mid-fade at the one-second settle would break.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
@@ -170,12 +218,14 @@ exactly the cost DD24 and DD32 exist to remove. The name therefore has to be set
 before DD32 writes an install-time settings entry, or DD32 writes the wrong string into
 the one file the install was finally allowed to touch.
 
-The open question is the name itself. `freewilly read logs api --dedup --budget 1500`
-puts nine characters of prefix on a line an agent emits constantly and a user reads
-inside an approval prompt, and a shorter head — `willy`, or an abbreviation — is worth
-weighing against a command that matches the product. Whichever is chosen, one spelling
-has to serve the executable, the documented invocations and the allowlist pattern
-together, because a pattern that disagrees with the executable matches nothing.
+The name is settled: `FreeWilly`, and `freewilly` wherever the spelling is lower-case —
+the WSL distribution and the invocation. It was weighed against a shorter head, since
+`freewilly read logs api --dedup --budget 1500` puts nine characters of prefix on a line
+an agent emits constantly and a user reads inside an approval prompt, and `willy` costs
+four fewer. A command that matches the product won.
+
+That one spelling serves the executable, the documented invocations and the allowlist
+pattern together, because a pattern that disagrees with the executable matches nothing.
 
 ### §DD63 A stamp with nothing to stamp is half a promise
 

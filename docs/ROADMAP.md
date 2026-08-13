@@ -13,6 +13,8 @@
 ## Block C — The window (claude-tray's elements)
 
 - 💭 **DD67** (deps: —) **No popup this product draws has ever been photographed, and the one path that could is not reachable** — DD61 made the screen copy refuse the shell, which is right, and left the script with nothing it can find: a menu exists only while open, and nothing opens one. → §DD67
+- 📋 **DD69** (deps: —) **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The site closes its hero into water and opens its footer out of it, so a window with no trace of that reads as a different product from the one the mark introduces. → §DD69
+- 📋 **DD70** (deps: DD69) **A list that changed under a refresh and an engine that is still starting both arrive with no transition** — Motion is what tells a reader that a thing changed rather than that they misread it, and this window redraws rows and holds a pending engine with none at all. → §DD70
 
 ## Block D — Container operations (what a user came to do)
 

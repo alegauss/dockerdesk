@@ -1,6 +1,7 @@
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { Hero } from "../components/sections/Hero";
+import { Operator } from "../components/sections/Operator";
 import { Why } from "../components/sections/Why";
 import { Preflight } from "../components/sections/Preflight";
 import { Engine } from "../components/sections/Engine";
@@ -21,6 +22,7 @@ export function Landing() {
     <>
       <Nav />
       <Hero />
+      <Operator />
       <Why />
       <Preflight />
       <Engine />

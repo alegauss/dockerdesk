@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 7,
-      "shipped": 5,
+      "open": 6,
+      "shipped": 6,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 32,
-    "shipped": 19,
+    "open": 31,
+    "shipped": 20,
     "retired": 0
   },
   "open": [
@@ -307,16 +307,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD45",
-      "status": "📋",
-      "block": "H",
-      "symptom": "Nothing on the site says who the operator is, so the positioning is still a GUI with no licence fee",
-      "why": "A section per design law in the order an agent meets them, and the two-actor split, which is the description this project ships under and the reason its surface is shaped so.",
-      "deps": [
-        "DD40 ✅"
-      ]
-    },
-    {
       "id": "DD46",
       "status": "📋",
       "block": "H",
@@ -530,6 +520,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "The hero asserts what the tool is, so what it costs an agent per call is nowhere on the page",
       "why": "The hero autoplays the five-call agent session with its per-call token targets, and the transcript scrolls its own list rather than the window.",
+      "deps": []
+    },
+    {
+      "id": "DD45",
+      "status": "✅",
+      "block": "H",
+      "symptom": "Nothing on the site says who the operator is, so the positioning is still a GUI with no licence fee",
+      "why": "A section per design law in the order an agent meets them, and the two-actor split, replace the GUI-with-no-licence-fee positioning the pre-DD23 page shipped under.",
       "deps": []
     }
   ],

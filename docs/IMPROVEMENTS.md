@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD45 The ten laws, and the two actors
-
-The site sells a GUI with no licence fee. That was the pitch before DD23, and DD23
-replaced it: the operator is an agent, the human installs and approves, and every
-decision on the agent surface is judged in tokens rather than clicks. This is the
-largest thing on the site that is out of date, and it is not a headline swap - it is a
-section per law, in the order an agent meets them, and a section stating who does what.
-The laws earn the space because they are the argument: the shell is the surface, one
-call replaces a session, a file beats a stream, names not ids, errors are instructions,
-the agent cannot see. Each names the defect it prevents, which is what makes it
-checkable rather than a value statement. The two-actor table is the other half, and it
-keeps the human path from reading as an afterthought: the installer, the tray and the
-windows are what DD14, DD15 and Block C are for, and Block G does not start until the
-first two ship.
-
 ### §DD46 The /claude-code page
 
 The read/do split is the highest-leverage decision in DD23 and it is invisible to the

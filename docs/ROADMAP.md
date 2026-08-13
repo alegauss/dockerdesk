@@ -47,7 +47,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD45** (deps: DD40 ✅) **Nothing on the site says who the operator is, so the positioning is still a GUI with no licence fee** — A section per design law in the order an agent meets them, and the two-actor split, which is the description this project ships under and the reason its surface is shaped so. → §DD45
 - 📋 **DD46** (deps: DD40 ✅) **Nobody configuring an agent can find the read and do split, or the one allowlist line that pays for it** — A page for the agent's operator: the allowlist entry, the calls a session opens with, the plugin that makes the surface discoverable, and what it deliberately refuses. → §DD46
 - 📋 **DD47** (deps: DD40 ✅) **A visitor weighing this against Docker Desktop, Rancher, Podman or a plain WSL2 daemon infers it from prose** — Checkable rows grouped by the law each comes from, and a column per alternative for what it is genuinely better at, because a matrix that wins every row is not believed. → §DD47
 - 📋 **DD48** (deps: DD41 ✅) **Everything is one scroll, so a pillar gets a paragraph and there is no page to link at** — One page per pillar from one record each, with the route, the title and the description read off the same record, so a new pillar cannot ship half-declared or untitled. → §DD48

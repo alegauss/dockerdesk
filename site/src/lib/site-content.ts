@@ -34,6 +34,7 @@ export const repoUrl = "https://github.com/alegauss/dockerdesk";
 export const parentUrl = "https://alegauss.github.io/";
 
 export const navLinks = [
+  { href: "#operator", label: "Agent" },
   { href: "#why", label: "Why" },
   { href: "#preflight", label: "Preflight" },
   { href: "#engine", label: "Engine" },
@@ -139,6 +140,58 @@ export const heroSession = {
     { code: "Bash(dockerdesk read:*)" },
     " — removes every prompt on the inspection path while step 4 still asks.",
   ] as Rich,
+};
+
+/* ------------------------------------------------------------------ operator: two actors + ten laws */
+// DD23's constitution, restated for the site (§DD45). This is the description the project
+// ships under and the reason its surface is shaped as it is — the largest thing the
+// pre-DD23 page was out of date about. Each law names the defect it prevents, which is
+// what makes it checkable rather than a value statement.
+
+export const operator = {
+  eyebrow: "Who operates this",
+  heading: "The operator is an agent. The human installs and approves.",
+  intro: [
+    "DockerDesk is a Docker installation whose primary operator is a coding agent. The agent runs, inspects and diagnoses; the human installs, approves and intervenes. Every decision on the agent surface is judged in tokens rather than clicks — which is why the site opens on a session and not a screenshot.",
+  ] as Rich,
+  actors: [
+    {
+      who: "Agent",
+      sub: "Claude Code",
+      iface: "the dockerdesk CLI, over an ordinary shell",
+      job: "Run, inspect, diagnose, clean up after itself",
+    },
+    {
+      who: "Human",
+      sub: "you",
+      iface: "the installer, the tray, the container and log windows",
+      job: "Install, approve, intervene, uninstall",
+    },
+  ],
+  actorsNote: [
+    "The human path is not sacrificed — it is what the installer and the tray (",
+    { code: "DD14" },
+    ", ",
+    { code: "DD15" },
+    ", Block C) are for, and the agent surface does not start until they ship.",
+  ] as Rich,
+  lawsEyebrow: "The design laws",
+  lawsHeading: "Ten laws, in the order an agent meets them",
+  lawsIntro: [
+    "Binding, in the same sense as the product's. A feature that breaks one is wrong even if it was asked for. Each names the defect it prevents.",
+  ] as Rich,
+  laws: [
+    { id: "P1", title: "The shell is the surface", body: "Every agent-facing capability is a dockerdesk CLI verb first. An MCP tool is a second head over the same method, or it does not exist." },
+    { id: "P2", title: "One call replaces a session", body: "Learning what the machine is running is a product feature, not a docs problem. Needing six commands to learn the engine's state is a defect in DockerDesk." },
+    { id: "P3", title: "Tokens are a measured budget", body: "Every response has a size ceiling and the canonical task has a measured cost. “It got cheaper” has to be a number, and a regression fails the build." },
+    { id: "P4", title: "A file beats a stream", body: "An unbounded log read is the largest token sink here. Write it to disk and let the agent Grep it — it pays for the lines that match, not for the whole log." },
+    { id: "P5", title: "Names, not ids", body: "A 64-hex id changes on every recreate. The address is the name — svc:<project>/<service>, or the container name — so ids stop being currency threaded across calls." },
+    { id: "P6", title: "Errors are instructions", body: "Every refusal carries what was wrong, what is allowed, the nearest match, a correct example — and the Windows fact that explains it. An error that costs a round trip to read is a defect." },
+    { id: "P7", title: "Never surprise the human", body: "Read and write are split at the argv level so an allowlist can tell them apart. Destructive calls take a confirm token, and everything the agent creates is labelled with its session." },
+    { id: "P8", title: "The agent cannot see", body: "Give it cheap textual proof that what it started works — the port listens from Windows, the mount resolved, the service answered — or every mistake costs a human cycle." },
+    { id: "P9", title: "Session N+1 is cheaper than N", body: "A cursor and a change feed, so a follow-up session reads the delta rather than re-deriving the whole machine from nothing." },
+    { id: "P10", title: "Compose, don't fork", body: "The surface is a shape over the Engine API and facts Windows already knows. It is not a second Docker CLI and never grows a build, a push or a compose up of its own." },
+  ],
 };
 
 /* ------------------------------------------------------------------ why */

@@ -1383,3 +1383,108 @@ footer {
     scroll-behavior: auto;
   }
 }
+
+/* ---------- operator: two actors + ten laws (DD45) ---------- */
+.actors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 720px) {
+  .actors {
+    grid-template-columns: 1fr;
+  }
+}
+.actor {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px 26px;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+}
+.actor-agent {
+  border-color: rgba(46, 155, 214, 0.45);
+}
+.actor-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.actor-who {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.actor-agent .actor-who {
+  color: var(--accent);
+}
+.actor-sub {
+  color: var(--muted-2);
+  font-size: 0.85rem;
+}
+.actor-iface {
+  color: var(--accent-strong);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.actor-job {
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+.actors-note {
+  text-align: center;
+  color: var(--muted-2);
+  font-size: 0.9rem;
+  margin-top: 18px;
+}
+.actors-note code {
+  color: var(--accent-strong);
+}
+
+.laws {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .laws {
+    grid-template-columns: 1fr;
+  }
+}
+.law {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: var(--panel);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.law:hover {
+  border-color: rgba(46, 155, 214, 0.5);
+  transform: translateY(-3px);
+}
+.law-id {
+  flex: 0 0 auto;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--azure), var(--azure-deep));
+  border-radius: 8px;
+  padding: 4px 9px;
+  margin-top: 2px;
+}
+.law-body h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.law-body p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}

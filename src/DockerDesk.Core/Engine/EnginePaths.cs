@@ -48,6 +48,16 @@ public sealed class EnginePaths
     /// <summary>The Windows <c>docker</c> CLI.</summary>
     public string DockerCli => Path.Combine(CliDirectory, "docker.exe");
 
+    /// <summary>
+    /// The handful of values the window remembers between runs — where it was, and what was being
+    /// read (DD39).
+    /// </summary>
+    /// <remarks>
+    /// In the root rather than under a directory of its own, and not created by <see cref="Create"/>:
+    /// it is written when a window closes and its absence is the answer for a first run.
+    /// </remarks>
+    public string WindowState => Path.Combine(Root, "window.json");
+
     /// <summary>Create every directory this layout names. Idempotent.</summary>
     public void Create()
     {

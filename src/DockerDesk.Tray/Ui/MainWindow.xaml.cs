@@ -30,6 +30,7 @@ internal partial class MainWindow : Window
     private readonly IEngineClient _api;
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
+    private readonly WindowRecall _recall;
 
     private ImagesPage? _images;
     private VolumesPage? _volumes;
@@ -51,10 +52,28 @@ internal partial class MainWindow : Window
         Containers = new ContainersPage(api, engineState, startEngine);
         DestinationHost.Children.Add(Containers);
 
-        // The default destination, now that there is one to show. Not in the markup: ticking a
-        // destination navigates, and during InitializeComponent there is nothing built to navigate to.
-        NavContainers.IsChecked = true;
+        // Where it was and what was being read, last time (DD39). The moves belong to WindowRecall;
+        // what is this window's own is the one question it asks — which destination is ticked.
+        _recall = new WindowRecall(this, new EnginePaths().WindowState, () => Showing);
+
+        // The destination, now that there is one to show. Not in the markup: ticking a destination
+        // navigates, and during InitializeComponent there is nothing built to navigate to. A name this
+        // window no longer has — a page removed since the file was written — falls back rather than
+        // opening on nothing.
+        if (!ShowTab(_recall.Destination))
+        {
+            NavContainers.IsChecked = true;
+        }
     }
+
+    /// <summary>The destination being read now.</summary>
+    private string Showing =>
+        Strip.Children.OfType<System.Windows.Controls.RadioButton>()
+            .FirstOrDefault(nav => nav.IsChecked == true)?.Tag?.ToString()
+        ?? WindowMemory.FirstDestination;
+
+    /// <summary>What a log window opened from here should be sized to, and where that is kept (DD39).</summary>
+    internal WindowRecall Recall => _recall;
 
     /// <summary>The destinations, by the name a caller shows one with.</summary>
     /// <remarks>

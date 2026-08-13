@@ -70,29 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD39 The window remembers where it was and what was being read
-
-`WindowStartupLocation="CenterScreen"`, `Width="1040" Height="560"`, and nothing
-remembered. A tool opened several times a day lands in the middle of the primary monitor
-every time, at a size chosen for a laptop, on a desk that has two screens and a place
-this window belongs. The log window is `CenterOwner`, which is right for a child, and it
-too forgets whatever it was resized to.
-
-The tab is the sharper loss. Somebody clearing disk space works in Images; somebody
-debugging works in Containers. The tab is a piece of state the user set on purpose, and
-it is discarded the moment the window closes — including when it closes because the
-engine was restarted.
-
-None of this needs a settings file of its own. Window placement, the last destination,
-and later the sort and filter DD37 adds are a handful of values, and there is already an
-`ArtefactStore` and an `EnginePaths` that know where this application's data lives.
-
-Two things it must get right, because both are how this feature is usually got wrong. A
-saved rectangle is restored only if it still lands on a monitor that exists — a window
-remembered onto a laptop's docked second screen is a window that opens off-screen the
-next morning. And a maximised window is remembered as maximised plus its restore bounds,
-not as a rectangle the size of the screen.
-
 ### §DD61 A translucent backdrop is a leak no overlap check can see
 
 Measured 2026-08-13, immediately after DD22's own overlap check passed. With nothing in

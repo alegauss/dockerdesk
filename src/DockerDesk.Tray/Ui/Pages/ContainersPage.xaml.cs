@@ -196,8 +196,21 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             return;
         }
 
-        var window = new LogWindow(_api, row.Id, row.Name) { Owner = Window.GetWindow(this) };
+        var shell = Window.GetWindow(this) as MainWindow;
+        var window = new LogWindow(_api, row.Id, row.Name) { Owner = shell };
+
+        // DD39: the child stays centred on its owner, which is right for a child — it is the size that
+        // was being thrown away. A log read at half the screen came back at the markup's 900x600 every
+        // time, and it is set before Show so there is no resize to watch.
+        if (shell?.Recall.LogSize is { } size)
+        {
+            window.Width = size.Width;
+            window.Height = size.Height;
+        }
+
         _logs[row.Id] = window;
+        window.Closing += (_, _) =>
+            shell?.Recall.RememberLogSize(window.ActualWidth, window.ActualHeight);
         window.Closed += (_, _) => _logs.Remove(row.Id);
         window.Show();
     }

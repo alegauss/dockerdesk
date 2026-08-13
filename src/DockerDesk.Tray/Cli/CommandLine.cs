@@ -18,6 +18,9 @@ public enum Surface
     /// <summary>Every verb there is, on the console.</summary>
     Help,
 
+    /// <summary>A PNG of the window, rendered rather than photographed.</summary>
+    CaptureWindow,
+
     /// <summary>A verb this executable does not have.</summary>
     Unknown,
 }
@@ -44,6 +47,9 @@ public static class CommandLine
 
     /// <summary>The verb that opens the window along with the tray.</summary>
     public const string WindowVerb = "--window";
+
+    /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
+    public const string CaptureWindowVerb = "--capture-window";
 
     /// <summary>
     /// The engine's modes, exactly as <see cref="EngineCommand"/> reads them.
@@ -91,6 +97,12 @@ public static class CommandLine
             return new Route(Surface.Engine, OpenWindow: false, arguments);
         }
 
+        if (string.Equals(first, CaptureWindowVerb, StringComparison.Ordinal))
+        {
+            // The verb is dropped: what follows is the output path and an optional tab.
+            return new Route(Surface.CaptureWindow, OpenWindow: false, arguments[1..]);
+        }
+
         if (string.Equals(first, PreflightVerb, StringComparison.Ordinal))
         {
             // The verb itself is dropped: what follows is the preflight's own argument list, and it
@@ -124,6 +136,8 @@ public static class CommandLine
         into the terminal it was started from.
 
           {WindowVerb}         the tray, with the window open straight away
+          {CaptureWindowVerb} <out.png> [tab]
+                           render the window to a PNG off-screen, photographing nothing else
 
           {PreflightVerb}      what this machine can host; add --json for an installer
           --plan           the pinned versions, digests and paths; reaches nothing

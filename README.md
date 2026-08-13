@@ -64,8 +64,16 @@ DockerDesk.exe --window        the tray, with the window open
 DockerDesk.exe --preflight     what this machine can host; --json for a script
 DockerDesk.exe --provision     download, verify and install the engine
 DockerDesk.exe --run           start the engine and serve the pipe until Ctrl+C
+DockerDesk.exe --capture-window <png> [tab]
+                               render the window to a PNG off-screen
 DockerDesk.exe --help          every verb
 ```
+
+`--capture-window` renders the window's own content and never photographs the screen, so it
+cannot catch anything that happens to be in front of it — and it needs no desktop at all,
+which a screen copy does. [`scripts/Capture-Window.ps1`](scripts/Capture-Window.ps1) is the
+screen-copy fallback for popups, and it refuses rather than writing when something overlaps
+the window.
 
 A windowed program does not hold the prompt, so a typed verb prints *after* the prompt
 returns. Redirecting (`DockerDesk.exe --preflight > report.txt`) has neither problem, and

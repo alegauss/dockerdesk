@@ -23,7 +23,7 @@ export const roadmap: RoadmapData = {
       "label": "C",
       "title": "C — The window (claude-tray's elements)",
       "open": 7,
-      "shipped": 3,
+      "shipped": 4,
       "retired": 0
     },
     {
@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 0,
+      "open": 2,
       "shipped": 12,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 25,
-    "shipped": 33,
+    "open": 27,
+    "shipped": 34,
     "retired": 0
   },
   "open": [
@@ -95,14 +95,6 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD55"
       ]
-    },
-    {
-      "id": "DD22",
-      "status": "📋",
-      "block": "C",
-      "symptom": "Verifying a window copies the screen, so a capture twice photographed private content that was in front of it",
-      "why": "Rendering the window off-screen photographs nothing else, and claude-tray already carries both that verb and an overlap-checked screen copy for what a render cannot reach.",
-      "deps": []
     },
     {
       "id": "DD34",
@@ -156,6 +148,14 @@ export const roadmap: RoadmapData = {
       "block": "C",
       "symptom": "The window opens at one fixed size on the primary screen every time and forgets which list was being read",
       "why": "A tool opened several times a day on a two-monitor desk is placed by hand every time, and the tab is the one piece of state the user set on purpose.",
+      "deps": []
+    },
+    {
+      "id": "DD61",
+      "status": "📋",
+      "block": "C",
+      "symptom": "A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it",
+      "why": "The overlap check cannot answer for this: the intruder is not in front of the window, it is showing through it, so the copy leaks with every assertion satisfied.",
       "deps": []
     },
     {
@@ -309,6 +309,24 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD54"
       ]
+    },
+    {
+      "id": "DD59",
+      "status": "📋",
+      "block": "H",
+      "symptom": "The site is served from a base path containing the old name, so every published route moves at once",
+      "why": "GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones.",
+      "deps": [
+        "the GitHub repository rename"
+      ]
+    },
+    {
+      "id": "DD60",
+      "status": "📋",
+      "block": "H",
+      "symptom": "Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them",
+      "why": "The guard denies the edit, so each one moves through the verb that owns it, and a ledger naming a product nobody can find is where a stale name actively misleads.",
+      "deps": []
     }
   ],
   "ledger": [
@@ -414,6 +432,14 @@ export const roadmap: RoadmapData = {
       "block": "C",
       "symptom": "The tray icon was not in the visible notification area while the tray was running, so the glance costs a click",
       "why": "The icon registers and Windows files it into the overflow, so the install says where it went and how to keep it in sight, and nothing here promotes itself.",
+      "deps": []
+    },
+    {
+      "id": "DD22",
+      "status": "✅",
+      "block": "C",
+      "symptom": "Verifying a window copies the screen, so a capture twice photographed private content that was in front of it",
+      "why": "A --capture-window verb renders the window off-screen so nothing else can be in the frame, and the screen copy kept for popups refuses when anything overlaps it.",
       "deps": []
     },
     {
@@ -577,5 +603,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD22"
+  "next": "DD23"
 };

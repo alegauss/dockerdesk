@@ -70,31 +70,6 @@ meaning, and are DD54's mechanical sweep rather than this task's.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD22 A window is verified by rendering it, not by copying the screen
-
-Windows here are verified by copying the pixels inside their rectangle off the screen.
-That reads whatever is actually there, which is not the window: shipping DD7 it twice
-photographed something else — an editor holding the guest's credentials, and a messaging
-app holding a medical appointment. Both reached a transcript, which deleting the file
-afterwards does not undo.
-
-claude-tray already solved this and its script says why in its own docstring: a screen
-copy is the fallback, and the preferred path is rendering the window off-screen, where
-there is nothing else in the frame to catch. Its `--capture-*` verbs use
-`RenderTargetBitmap` over the page's own content; the screen copy is kept only for
-popups, which a render cannot reach.
-
-That script is worth reading rather than reinventing. It carries four assertions earned
-from real wrong captures, and one of them is exactly what was missing here: **no foreign
-window in front of it overlaps the rectangle about to be copied**. Its history records
-that nine sampled points could not answer that, the number of points covering a window
-being the number of pixels in it, so it asks about the region instead.
-
-So: a `--capture-window <path>` verb on the tray that renders off-screen and photographs
-nothing else, and the overlap-checked screen copy kept for what a render cannot see.
-Until then, verifying a window on a machine with anything else open is a privacy
-incident waiting for its second turn, and it has already had one.
-
 ### §DD34 One meaning, one declaration, and every window reduced to what is its own
 
 There is no `App.xaml`, no `ResourceDictionary` and no `Brand`. Every style this app has
@@ -237,6 +212,29 @@ saved rectangle is restored only if it still lands on a monitor that exists — 
 remembered onto a laptop's docked second screen is a window that opens off-screen the
 next morning. And a maximised window is remembered as maximised plus its restore bounds,
 not as a rectangle the size of the screen.
+
+### §DD61 A translucent backdrop is a leak no overlap check can see
+
+Measured 2026-08-13, immediately after DD22's own overlap check passed. With nothing in
+front of the window and the copy cropped to the painted frame, the PNG still carried a
+legible blurred image of another application's window behind it: a browser conversation,
+readable enough to identify. A Fluent window's backdrop is translucent by design and
+composites what is behind it, so the pixels inside the window's rectangle genuinely are
+partly somebody else's content.
+
+That is a different failure from the one DD22 fixed. The overlap check enumerates what
+is above the window and refuses; this intruder is below it and arrives through it, so no
+amount of Z-order reasoning reaches it. `scripts\Capture-Window.ps1` now says so on
+every run and points at `--capture-window`, which has no such problem, but a printed
+warning is not a refusal and the script still defaults to the very window it cannot
+safely photograph.
+
+Two candidate answers, and they are not equivalent. Make the backdrop opaque for the
+duration of the copy — the window already paints an opaque surface for its own render,
+so the brush exists — and the transmitted image goes away at the source. Or refuse the
+main window outright and make the script take a popup or nothing, which is what it is
+actually for. The first keeps one script useful for both; the second is smaller and
+admits that a screen copy of a translucent window is not a thing worth making safe.
 
 ## Block D — Container operations (what a user came to do)
 

@@ -32,3 +32,10 @@
 
 # === Build output ===
 /dist/
+
+# === Window captures ===
+# Both capture paths write here (DD22). The renders are safe by construction, but a screen copy is
+# not: this window's backdrop is translucent, so a correctly-cropped, overlap-free copy still carries
+# a blurred image of whatever was behind it - measured, with another application's content legible
+# through the frame. A capture is a working artefact, never a source, and it does not get staged.
+/docs/_preview/

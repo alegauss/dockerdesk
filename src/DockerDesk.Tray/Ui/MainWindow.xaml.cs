@@ -35,6 +35,111 @@ internal partial class MainWindow : Window
         _startEngine = startEngine;
     }
 
+    /// <summary>The tabs, by the header a caller names one with.</summary>
+    /// <remarks>
+    /// Read off the XAML rather than restated, so a fourth tab is capturable without a second edit —
+    /// and so a name this window does not have can be refused instead of quietly rendering the first
+    /// one into the file the caller asked for.
+    /// </remarks>
+    internal IReadOnlyList<string> TabNames =>
+        [.. Tabs.Items.OfType<System.Windows.Controls.TabItem>()
+            .Select(item => item.Header?.ToString() ?? string.Empty)];
+
+    /// <summary>Show one tab, for a capture that wants a list other than the first.</summary>
+    /// <param name="header">The tab's header.</param>
+    /// <returns><see langword="false"/> where this window has no such tab.</returns>
+    internal bool ShowTab(string header)
+    {
+        var found = Tabs.Items.OfType<System.Windows.Controls.TabItem>()
+            .FirstOrDefault(item =>
+                string.Equals(item.Header?.ToString(), header, StringComparison.OrdinalIgnoreCase));
+        if (found is null)
+        {
+            return false;
+        }
+
+        Tabs.SelectedItem = found;
+        UpdateLayout();
+        return true;
+    }
+
+    /// <summary>
+    /// Write this window to a PNG by rendering it, not by photographing the screen (DD22).
+    /// </summary>
+    /// <param name="path">Where to write.</param>
+    /// <param name="scale">Device-independent pixels per pixel.</param>
+    /// <returns>The size written, in pixels.</returns>
+    /// <remarks>
+    /// A <c>RenderTargetBitmap</c> over this window's own content has nothing else in the frame, which
+    /// is the whole point: the screen copy it replaces read whatever was actually inside the window's
+    /// rectangle, and twice that was somebody else's editor and messaging app. Rendering cannot
+    /// photograph a thing that is not in this visual tree.
+    ///
+    /// The opaque background is not decoration. A Fluent window's backdrop is drawn by the system
+    /// behind the window and is not part of the visual tree, so a render of the content alone comes
+    /// back as light text on transparency — borrowed from claude-tray, which found the same thing.
+    /// </remarks>
+    internal (int Width, int Height) SaveSnapshot(string path, double scale = 1.5)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(scale, 0);
+
+        // Let layout finish before measuring it. Without this the first capture of a window is its
+        // pre-arrange size, which is a picture of nothing at 0x0.
+        UpdateLayout();
+        Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+
+        var target = (FrameworkElement)Content;
+
+        // The content's own margin is part of its offset inside the window, and rendering the element
+        // directly draws it at that offset — so the bitmap loses a strip off the right and bottom equal
+        // to the margin, and the About button came back as "Abou". Measured by looking at the first
+        // capture this verb produced. Drawing it through a VisualBrush into a rectangle at the origin
+        // places it by the rectangle instead of by its layout, which is what makes the frame the whole
+        // content and nothing less.
+        var margin = target.Margin;
+        var wide = target.ActualWidth + margin.Left + margin.Right;
+        var tall = target.ActualHeight + margin.Top + margin.Bottom;
+        if (wide <= 0 || tall <= 0)
+        {
+            throw new InvalidOperationException(
+                $"the window measured {target.ActualWidth}x{target.ActualHeight}, so there is "
+                + "nothing to render — it was captured before it was laid out");
+        }
+
+        // Both names below are ambiguous unqualified: enabling WinForms puts System.Drawing in the
+        // implicit usings, so Brush and Color resolve to the GDI+ pair as readily as the WPF one.
+        var backdrop =
+            TryFindResource("SolidBackgroundFillColorBaseBrush") as System.Windows.Media.Brush
+            ?? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20));
+
+        var whole = new Rect(0, 0, wide, tall);
+        var visual = new DrawingVisual();
+        using (var canvas = visual.RenderOpen())
+        {
+            // A Fluent window's backdrop is drawn by the system behind the window and is not in the
+            // visual tree, so without this the render is light text on transparency.
+            canvas.DrawRectangle(backdrop, null, whole);
+            canvas.DrawRectangle(
+                new VisualBrush(target) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
+                null,
+                new Rect(margin.Left, margin.Top, target.ActualWidth, target.ActualHeight));
+        }
+
+        var width = (int)(wide * scale);
+        var height = (int)(tall * scale);
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            width, height, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        using var file = File.Create(path);
+        encoder.Save(file);
+        return (width, height);
+    }
+
     /// <summary>
     /// Re-read the list. Called when an event says the list changed, never on a timer and never
     /// from a refresh button: the stream is what makes this correct.

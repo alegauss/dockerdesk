@@ -64,6 +64,7 @@
 - ✅ **DD30** **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — A connect from Windows, an optional GET and the health check's own output turn running into answering, and --wait makes the same call the readiness primitive.
 - ✅ **DD31** **Every session re-derives the whole machine, because nothing states what moved since the last one** — read changes --since is a delta over the daemon's own bounded history, collapsed per object, and it refuses rather than skipping when the cursor reaches past it.
 - ✅ **DD33** **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — The CLI-first inversion is recorded as a decision with a price: a spec that survives shipping, a cap of six tools in the budget file, and a test that no head arrives uncapped.
+- ✅ **DD64 (the console race)** **The test that gates every cost claim can go red for a reason that is not cost** — The four classes that touch the process console are one xUnit collection, so a restore cannot land over another's capture: 8 of 8 full runs green against 2 of 5 red before.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

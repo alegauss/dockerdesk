@@ -16,6 +16,7 @@ namespace FreeWilly.Preflight.Tests;
 /// <c>heldBy</c> is the argument for this surface existing at all — a JSON re-wrapping of what
 /// <c>docker</c> already says adds nothing, since <c>--format json</c> exists.
 /// </remarks>
+[Collection(ConsoleCollection.Name)]
 public sealed class AgentProblemTests
 {
     /// <summary>Answers whatever it was told to, so a port holder is a fixture rather than a machine.</summary>

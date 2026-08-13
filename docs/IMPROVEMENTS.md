@@ -227,31 +227,27 @@ up` writes the same project label.
 
 ### §DD64 A gate that goes red for the wrong reason stops being a gate
 
-Two red runs now, both in `AgentBudgetTests` and both during a full suite:
-`The_canonical_task_costs_what_the_budget_records` on 2026-08-13, and
-`Re_discovery_is_the_largest_driver_and_not_the_inspect` shortly after. Neither
-reproduces — roughly forty full runs since, including sixteen four-at-a-time to force
-contention, and each passes in isolation immediately after failing.
+What is left is the transport half, plus a correction the next attempt needs.
 
-The second failure refutes the first diagnosis. This section previously blamed the fake
-daemon's recorded request count, on the reasoning that it was the only non-deterministic
-assertion in that test. `Re_discovery` never looks at that count, so a double-counted
-request cannot explain it.
+A third red run — `An_unknown_argument_is_refused_rather_than_dropped(--plan
+--nonsense)`, twice in five full runs — refuted the transport diagnosis for its own
+case, because `--plan` reaches no daemon at all. It was `Console`: four classes touch
+the process's, three by swapping and restoring it, and xUnit runs classes in parallel,
+so one restore lands over another's capture. They are one collection now, and eight full
+runs are green against two in five red before.
 
-What explains both is a short read. Both tests measure `TokenEstimate` over bodies
-pulled with `StreamAsync` and `ReadToEndAsync`, while `FakeDockerDaemon.AnswerAsync`
-writes the response, calls `WaitForPipeDrain` and disposes the pipe from a
-fire-and-forget task. A client that has not finished reading when the server disposes
-sees the stream end rather than an exception, so it returns a body that is merely
-shorter. That lands as fewer tokens: a band violation in the first test, a broken
-equality in the second.
+The transport half keeps its diagnosis and loses its prescribed fix. "The fake should
+not dispose until the client has read what it was sent" was implemented twice. Waiting
+for the client to hang up went green six of six and took the suite from 20 seconds to
+38: a client that pools its connection never hangs up, so the wait ends on its timeout.
+Holding every pipe open until the fake is disposed hung the suite outright —
+`Connection: close` is how a streaming read learns it reached the end, so a pipe never
+closed is a read that never returns.
 
-So this is a defect in the harness rather than in what it measures — and it is the
-assertion gating every cost claim here, so a red run reads as "a response got more
-expensive". A gate that cries wolf is one somebody re-runs until it is green.
-
-The fix is to make the read complete rather than to widen the assertions: the fake
-should not dispose until the client has read what it was sent.
+The close is load-bearing, and the race is in its timing rather than its existence. What
+replaces it has to end the stream for a client waiting on EOF and not for one still
+draining a counted body — a distinction this fake cannot make, because it does not know
+which of the two it wrote.
 
 ### §DD65 The benchmark refused to invent a number, and now one exists
 

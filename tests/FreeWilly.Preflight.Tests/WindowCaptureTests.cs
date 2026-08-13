@@ -16,6 +16,7 @@ namespace FreeWilly.Preflight.Tests;
 /// What is asserted here is the part around it that is pure: which surface the verb reaches, and that
 /// a path is not confused with a flag.
 /// </remarks>
+[Collection(ConsoleCollection.Name)]
 public sealed class WindowCaptureTests
 {
     [Fact]

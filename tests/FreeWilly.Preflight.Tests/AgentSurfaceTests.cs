@@ -15,6 +15,7 @@ namespace FreeWilly.Preflight.Tests;
 /// type stops a read verb being written against a mutating client at all, and this drives every
 /// registered read verb against a fake daemon and requires every request it made to be a GET.
 /// </remarks>
+[Collection(ConsoleCollection.Name)]
 public sealed class AgentSurfaceTests
 {
     private static string Path(string endpoint) => $"/{DockerApi.ApiVersion}/{endpoint}";

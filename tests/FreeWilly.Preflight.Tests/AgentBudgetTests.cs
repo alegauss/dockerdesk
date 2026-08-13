@@ -25,6 +25,7 @@ namespace FreeWilly.Preflight.Tests;
 ///
 /// <para><b>Not a performance suite.</b> Nothing here times anything.</para>
 /// </remarks>
+[Collection(ConsoleCollection.Name)]
 public sealed class AgentBudgetTests
 {
     private static string Path(string endpoint) => $"/{DockerApi.ApiVersion}/{endpoint}";

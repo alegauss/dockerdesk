@@ -646,18 +646,3 @@ surface acquires two sets of semantics. Capped at six tools, with the schema tot
 by the same budget file DD23 gates, and a raise argued in the commit that makes it.
 
 ## Block H — The public surface (the site a reader and an agent both read)
-
-### §DD51 The site's own claims, asserted
-
-The one defect class a site cannot notice about itself is a claim that has gone false,
-and S1 exists to prevent it. Three of this block's claims fail invisibly, so each is
-asserted beside the script that owns it, in the manner of Shio's site-claims suite. That
-the progress figures are read from roadkeep and never typed, asserted on the generator,
-because the alternative failure is a page confidently quoting last month. That the route
-map and the metadata table are one list, asserted in both directions, because a route in
-only one of them is a page nobody can reach or a title nobody sees. That every route
-emits its twin, asserted on the prerender where the pair is written, because a test that
-only counted routes would pass while the twins stopped being produced. Plus the source
-lint for S7: nothing outside the hash navigation may call scrollIntoView. These are
-properties of the repository rather than of a rendered DOM, so node --test over the
-sources is the whole harness and no browser is involved.

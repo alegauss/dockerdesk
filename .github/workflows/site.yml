@@ -60,6 +60,12 @@ jobs:
           npm ci
           npm run build
 
+      # The site's own claims (DD51): the generated figures, the route pair, the twin per
+      # route, the social card, and the S7 scroll rule — asserted against what was built.
+      - name: Test
+        working-directory: site
+        run: npm test
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

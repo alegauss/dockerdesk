@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 1,
-      "shipped": 11,
+      "open": 0,
+      "shipped": 12,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 26,
-    "shipped": 25,
+    "open": 25,
+    "shipped": 26,
     "retired": 0
   },
   "open": [
@@ -305,18 +305,6 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD24"
       ]
-    },
-    {
-      "id": "DD51",
-      "status": "📋",
-      "block": "H",
-      "symptom": "A claim on the site that has gone false is invisible until somebody reads the page against the product",
-      "why": "node --test beside the scripts that own them: the generated figures, the route pair, the twin per route, and the rule that only the reader scrolls the window.",
-      "deps": [
-        "DD41 ✅",
-        "DD42 ✅",
-        "DD43 ✅"
-      ]
     }
   ],
   "ledger": [
@@ -518,6 +506,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "The site is whatever was last committed to docs, so a broken page is public with no gate between",
       "why": "A workflow_dispatch-only Pages job whose single gate is npm run build (typecheck, the prerender route and head checks), publishing site/dist to the same URL.",
+      "deps": []
+    },
+    {
+      "id": "DD51",
+      "status": "✅",
+      "block": "H",
+      "symptom": "A claim on the site that has gone false is invisible until somebody reads the page against the product",
+      "why": "node --test asserts the site's own claims: the generated roadmap figures, the route pair and heads, the twin per route with the CTA dropped, the 1200x630 card, and no scrollIntoView.",
       "deps": []
     }
   ],

@@ -47,7 +47,7 @@ test("no source fetches a third-party font at page load", () => {
 // divide that repeat puts a visible seam through the water once per cycle — every few
 // seconds, forever. The arithmetic is the whole of the illusion, so it is asserted rather
 // than trusted to whoever next retunes the swell.
-test("every wave period closes on the repeat the drift translates by (DD52)", () => {
+test("every wave period closes on the repeat the drift translates by", () => {
   const src = readFileSync(join(siteDir, "src", "components", "ui", "Waves.tsx"), "utf8");
   const span = Number(/const SPAN = (\d+)/.exec(src)?.[1]);
   assert.ok(span > 0, "Waves.tsx no longer declares SPAN");

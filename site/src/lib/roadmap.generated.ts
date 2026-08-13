@@ -58,13 +58,13 @@ export const roadmap: RoadmapData = {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
       "open": 2,
-      "shipped": 12,
+      "shipped": 13,
       "retired": 0
     }
   ],
   "totals": {
     "open": 22,
-    "shipped": 39,
+    "shipped": 40,
     "retired": 0
   },
   "open": [
@@ -589,6 +589,14 @@ export const roadmap: RoadmapData = {
       "block": "H",
       "symptom": "A claim on the site that has gone false is invisible until somebody reads the page against the product",
       "why": "node --test asserts the site's own claims: the generated roadmap figures, the route pair and heads, the twin per route with the CTA dropped, the 1200x630 card, and no scrollIntoView.",
+      "deps": []
+    },
+    {
+      "id": "DD62",
+      "status": "✅",
+      "block": "H",
+      "symptom": "The page for the agent's operator names only the interruption, so the surface reads as a saving in keystrokes",
+      "why": "Eight rows pair what plain docker costs an agent with the verb that replaces it, and every cost, ceiling and shipped badge is generated from agent-budget.json and the verb registry.",
       "deps": []
     }
   ],

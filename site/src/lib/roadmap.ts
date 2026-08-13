@@ -35,6 +35,27 @@ export function blockName(block: RoadmapBlock): string {
   return block.title.replace(/^.*?—\s*/, "");
 }
 
+/**
+ * One task by id, from either list.
+ *
+ * Throws on an id the roadmap does not carry. A page that names a task is making a claim
+ * about this project's own state (S1, S2), so a renamed or retired id fails the build rather
+ * than rendering a row with no marker on it.
+ */
+export function taskById(id: string): RoadmapTask {
+  const found =
+    roadmap.ledger.find((t) => t.id === id) ?? roadmap.open.find((t) => t.id === id);
+  if (!found) {
+    throw new Error(`roadmap: no task "${id}" — it was renamed or retired`);
+  }
+  return found;
+}
+
+/** Whether a task has shipped. The ledger is the shipped list, so membership is the answer. */
+export function hasShipped(id: string): boolean {
+  return taskById(id).status === "✅";
+}
+
 /** The next ready task, resolved to its line, or null. */
 export function nextTask(): RoadmapTask | null {
   if (!roadmap.next) return null;

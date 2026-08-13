@@ -640,12 +640,12 @@ export const status = {
 
 export const claudeCode = {
   meta: {
-    title: "DockerDesk for Claude Code — the read/do split",
+    title: "DockerDesk for Claude Code — the friction it removes",
     description:
-      "The agent surface: one allowlist line splits reads from writes, so the 90% of agent Docker work that mutates nothing stops asking. Designed under Block G.",
+      "What plain docker costs an agent — a table it cannot read, an inspect paid for four fields, a restart loop billed once per restart, and a permission prompt on every read — and the verb that replaces each one.",
     ogTitle: "DockerDesk for Claude Code",
     ogDescription:
-      "The read/do split, the one allowlist line, and the plugin that makes the surface discoverable — the designed agent surface.",
+      "The friction plain docker puts on an agent, item by item, with the measured cost of each and the verb that replaces it.",
   },
   eyebrow: "For the agent's operator",
   heading: "Configure it once, and the reads stop asking",
@@ -654,12 +654,17 @@ export const claudeCode = {
     { code: "docker" },
     " call — which permits deleting a volume — or approves each one. Splitting the verbs in argv makes it one line of settings, and what that buys is not keystrokes: it is the removal of an interruption from the 90% of agent Docker work that mutates nothing.",
   ] as Rich,
+  // The badges and the count in this banner are read off the verb registry itself (S1, S2),
+  // so what follows is the copy around them and never the figure. The claim this replaces —
+  // "the designed surface, not a shipped one" — is exactly the claim that went false the day
+  // DD24 landed, and nothing on the page failed when it did.
+  statusLead: "verbs exist today.",
   status: [
-    "This is the designed surface, not a shipped one — the CLI is ",
+    "The rest of the surface below is designed under ",
     { b: "Block G" },
     " and the plugin is ",
     { b: "DD32" },
-    ", both open. Follow them on the status page; nothing here is downloadable yet.",
+    ". Every badge on this page is read off the verb registry in the build, so a verb that lands moves its own badge.",
   ] as Rich,
   allowlistHeading: "The one line that pays for it",
   allowlistLead: "One entry in .claude/settings.json:",
@@ -670,26 +675,29 @@ export const claudeCode = {
     { code: "do" },
     " still asks.",
   ] as Rich,
+  // `k` is the verb as it is typed, which is also the key its ceiling lives under in
+  // agent-budget.json and the string the registry dispatches on — so one field joins a row
+  // to both generated sources, and a row for a verb nobody named cannot claim to exist.
   readHeading: "read — the inspection path (no prompt)",
   read: [
-    { v: "context", d: "the whole machine in one budgeted, terse payload — engine, services, ports, disk, cursor" },
-    { v: "doctor <name>", d: "the diagnostic join: the verdict and the remedy for one container" },
-    { v: "logs <name>", d: "deduped and budgeted, written to a file the agent Greps — paying for matches, not the whole log" },
-    { v: "ps", d: "the container list, addressed by name, with a cursor" },
-    { v: "ports", d: "what is published, and whether it actually listens from Windows" },
-    { v: "disk", d: "images and volumes — what is dangling, what is unused" },
-    { v: "changes --since <cur>", d: "the delta since last session, so N+1 is cheaper than N" },
-    { v: "verify <target>", d: "cheap textual proof a service answers — the agent cannot see" },
-    { v: "path <name>", d: "resolve a name to its id and paths" },
+    { k: "read context", v: "context", d: "the whole machine in one budgeted, terse payload — engine, services, ports, disk, cursor" },
+    { k: "read doctor", v: "doctor <name>", d: "the diagnostic join: the verdict and the remedy for one container" },
+    { k: "read logs", v: "logs <name>", d: "deduped and budgeted, written to a file the agent Greps — paying for matches, not the whole log" },
+    { k: "read ps", v: "ps", d: "the container list, addressed by name, with a cursor" },
+    { k: "read ports", v: "ports", d: "what is published, and whether it actually listens from Windows" },
+    { k: "read disk", v: "disk", d: "images and volumes — what is dangling, what is unused" },
+    { k: "read changes", v: "changes --since <cur>", d: "the delta since last session, so N+1 is cheaper than N" },
+    { k: "read verify", v: "verify <target>", d: "cheap textual proof a service answers — the agent cannot see" },
+    { k: "read path", v: "path <name>", d: "resolve a name to its id and paths" },
   ],
   doHeading: "do — the mutating path (still asks)",
   do: [
-    { v: "start · stop · restart", d: "lifecycle, by name" },
-    { v: "rm", d: "remove, behind a confirm token" },
-    { v: "compose", d: "shells out to the compose you already have, with --wait" },
-    { v: "engine", d: "start or stop the engine itself" },
-    { v: "reclaim", d: "an undo scoped to this session's own labels" },
-    { v: "prune", d: "the machine-wide cleanup — still explicit, never implicit" },
+    { k: "do start", v: "start · stop · restart", d: "lifecycle, by name" },
+    { k: "do rm", v: "rm", d: "remove, behind a confirm token" },
+    { k: "do compose", v: "compose", d: "shells out to the compose you already have, with --wait" },
+    { k: "do engine", v: "engine", d: "start or stop the engine itself" },
+    { k: "do reclaim", v: "reclaim", d: "an undo scoped to this session's own labels" },
+    { k: "do prune", v: "prune", d: "the machine-wide cleanup — still explicit, never implicit" },
   ],
   pluginHeading: "The plugin that makes it discoverable",
   pluginBody: [
@@ -709,6 +717,207 @@ export const claudeCode = {
     { t: "No push", b: "And so does that." },
     { t: "No registry auth", b: "do compose shells out to yours." },
   ],
+};
+
+/* ------------------------------------------------------------------ /claude-code: the friction */
+// The problem half of §DD46's page. The read/do split and the allowlist line answer *one* of
+// the frictions plain docker puts on an agent — the interruption — and the page shipped
+// stating only that one, so a reader who had never felt the others was told the surface
+// existed for keystrokes.
+//
+// Every row is DD23 §3's accounting, and every figure in it is generated: `shape` keys into
+// the measured baseline in agent-budget.json and `verb` into that file's ceilings and the
+// registry's shipped list (S1, S2, and DD40 §4 — the law that said an unmeasured cost is not
+// a figure on the page, now that DD23 has measured it). A row naming a shape the benchmark
+// does not measure, or a verb the registry does not have, fails the build rather than
+// rendering a blank where its argument was.
+//
+// `today` is what the command actually does, not a caricature: docker is a good CLI for a
+// person at a keyboard, and every one of these is a consequence of being built for one.
+
+export const friction = {
+  eyebrow: "The friction this removes",
+  heading: "What plain docker costs an agent, and what replaces it",
+  intro: [
+    "None of this is a defect in Docker. Every one of these is what a CLI built for a person at a keyboard does to a reader that pays per token, cannot see the screen, and has to ask permission — and the costs on the left are ",
+    { b: "measured" },
+    ", not estimated.",
+  ] as Rich,
+  baselineLead: "The canonical task, measured:",
+  baselineNote: [
+    "Measured over the Engine API's compact payload, which is the transport this project's own surface is built on — so read it as a ",
+    { b: "floor" },
+    " for today's cost, not a ceiling. ",
+    { code: "docker inspect" },
+    " prints indented JSON, so an agent going through the CLI pays several times this for the same entity. The ceilings on the right are asserted by a test: a response that grew fails the build.",
+  ] as Rich,
+  todayLabel: "docker today",
+  hereLabel: "here",
+  items: [
+    {
+      t: "The output is a table for a person, and the reader is not one",
+      today: {
+        cmd: "docker ps -a",
+        shape: "containers.list",
+        body: [
+          "Columns truncate, rows come back in creation order — which moves the moment anything is recreated, so two reads cannot be diffed — and nothing carries a cursor. So a session re-reads the whole machine three to five times as state moves, and that re-discovery, not the log, is the largest single driver of the total.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read context",
+        verb: "read context",
+        task: "DD25",
+        body: [
+          "One payload: the engine, every container with its state and compose address, the published ports, the disk, and a cursor that fingerprints the machine. Sorted by name, so it caches and a diff means something. It also answers the canonical question — ",
+          { code: "OOM  limit=512m" },
+          " — in the first call, with no second one.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "Four fields cost the whole entity",
+      today: {
+        cmd: "docker inspect api",
+        shape: "container.inspect",
+        body: [
+          "Three to six hundred lines of JSON, of which an agent reads four: the exit code, whether it was OOM-killed, the port bindings and the mounts. There is no projection to ask for, so the whole entity tree — every default, every piece of authoring metadata — is paid for to learn four things.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read doctor api",
+        verb: "read doctor",
+        task: "DD26",
+        body: [
+          "The same join, returned as a verdict and a remedy per row, over the model the preflight already uses: state, memory, restarts, health, ports and mounts. What comes back is the conclusion and the action, not the fields they were read from.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "A restart loop is billed once per restart",
+      today: {
+        cmd: "docker logs --tail 200 api",
+        shape: "container.logs.tail200",
+        body: [
+          { code: "--tail" },
+          " is the only instrument: no dedup, no level filter, no cursor, no ceiling. A container that restarted eight times hands over the same stack trace eight times, and the caller either truncates blind or pays for all of it.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read logs api --dedup --level warn --out .dockerdesk/logs/api.log",
+        verb: "read logs",
+        task: "DD27",
+        body: [
+          { code: "--dedup" },
+          " collapses an identical line to one and a count, across the whole read rather than only adjacent ones — the copies of a trace are separated by everything each run printed. ",
+          { code: "--level" },
+          " keeps every line that did not say what it was, so the filter can narrow the log without hiding the answer. And ",
+          { code: "--out" },
+          " writes it to a file the agent Greps, paying for the lines that match instead of for the log.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "A truncated read is indistinguishable from a log that ended",
+      today: {
+        cmd: "docker logs --tail 200 api | head",
+        body: [
+          "A cut arrives looking exactly like the end of the output. Nothing in what comes back says a line was dropped or where to resume, so a reader draws a conclusion from a page that was never the whole story — and nobody finds out.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "truncated 37 more line(s) — budget reached, read on from the cursor",
+        task: "DD27",
+        body: [
+          "Every budgeted payload here cuts from the end, states how much it cut, and prints the cursor to read on from. A silent truncation is the one thing a ceiling must not become, so it is the property the tests hold rather than the size.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "The id is the currency, and it changes on every recreate",
+      today: {
+        cmd: "docker inspect 9c1f0b7a4e2d…",
+        body: [
+          "A 64-hex id has to be threaded across calls by hand, and it is gone the next time the container is recreated. Meanwhile the same service is called one thing by ",
+          { code: "docker ps" },
+          " and another by ",
+          { code: "docker compose ps" },
+          ", so an agent holding one name cannot always use it with the other command.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read doctor svc:shop/api",
+        task: "DD24",
+        body: [
+          "The address is the name: the container's, or ",
+          { code: "svc:<project>/<service>" },
+          " read off the compose labels the daemon already carries. Ids stay valid and stop being currency, so a name learned in the first call still works in the fifth.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "The last question is one Docker does not answer at all",
+      today: {
+        cmd: "docker port api",
+        body: [
+          "This reports the mapping the daemon intends, which is not the same claim as ",
+          { i: "8080 answers from Windows" },
+          " — a running container with a bound port can answer nothing. And when the bind fails, ",
+          { code: "port is already allocated" },
+          " does not say what holds it, because the daemon does not know. So the agent cannot see whether its own work landed, and closing that gap means coming back to you to look — the most expensive unit in the system.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read verify svc:shop/api",
+        verb: "read verify",
+        task: "DD30",
+        body: [
+          "DockerDesk is a Windows process, so it can join what the daemon cannot: whether the host port actually listens, which PID holds it, whether a rival engine is answering the pipe, whether a stale context is pointing the CLI elsewhere. ",
+          { code: "read doctor" },
+          " already carries the port fact; the standalone proof is DD30 and the refusal that names the process holding the port is DD28.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "Every call is a permission decision",
+      today: {
+        cmd: "Bash(docker:*)",
+        body: [
+          { code: "docker ps" },
+          " and ",
+          { code: "docker rm -f -v" },
+          " are the same string to an allowlist. No Docker tool can express the rule a user actually wants, because ",
+          { code: "docker" },
+          " mixes both in one verb namespace — so you either grant the lot, which permits deleting a volume, or approve every read by hand.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "Bash(dockerdesk read:*)",
+        task: "DD24",
+        body: [
+          "Reads and writes are separate words in argv, so the rule is one line — and it is enforced under it: a read verb is written against a handle with no start, no remove and no prune on it, and a test drives every one of them and requires each request it made to be a GET.",
+        ] as Rich,
+      },
+    },
+    {
+      t: "Nothing carries over, so session N+1 costs what session N did",
+      today: {
+        cmd: "docker ps -a   # again, from nothing",
+        body: [
+          "There is no cursor and no delta, so the next session re-derives the machine the last one already learned. The most expensive read on this page is the one that was paid for yesterday.",
+        ] as Rich,
+      },
+      here: {
+        cmd: "dockerdesk read changes --since c:4f21a0",
+        task: "DD31",
+        body: [
+          "Every pack already prints a state cursor, and the tray already holds the engine's event stream open for the window — so the delta is a cursor over a stream the user started rather than a daemon this adds. That is DD31, and it is the only mechanism that makes a second session cheaper than the first.",
+        ] as Rich,
+      },
+    },
+  ],
+  footer: [
+    "The five-call session on the home page is the same task run through these verbs. Its per-call figures are the ceilings above, which is why they are the numbers a build fails on rather than the numbers a page claims.",
+  ] as Rich,
 };
 
 /* ------------------------------------------------------------------ /compare page */

@@ -336,34 +336,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD25 One call that replaces the session's first five
-
-The first thing any session does is ask what this machine is doing, and today that is
-`ps -a`, `compose ps`, `version`, `system df` and a read of the compose file — repeated
-three to five times as the state moves, because a table carries no cursor.
-
-One command answers it, in a line format rather than JSON, because entity JSON spends
-most of its bytes on punctuation, repeated keys and authoring metadata nothing reads:
-
-```
-engine  running  wsl:dockerdesk  api=v1.43  ctx=default(ok)
-api     up 4m    healthy   svc:shop/api    :8080→8080 listening
-worker  exited 137  ×3/2m   svc:shop/worker  OOM  limit=512m
-disk    images 14G (4.2G dangling)  volumes 2.1G (1 unused)
-cursor  c:4f21a0
-```
-
-Four properties make it work and none of them are cosmetic. **Deterministic order**, so
-it caches and a diff means something. **Name addressing**, per DD24. **A hard ceiling
-with an explicit truncation cursor**, never a silent cut — a payload that quietly drops
-a row is worse than one that refuses. And **state stated rather than probed**, so the
-caller never spends a call discovering whether a capability is there.
-
-Note what the sample already answered: `OOM limit=512m` closes the canonical task's
-question without a second call. That is the whole argument for this command, and DD23 is
-what turns it from an argument into a number. `--json` stays for callers that parse
-rather than read.
-
 ### §DD26 The diagnostic join, over the verdict model the preflight already has
 
 Asking why a container is not answering costs `ps -a`, `logs`, `inspect`, `port` and

@@ -44,6 +44,7 @@
 
 - ✅ **DD23** **Nothing measures what a Docker task costs an agent, so a cheaper surface is an unfalsifiable claim** — A benchmark measures the canonical task at 11711 estimated tokens over six calls, and agent-budget.json is the ceiling it reads, so a response that grew fails a build.
 - ✅ **DD24** **Reading a container and deleting a volume are one allowlist decision, so every read costs an approval** — read and do are separate argv namespaces so one allowlist line grants every read, and a test drives each read verb and requires every request it made to be a GET.
+- ✅ **DD25** **Learning what this machine is running costs five commands, and it repeats in full every session** — One read context answers the whole machine at 102 estimated tokens against 5718 for the three list reads it replaces, and an OOM row closes the canonical question in the first call.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

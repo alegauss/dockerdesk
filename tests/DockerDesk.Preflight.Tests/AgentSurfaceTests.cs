@@ -19,6 +19,10 @@ public sealed class AgentSurfaceTests
 {
     private static string Path(string endpoint) => $"/{DockerApi.ApiVersion}/{endpoint}";
 
+    /// <summary>One verb, by name. Never by index: adding a verb ahead of it would move it.</summary>
+    private static AgentVerb Verb(string half, string name) =>
+        AgentSurface.Find([half, name]) ?? throw new InvalidOperationException($"no {half} {name}");
+
     private const string TwoContainers = """
         [{"Id":"aaaaaaaaaaaa0000","Names":["/shop-api-1"],"Image":"shop/api:latest","State":"exited",
           "Status":"Exited (137) 12 seconds ago","Ports":[{"IP":"0.0.0.0","PrivatePort":8080,"PublicPort":8080,"Type":"tcp"}]},
@@ -58,8 +62,11 @@ public sealed class AgentSurfaceTests
         // and no prune to reach for.
         var reachable = typeof(IEngineReads).GetMethods().Select(m => m.Name).ToArray();
 
+        // Listed exactly, so growing the handle is a deliberate act and not a drift: this assertion
+        // failed the moment the context pack needed three more reads, which is the point of writing it
+        // this way rather than as a count.
         Assert.Equal(
-            ["ContainersAsync", "PingAsync", "VersionAsync"],
+            ["ContainersAsync", "ImagesAsync", "InspectAsync", "PingAsync", "VersionAsync", "VolumesAsync"],
             reachable.OrderBy(n => n, StringComparer.Ordinal));
         foreach (var forbidden in new[] { "Start", "Stop", "Remove", "Prune", "Restart", "Run" })
         {
@@ -149,7 +156,7 @@ public sealed class AgentSurfaceTests
         using var api = new DockerApi(daemon.PipeName);
         var output = new StringWriter();
 
-        var code = AgentSurface.Read(AgentSurface.All[0], api, [], output);
+        var code = AgentSurface.Read(Verb("read", "ps"), api, [], output);
 
         Assert.Equal(0, code);
         var lines = output.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
@@ -171,7 +178,7 @@ public sealed class AgentSurfaceTests
         using var api = new DockerApi(daemon.PipeName);
         var output = new StringWriter();
 
-        var code = AgentSurface.Read(AgentSurface.All[0], api, [], output);
+        var code = AgentSurface.Read(Verb("read", "ps"), api, [], output);
 
         Assert.NotEqual(0, code);
         Assert.Contains("engine", output.ToString(), StringComparison.Ordinal);
@@ -188,7 +195,7 @@ public sealed class AgentSurfaceTests
         try
         {
             Console.SetError(new StringWriter());
-            Assert.Equal(2, AgentSurface.Read(AgentSurface.All[0], api, ["--nonsense"], new StringWriter()));
+            Assert.Equal(2, AgentSurface.Read(Verb("read", "ps"), api, ["--nonsense"], new StringWriter()));
         }
         finally
         {

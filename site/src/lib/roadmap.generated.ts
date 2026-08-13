@@ -50,8 +50,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 9,
-      "shipped": 2,
+      "open": 8,
+      "shipped": 3,
       "retired": 0
     },
     {
@@ -63,8 +63,8 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 25,
-    "shipped": 36,
+    "open": 24,
+    "shipped": 37,
     "retired": 0
   },
   "open": [
@@ -197,16 +197,6 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD25",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Learning what this machine is running costs five commands, and it repeats in full every session",
-      "why": "Discovery is answered by a truncating human-readable table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines.",
-      "deps": [
-        "DD24 ✅"
-      ]
-    },
-    {
       "id": "DD26",
       "status": "📋",
       "block": "G",
@@ -223,7 +213,7 @@ export const roadmap: RoadmapData = {
       "symptom": "A container log is read unbounded, so a restart loop is paid for eight times in identical traces",
       "why": "Logs are the largest token sink here and the read has no cursor, no level, no dedup and no ceiling, so the cost is the size of the file rather than of the answer.",
       "deps": [
-        "DD25"
+        "DD25 ✅"
       ]
     },
     {
@@ -265,7 +255,7 @@ export const roadmap: RoadmapData = {
       "symptom": "Every session re-derives the whole machine, because nothing states what moved since the last one",
       "why": "The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first.",
       "deps": [
-        "DD25",
+        "DD25 ✅",
         "DD7 ✅"
       ]
     },
@@ -502,6 +492,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD25",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Learning what this machine is running costs five commands, and it repeats in full every session",
+      "why": "One read context answers the whole machine at 102 estimated tokens against 5718 for the three list reads it replaces, and an OOM row closes the canonical question in the first call.",
+      "deps": []
+    },
+    {
       "id": "DD40",
       "status": "✅",
       "block": "H",
@@ -598,5 +596,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD25"
+  "next": "DD26"
 };

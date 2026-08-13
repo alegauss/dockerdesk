@@ -74,9 +74,27 @@ DockerDesk.exe --help          every verb
 DockerDesk's other operator is a coding agent, and the split that matters to one is in argv:
 
 ```
+dockerdesk read context       the whole machine in one budgeted payload
 dockerdesk read ps            every container, one line each — mutates nothing
 dockerdesk do   engine start  brings the engine up
 ```
+
+`read context` is the one that replaces a session's first five calls:
+
+```
+engine  running  wsl:dockerdesk  api=v1.43  ctx=default(ok)
+shop-api-1  exited 137  svc:shop/api  8080->8080/tcp  OOM  ×3  limit=512M
+shop-db-1  up 4m (healthy)  svc:shop/db  5432->5432/tcp
+disk    images 14G (2G dangling)  volumes 2
+cursor  c:231884
+```
+
+**102 estimated tokens** for a five-service stack, against 5718 measured for the three
+container-list reads a diagnosis makes today. The first row already answers *why is the api
+container not responding* — `OOM limit=512M` — with no second call. Order is deterministic so
+the payload caches and a diff means something, the ceiling is hard and a truncated payload
+**says how many rows went** rather than cutting silently, and the cursor fingerprints the
+machine rather than the text. `--json` is there for callers that parse.
 
 `docker ps` and `docker rm -f -v` are the same string to an allowlist, so a rule either
 grants the whole verb namespace — which permits deleting a volume — or every call stops to

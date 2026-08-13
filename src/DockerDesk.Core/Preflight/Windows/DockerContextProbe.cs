@@ -22,14 +22,14 @@ namespace DockerDesk.Core.Preflight.Windows;
 /// Reading, not running <c>docker context ls</c>: the whole situation is one where the CLI on PATH
 /// belongs to somebody else, and asking it to describe itself would be asking the suspect.
 /// </remarks>
-internal static class DockerContextProbe
+public static class DockerContextProbe
 {
     /// <summary>The context name the CLI uses when nothing has selected another.</summary>
-    internal const string DefaultContextName = "default";
+    public const string DefaultContextName = "default";
 
     /// <summary>Read where this user's CLI points.</summary>
     /// <returns>The target, or why it could not be read.</returns>
-    internal static DockerClientTarget Read()
+    public static DockerClientTarget Read()
     {
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var root = Path.Combine(home, ".docker");
@@ -54,7 +54,7 @@ internal static class DockerContextProbe
     /// the active context, so telling somebody to run <c>docker context use</c> while that variable
     /// is set would be advice that changes nothing.
     /// </remarks>
-    internal static DockerClientTarget Resolve(
+    public static DockerClientTarget Resolve(
         string? dockerHost,
         string? currentContext,
         IReadOnlyList<(string Name, string? Host)> store)
@@ -110,7 +110,7 @@ internal static class DockerContextProbe
     /// Compared by pipe name rather than by string, because the same pipe is spelled
     /// <c>npipe:////./pipe/x</c> and <c>npipe://./pipe/x</c> and both reach it.
     /// </remarks>
-    internal static string? PipeName(string? host)
+    public static string? PipeName(string? host)
     {
         if (string.IsNullOrWhiteSpace(host))
         {
@@ -131,7 +131,7 @@ internal static class DockerContextProbe
     /// <summary>Whether an endpoint reaches the pipe this project's engine serves.</summary>
     /// <param name="host">The endpoint.</param>
     /// <returns><see langword="true"/> when it is this engine's pipe.</returns>
-    internal static bool ReachesThisEngine(string? host) =>
+    public static bool ReachesThisEngine(string? host) =>
         PipeName(host) is { } pipe
         && pipe.Equals(DockerApi.DefaultPipeName, StringComparison.OrdinalIgnoreCase);
 

@@ -72,6 +72,8 @@ public static class AgentSurface
     /// </remarks>
     public static readonly IReadOnlyList<AgentVerb> All =
     [
+        new(AgentNamespace.Read, "context", "read context",
+            "the whole machine in one budgeted payload: engine, containers, disk, cursor"),
         new(AgentNamespace.Read, "ps", "read ps",
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Do, "engine", "do engine",
@@ -163,10 +165,101 @@ public static class AgentSurface
 
         return verb.Name switch
         {
+            "context" => ReadContext(engine, rest, output),
             "ps" => ReadPs(engine, rest, output),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
     }
+
+    /// <summary>
+    /// The whole machine, once, under a ceiling (DD25).
+    /// </summary>
+    /// <remarks>
+    /// One round trip for the caller. Several to the daemon underneath, and that asymmetry is the whole
+    /// design: a local pipe call costs no tokens and no approval, while every call the agent makes
+    /// costs both. Inspects are still rationed to the containers that are not running, because those
+    /// are the only ones an inspect tells you anything the list did not.
+    /// </remarks>
+    private static int ReadContext(IEngineReads engine, string[] rest, TextWriter output)
+    {
+        var json = false;
+        foreach (var argument in rest)
+        {
+            if (string.Equals(argument, "--json", StringComparison.Ordinal))
+            {
+                json = true;
+                continue;
+            }
+
+            return Refuse($"unexpected argument {argument}: read context takes --json or nothing");
+        }
+
+        try
+        {
+            if (!engine.PingAsync().GetAwaiter().GetResult())
+            {
+                // State stated rather than probed: the engine line says it is down, so the caller does
+                // not spend a call finding out.
+                output.Write(Show(Down("stopped"), json));
+                return NotReady;
+            }
+
+            var version = engine.VersionAsync().GetAwaiter().GetResult();
+            var containers = engine.ContainersAsync().GetAwaiter().GetResult();
+
+            var diagnoses = new Dictionary<string, ContainerInspect>(StringComparer.Ordinal);
+            foreach (var container in containers.Where(c =>
+                !string.Equals(c.State, "running", StringComparison.Ordinal)))
+            {
+                try
+                {
+                    diagnoses[container.Id] = engine
+                        .InspectAsync(container.Id).GetAwaiter().GetResult();
+                }
+                catch (DockerApiException)
+                {
+                    // A container that went away between the list and the inspect is not a failure of
+                    // the pack: the row still states what the list knew.
+                }
+            }
+
+            var client = new Core.Preflight.Windows.WindowsMachineFacts().DockerClient;
+            output.Write(Show(new ContextFacts(
+                EngineState: "running",
+                Distribution: EnginePaths.DistributionName,
+                ApiVersion: version.ApiVersion,
+                ContextName: client.FromEnvironment ? "DOCKER_HOST" : client.ContextName,
+                ContextReachesEngine:
+                    Core.Preflight.Windows.DockerContextProbe.ReachesThisEngine(client.Host),
+                Containers: containers,
+                Diagnoses: diagnoses,
+                Images: engine.ImagesAsync().GetAwaiter().GetResult(),
+                VolumeCount: engine.VolumesAsync().GetAwaiter().GetResult().Count),
+                json));
+            return Ok;
+        }
+        catch (DockerApiException exception)
+        {
+            output.Write(Show(Down($"unreachable: {exception.Message}"), json));
+            return NotReady;
+        }
+    }
+
+    /// <summary>One format or the other, and the line format is the default because it is cheaper.</summary>
+    private static string Show(ContextFacts facts, bool json) =>
+        json ? ContextPack.RenderJson(facts) : ContextPack.Render(facts);
+
+    /// <summary>The pack for a machine whose engine is not answering.</summary>
+    private static ContextFacts Down(string state) => new(
+        EngineState: state,
+        Distribution: EnginePaths.DistributionName,
+        ApiVersion: DockerApi.ApiVersion,
+        ContextName: null,
+        ContextReachesEngine: false,
+        Containers: [],
+        Diagnoses: new Dictionary<string, ContainerInspect>(StringComparer.Ordinal),
+        Images: [],
+        VolumeCount: 0);
 
     /// <summary>
     /// Every container, one line each.

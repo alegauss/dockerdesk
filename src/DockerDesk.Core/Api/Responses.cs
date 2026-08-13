@@ -247,6 +247,65 @@ public sealed record ContainerInspect
     /// <summary>How it was configured.</summary>
     [JsonPropertyName("Config")]
     public ContainerConfig Config { get; init; } = new();
+
+    /// <summary>What it is doing, and why it stopped.</summary>
+    [JsonPropertyName("State")]
+    public ContainerState State { get; init; } = new();
+
+    /// <summary>How many times the daemon has restarted it.</summary>
+    /// <remarks>
+    /// The field behind the context pack's restart marker. A count on its own is not a story - three
+    /// restarts over a month is healthy and three in two minutes is a loop - which is why it is read
+    /// beside <see cref="ContainerState.FinishedAt"/> rather than alone.
+    /// </remarks>
+    [JsonPropertyName("RestartCount")]
+    public int RestartCount { get; init; }
+
+    /// <summary>The limits it was created with.</summary>
+    [JsonPropertyName("HostConfig")]
+    public ContainerHostConfig HostConfig { get; init; } = new();
+}
+
+/// <summary>A container's state, as inspect reports it.</summary>
+/// <remarks>
+/// Four leaves out of the whole entity tree, and they are the four the canonical diagnosis reads:
+/// whether it is running, what it exited with, whether the kernel killed it for memory, and when it
+/// stopped. DD23 measured the cost of paying for the tree to reach them - 1603 estimated tokens for
+/// one inspect - which is why the context pack reads them once and states the conclusion.
+/// </remarks>
+public sealed record ContainerState
+{
+    /// <summary>One word: running, exited, created, paused, restarting.</summary>
+    [JsonPropertyName("Status")]
+    public string Status { get; init; } = "";
+
+    /// <summary>What it exited with, when it exited.</summary>
+    [JsonPropertyName("ExitCode")]
+    public int ExitCode { get; init; }
+
+    /// <summary>Whether the kernel killed it for exceeding its memory limit.</summary>
+    /// <remarks>
+    /// The single most useful bit in an inspect, and the one a human-readable table never carries: an
+    /// exit code of 137 is SIGKILL and says nothing about who sent it, while this says the limit did.
+    /// </remarks>
+    [JsonPropertyName("OOMKilled")]
+    public bool OomKilled { get; init; }
+
+    /// <summary>When it stopped, as the daemon spells it.</summary>
+    [JsonPropertyName("FinishedAt")]
+    public string FinishedAt { get; init; } = "";
+}
+
+/// <summary>The part of a container's host configuration this tool reads.</summary>
+public sealed record ContainerHostConfig
+{
+    /// <summary>Its memory limit in bytes, or 0 where it has none.</summary>
+    /// <remarks>
+    /// Read only to say it beside an OOM kill. A limit on its own is configuration; a limit next to
+    /// the kill it caused is a diagnosis.
+    /// </remarks>
+    [JsonPropertyName("Memory")]
+    public long Memory { get; init; }
 }
 
 /// <summary>A container, as the list endpoint reports it.</summary>
@@ -274,6 +333,16 @@ public sealed record ContainerSummary
     /// <summary>One word: running, exited, created, paused.</summary>
     [JsonPropertyName("State")]
     public string State { get; init; } = "";
+
+    /// <summary>
+    /// The labels it carries, which is where compose records the project and service.
+    /// </summary>
+    /// <remarks>
+    /// The list endpoint already carries these, so a compose address costs no extra call - which is
+    /// what makes name addressing (DD24) free rather than a second round trip per container.
+    /// </remarks>
+    [JsonPropertyName("Labels")]
+    public IReadOnlyDictionary<string, string>? Labels { get; init; }
 
     /// <summary>The human sentence, e.g. <c>Exited (0) 2 minutes ago</c>.</summary>
     [JsonPropertyName("Status")]

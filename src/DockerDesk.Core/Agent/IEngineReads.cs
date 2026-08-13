@@ -37,4 +37,28 @@ public interface IEngineReads
     /// <returns>The containers, in the order the daemon returned them.</returns>
     Task<IReadOnlyList<ContainerSummary>> ContainersAsync(
         bool all = true, CancellationToken cancellation = default);
+
+    /// <summary>One container's whole entity tree.</summary>
+    /// <param name="id">The container, by id or name.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The inspect.</returns>
+    /// <remarks>
+    /// On the read side because it is one, and used sparingly because DD23 measured it at 1603
+    /// estimated tokens for four leaves. The context pack inspects only what is not running.
+    /// </remarks>
+    Task<ContainerInspect> InspectAsync(string id, CancellationToken cancellation = default);
+
+    /// <summary>Every image the daemon holds, dangling ones included.</summary>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The images.</returns>
+    Task<IReadOnlyList<ImageSummary>> ImagesAsync(CancellationToken cancellation = default);
+
+    /// <summary>Every volume, by name, without sizing any of them.</summary>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The volumes.</returns>
+    /// <remarks>
+    /// Deliberately not the sizing read: <c>/system/df</c> walks the filesystem and is seconds on a
+    /// machine with data on it, which a pack built to replace five cheap calls cannot spend.
+    /// </remarks>
+    Task<IReadOnlyList<VolumeSummary>> VolumesAsync(CancellationToken cancellation = default);
 }

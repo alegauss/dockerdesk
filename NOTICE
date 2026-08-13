@@ -1,0 +1,37 @@
+DockerDesk
+Copyright DockerDesk contributors
+
+This product includes software developed by the DockerDesk contributors,
+licensed under the Apache License, Version 2.0 (see LICENSE).
+
+THIRD-PARTY COMPONENTS
+
+DockerDesk itself is Apache-2.0 and free at any headcount. The engine it installs is
+upstream software under its own terms, listed below. Those files are not redistributed
+here: they are downloaded from their official locations at install time, against the
+versions and digests this build pins.
+
+
+Alpine Linux minirootfs
+  version  3.24.1
+  licence  multiple; see the packages inside it
+  source   https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.1-x86_64.tar.gz
+  A base filesystem made of separately licensed packages — musl (MIT), BusyBox and
+  apk-tools (GPL-2.0-only) and others. Each package records its own licence under
+  /usr/share/licenses inside the installed distribution.
+
+Docker Engine (Moby) static binaries for Linux
+  version  29.7.2
+  licence  Apache-2.0
+  source   https://download.docker.com/linux/static/stable/x86_64/docker-29.7.2.tgz
+  dockerd, containerd, runc, ctr and docker-proxy are Apache-2.0. The archive also
+  carries docker-init, which is tini, under MIT.
+
+Docker CLI for Windows
+  version  29.7.2
+  licence  Apache-2.0
+  source   https://download.docker.com/win/static/stable/x86_64/docker-29.7.2.zip
+  The docker command this project installs and puts on PATH.
+
+This file is generated from the same manifest the installer downloads from.
+Adding an artefact without an attribution entry fails a test.

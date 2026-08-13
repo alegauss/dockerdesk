@@ -30,4 +30,9 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- ✅ **DD13** **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — Apache-2.0 stated in the README's first paragraph, in LICENSE and in the window's About, with a NOTICE generated from the install manifest so a new download cannot ship unattributed.
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
+
+## Block H — The public surface (the site a reader and an agent both read)
+

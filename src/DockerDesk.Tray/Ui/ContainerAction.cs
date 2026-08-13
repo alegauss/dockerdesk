@@ -192,6 +192,15 @@ public sealed class RowActivity
         return row with { Pending = PendingFor(row.Id), Failure = FailureFor(row.Id) };
     }
 
+    /// <summary>The same, for a volume row.</summary>
+    /// <param name="row">The freshly projected row.</param>
+    /// <returns>The same row, carrying whatever is known about it.</returns>
+    public VolumeRow Dress(VolumeRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        return row with { Pending = PendingFor(row.Name), Failure = FailureFor(row.Name) };
+    }
+
     private string? PendingFor(string id) =>
         _pending.TryGetValue(id, out var verb) ? ContainerAction.PendingLabel(verb) : null;
 

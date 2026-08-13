@@ -79,7 +79,7 @@ public sealed class MainWindowLayoutTests
             .Select(match => match.Groups[1].Value)
             .ToList();
 
-        // The index the code-behind tests for is positional, so the order is not cosmetic.
-        Assert.Equal(["Containers", "Images"], headers);
+        // The index the code-behind switches on is positional, so the order is not cosmetic.
+        Assert.Equal(["Containers", "Images", "Volumes"], headers);
     }
 }

@@ -56,6 +56,88 @@ public sealed record PortBinding
         : $"{PrivatePort}/{Type}";
 }
 
+/// <summary>One thing a container has mounted.</summary>
+public sealed record MountPoint
+{
+    /// <summary><c>volume</c>, <c>bind</c> or <c>tmpfs</c>.</summary>
+    [JsonPropertyName("Type")]
+    public string Type { get; init; } = "";
+
+    /// <summary>The volume's name, for a volume mount. Empty for a bind.</summary>
+    [JsonPropertyName("Name")]
+    public string Name { get; init; } = "";
+
+    /// <summary>Where it is mounted inside the container.</summary>
+    [JsonPropertyName("Destination")]
+    public string Destination { get; init; } = "";
+}
+
+/// <summary>What a volume costs on disk, when the daemon has been asked to work it out.</summary>
+public sealed record VolumeUsage
+{
+    /// <summary>
+    /// Bytes, or -1 when nobody has measured it.
+    /// </summary>
+    /// <remarks>
+    /// The plain volume list always answers -1. Only <c>/system/df</c> walks the filesystem, and it
+    /// is slow enough that the two are separate calls rather than one.
+    /// </remarks>
+    [JsonPropertyName("Size")]
+    public long Size { get; init; } = -1;
+
+    /// <summary>How many containers reference it, or -1 when unmeasured.</summary>
+    [JsonPropertyName("RefCount")]
+    public long RefCount { get; init; } = -1;
+}
+
+/// <summary>A volume, as the daemon reports it.</summary>
+public sealed record VolumeSummary
+{
+    /// <summary>Its name, which is also its id.</summary>
+    [JsonPropertyName("Name")]
+    public string Name { get; init; } = "";
+
+    /// <summary>The driver, almost always <c>local</c>.</summary>
+    [JsonPropertyName("Driver")]
+    public string Driver { get; init; } = "";
+
+    /// <summary>Where it lives inside the distribution.</summary>
+    [JsonPropertyName("Mountpoint")]
+    public string Mountpoint { get; init; } = "";
+
+    /// <summary>Its size, when something measured it.</summary>
+    [JsonPropertyName("UsageData")]
+    public VolumeUsage? UsageData { get; init; }
+}
+
+/// <summary>What <c>/volumes</c> answers.</summary>
+public sealed record VolumeList
+{
+    /// <summary>The volumes.</summary>
+    [JsonPropertyName("Volumes")]
+    public IReadOnlyList<VolumeSummary>? Volumes { get; init; }
+}
+
+/// <summary>The part of <c>/system/df</c> this tool reads.</summary>
+public sealed record SystemUsage
+{
+    /// <summary>The volumes, this time with their sizes filled in.</summary>
+    [JsonPropertyName("Volumes")]
+    public IReadOnlyList<VolumeSummary>? Volumes { get; init; }
+}
+
+/// <summary>What a volume prune reclaimed.</summary>
+public sealed record VolumesPruned
+{
+    /// <summary>The names that went.</summary>
+    [JsonPropertyName("VolumesDeleted")]
+    public IReadOnlyList<string>? VolumesDeleted { get; init; }
+
+    /// <summary>How many bytes came back.</summary>
+    [JsonPropertyName("SpaceReclaimed")]
+    public long SpaceReclaimed { get; init; }
+}
+
 /// <summary>An image, as the list endpoint reports it.</summary>
 public sealed record ImageSummary
 {
@@ -204,6 +286,17 @@ public sealed record ContainerSummary
     /// <summary>Its ports.</summary>
     [JsonPropertyName("Ports")]
     public IReadOnlyList<PortBinding> Ports { get; init; } = [];
+
+    /// <summary>
+    /// What it has mounted, which is the only place the volume list can learn who holds what.
+    /// </summary>
+    /// <remarks>
+    /// The volume endpoint does not report holders, so this is the other half of a join the daemon
+    /// will not do — and for a volume, which is the one thing here that does not come back, that
+    /// answer is what separates an orphan from a database.
+    /// </remarks>
+    [JsonPropertyName("Mounts")]
+    public IReadOnlyList<MountPoint> Mounts { get; init; } = [];
 
     /// <summary>The first name without its leading slash, or the short id when it has none.</summary>
     public string DisplayName => Names.Count > 0

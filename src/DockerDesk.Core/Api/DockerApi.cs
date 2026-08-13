@@ -200,6 +200,65 @@ public sealed class DockerApi : IDisposable
             cancellation);
 
     /// <summary>
+    /// Every volume, without their sizes.
+    /// </summary>
+    /// <remarks>
+    /// Fast, because it reads metadata. The sizes are a separate call for a reason — see
+    /// <see cref="VolumeSizesAsync"/>.
+    /// </remarks>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The volumes.</returns>
+    public async Task<IReadOnlyList<VolumeSummary>> VolumesAsync(
+        CancellationToken cancellation = default) =>
+        (await GetAsync<VolumeList>("volumes", cancellation).ConfigureAwait(false)).Volumes ?? [];
+
+    /// <summary>
+    /// The same volumes, with what they cost on disk.
+    /// </summary>
+    /// <remarks>
+    /// <c>/system/df</c> is the only endpoint that measures a volume, and it measures by walking
+    /// the filesystem — seconds on a machine with a lot of data. It is called after the list is
+    /// already on screen so that the slow answer fills a column rather than delaying the window.
+    /// </remarks>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>The volumes, with <c>UsageData</c> filled in.</returns>
+    public async Task<IReadOnlyList<VolumeSummary>> VolumeSizesAsync(
+        CancellationToken cancellation = default) =>
+        (await GetAsync<SystemUsage>("system/df", cancellation).ConfigureAwait(false)).Volumes ?? [];
+
+    /// <summary>
+    /// Remove one volume.
+    /// </summary>
+    /// <remarks>
+    /// Never forced. A volume a container mounts is refused by the daemon, and that refusal is the
+    /// correct outcome: the thing to deal with is the container, not the guard.
+    /// </remarks>
+    /// <param name="name">The volume's name.</param>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>A task that completes when the daemon accepted the call.</returns>
+    public Task RemoveVolumeAsync(string name, CancellationToken cancellation = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return SendAsync(
+            HttpMethod.Delete, $"volumes/{Uri.EscapeDataString(name)}", cancellation);
+    }
+
+    /// <summary>
+    /// Delete anonymous unused volumes and report what came back.
+    /// </summary>
+    /// <remarks>
+    /// At this API version the endpoint's default is anonymous volumes only; named ones need
+    /// <c>all=true</c>, which is not sent and not offered. Every <c>docker run -v /data</c> without
+    /// a name leaves an anonymous volume behind and nothing ever collects them, which is the whole
+    /// reason this button exists — and a named volume is somebody's database.
+    /// </remarks>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>What was deleted and how much space came back.</returns>
+    public Task<VolumesPruned> PruneAnonymousVolumesAsync(
+        CancellationToken cancellation = default) =>
+        PostJsonAsync<VolumesPruned>("volumes/prune", new { }, cancellation);
+
+    /// <summary>
     /// Everything the daemon knows about one container.
     /// </summary>
     /// <remarks>

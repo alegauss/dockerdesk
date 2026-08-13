@@ -331,27 +331,6 @@ not as a rectangle the size of the screen.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD13 Apache-2.0, stated where the choice is made
-
-The licence is the feature. Docker Desktop is free only below a headcount and revenue
-threshold, and the reason anyone tries an alternative is that their employer crossed it.
-A visitor who cannot establish the terms in the first ten seconds assumes the same trap,
-so Apache-2.0 is stated in the README's first paragraph, in the repository's licence
-field, and in the window's About — not only in a `LICENSE` file nobody opens.
-
-Apache-2.0 rather than MIT for the patent grant, which is what makes a corporate legal
-review straightforward — and a corporate legal review is precisely the room this tool
-has to survive to be adopted at all.
-
-`NOTICE` is the other half and the one that gets forgotten. This ships or downloads
-upstream Moby and CLI binaries, each with its own licence, and a distribution that omits
-their attribution is not compliant however permissive its own terms are. The file lists
-every bundled component, its licence, and where it came from.
-
-The claim is scoped honestly: this tool is Apache-2.0, and the engine it installs
-carries Moby's own terms. Overstating that would be the same category of surprise the
-project exists to remove.
-
 ### §DD14 One exe, an Inno Setup installer, and an uninstall that asks
 
 One `.exe`, self-contained, and an Inno Setup installer around it — the arrangement the
@@ -665,3 +644,20 @@ What would change the answer is evidence of such a caller, and then this lands a
 **second head over the same methods** — never a parallel implementation, which is how a
 surface acquires two sets of semantics. Capped at six tools, with the schema total held
 by the same budget file DD23 gates, and a raise argued in the commit that makes it.
+
+## Block H — The public surface (the site a reader and an agent both read)
+
+### §DD40 DD40 — The workspace, and the landing page ported into it
+
+The current page is 1080 lines of hand-written HTML, of which 300 are a stylesheet and
+the rest is copy welded to the markup that shows it. Nothing is wrong with it as a
+single page; what it cannot do is become a second one. A route needs a file, a claim
+needs one home a reviewer can check, and a theme needs somewhere to keep a choice.
+Shio's site answers all three with Vite, React 19, TypeScript, Tailwind v4 and
+shadcn/ui, and the argument for the same stack is not fashion: the two sites become one
+thing for one person to maintain, and the sibling has already paid for every decision in
+it. The copy moves to one module the sections iterate (S3). The theme follows the OS,
+which is what the product already does and what its site contradicts in public (S6).
+Vite's base is the project path, because the URL does not change. The landing page ports
+what already works first - the pipe diagram, the non-goals, the honest status, the four
+commands - so this is a lift with one behaviour added and nothing lost.

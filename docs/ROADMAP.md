@@ -28,8 +28,7 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD13** (deps: —) **Nothing states the terms: a visitor cannot tell this is free at any headcount, and no NOTICE covers the bundled engine** — The licence is the reason to try this at all, so Apache-2.0 belongs where the choice is made and upstream attribution is a compliance requirement, not a courtesy. → §DD13
-- 📋 **DD14** (deps: DD2 ✅, DD13) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
+- 📋 **DD14** (deps: DD2 ✅, DD13 ✅) **There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data** — A per-user install into LOCALAPPDATA with no admin prompt is what reaches a managed corporate laptop, which is the audience Docker Desktop's terms send here. → §DD14
 - 📋 **DD15** (deps: DD14) **Every release is built on one developer's machine, so the first download finds what that machine hid** — A broken install is the only defect that matters in a tool promising Docker works after it runs, and the roadkeep gate is worth nothing until red stops a merge. → §DD15
 - 📋 **DD32** (deps: DD24, DD14) **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches. → §DD32
 
@@ -45,6 +44,10 @@
 - 📋 **DD30** (deps: DD26) **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by a human looking, which is the costliest cycle. → §DD30
 - 📋 **DD31** (deps: DD25, DD7 ✅) **Every session re-derives the whole machine, because nothing states what moved since the last one** — The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first. → §DD31
 - 💭 **DD33** (deps: DD24) **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does. → §DD33
+
+## Block H — The public surface (the site a reader and an agent both read)
+
+- 📋 **DD40** (deps: —) **The site is one hand-written page, dark-only, with every claim typed into the markup that displays it** — A Vite, React and Tailwind workspace with the copy in one module the sections only render, so a claim has one home a reviewer can check and the theme follows the OS. → §DD40
 
 ## Non-goals
 

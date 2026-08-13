@@ -8,6 +8,7 @@
 - ✅ **DD3** **Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying** — `dockerdesk-engine --run` starts the distro and daemon, serves \.\pipe\docker_engine, and reports Running only once the engine answers.
 - ✅ **DD16** **The preflight reports no rival engine on a machine where Docker Desktop is installed per-user and `docker` is on PATH** — The row now asks what owns the docker command, resolving it off PATH the way a shell does and reading the registered WSL distributions, and it names every signal it found.
 - ✅ **DD18** **On a Windows 11 that never had WSL, the preflight spends 15 seconds saying it could not read the WSL2 row** — The row asks `wsl --status` first, so a bare machine is named in milliseconds with the remedy that applies, and `--version` is only reached once something says WSL is there.
+- ✅ **DD19** **Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start** — The row reads whether this machine is itself a guest, and abstains inside one instead of reading HypervisorPresent as proof it can host a hypervisor.
 
 ## Block B — The daemon client (talk to the engine)
 

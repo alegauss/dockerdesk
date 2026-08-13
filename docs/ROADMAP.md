@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD19** (deps: —) **Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start** — HypervisorPresent is true of every guest, so the row reads I am virtualized as I can host one, and the install fails halfway on exactly the machine the check exists to stop. → §DD19
 - 📋 **DD20** (deps: —) **A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering** — The context outlives a rival uninstall because it lives in the user profile, and the result is a tool that looks broken with nothing wrong with it. → §DD20
 - 💭 **DD52** (deps: —) **The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path** — Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped. → §DD52
 

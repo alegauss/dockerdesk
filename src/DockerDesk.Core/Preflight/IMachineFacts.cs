@@ -23,9 +23,24 @@ public interface IMachineFacts
 
     /// <summary>
     /// Whether a hypervisor is already running, or <see langword="null"/> where the question
-    /// could not be asked. True is proof that virtualization is on.
+    /// could not be asked.
     /// </summary>
+    /// <remarks>
+    /// True is proof that a hypervisor is running, and not proof that this machine can host one:
+    /// it is equally true of every guest. <see cref="IsVirtualMachine"/> is the fact that separates
+    /// the two, and reading this one alone is the defect DD19 fixed.
+    /// </remarks>
     bool? HypervisorPresent { get; }
+
+    /// <summary>
+    /// Whether this machine is itself a guest, or <see langword="null"/> where the question could
+    /// not be asked.
+    /// </summary>
+    /// <remarks>
+    /// Inside a guest, nothing readable from in here says whether the host exposed nested
+    /// virtualization, so a row that knows only this has to answer Unknown rather than guess.
+    /// </remarks>
+    bool? IsVirtualMachine { get; }
 
     /// <summary>What is installed of WSL.</summary>
     WslInstallation Wsl { get; }

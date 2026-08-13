@@ -18,9 +18,17 @@ internal sealed record FakeMachine : IMachineFacts
 
     public bool? HypervisorPresent { get; init; }
 
+    /// <summary>
+    /// False by default: the healthy machine is a real one. A guest is a state to opt into, and
+    /// leaving this null would make every existing test run against a machine whose most important
+    /// row abstains.
+    /// </summary>
+    public bool? IsVirtualMachine { get; init; }
+
     public WslInstallation Wsl { get; init; } = new()
     {
         CommandPresent = true,
+        FeatureInstalled = true,
         Version = "2.6.1.0",
         KernelVersion = "6.6.87.2",
         DefaultVersion = 2,

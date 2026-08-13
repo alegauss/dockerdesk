@@ -70,6 +70,30 @@ public static class PreflightInspection
 
     private static PreflightCheck CheckVirtualization(IMachineFacts facts)
     {
+        // First, because inside a guest neither of the other two facts answers the question (DD19).
+        // Measured on a VMware guest with nested virtualization switched off: HypervisorPresent is
+        // true and the firmware bit is false — identical to a healthy laptop running Hyper-V. The
+        // row used to read the first of those as proof, cleared the install, and the install then
+        // failed at ImportDistribution with "WSL2 cannot start because virtualization is not
+        // enabled on this machine". Nothing readable from inside a guest says whether the host
+        // exposed nested virtualization, so this abstains rather than guesses either way.
+        if (facts.IsVirtualMachine is true)
+        {
+            return new PreflightCheck
+            {
+                Id = Rows.Virtualization,
+                Title = "Hardware virtualization",
+                Verdict = Verdict.Unknown,
+                Detail = "this is a virtual machine — whether it can host another hypervisor "
+                    + "cannot be read from inside it",
+                Remedy = "Enable nested virtualization for this VM on its host, then run this "
+                    + "check again. In VMware that is Virtualize Intel VT-x/EPT in the VM's "
+                    + "processor settings; in Hyper-V it is Set-VMProcessor "
+                    + "-ExposeVirtualizationExtensions $true.",
+                Blocking = true,
+            };
+        }
+
         // Order matters. Windows reports the firmware bit as false once a hypervisor has claimed
         // it, so reading the bit first calls a machine that is plainly virtualizing "disabled"
         // and sends the user into a BIOS to switch on something already on.

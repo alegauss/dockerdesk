@@ -8,8 +8,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 3,
-      "shipped": 6,
+      "open": 2,
+      "shipped": 7,
       "retired": 0
     },
     {
@@ -63,19 +63,11 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 23,
-    "shipped": 30,
+    "open": 22,
+    "shipped": 31,
     "retired": 0
   },
   "open": [
-    {
-      "id": "DD19",
-      "status": "📋",
-      "block": "A",
-      "symptom": "Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start",
-      "why": "HypervisorPresent is true of every guest, so the row reads I am virtualized as I can host one, and the install fails halfway on exactly the machine the check exists to stop.",
-      "deps": []
-    },
     {
       "id": "DD20",
       "status": "📋",
@@ -336,6 +328,14 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
+      "id": "DD19",
+      "status": "✅",
+      "block": "A",
+      "symptom": "Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start",
+      "why": "The row reads whether this machine is itself a guest, and abstains inside one instead of reading HypervisorPresent as proof it can host a hypervisor.",
+      "deps": []
+    },
+    {
       "id": "DD4",
       "status": "✅",
       "block": "B",
@@ -528,5 +528,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD19"
+  "next": "DD20"
 };

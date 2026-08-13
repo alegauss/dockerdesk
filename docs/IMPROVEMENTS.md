@@ -312,29 +312,6 @@ published and is on machines.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD33 MCP is a second head, and it is not free
-
-The constitution inverts the usual order and lands every capability on the CLI first, so
-this is the task that records the condition under which that decision is revisited
-rather than the task that builds the thing.
-
-The measurement is borrowed and it is specific. In Viglet Shio, whose ten design laws
-this repository's constitution adapts, the MCP tool list is re-sent on **every turn of
-every session before any work happens**, measured at roughly 2 400 tokens across eleven
-tools, with a recorded moment of one token of headroom. Its own review concluded that
-for an agent which has a terminal, a CLI verb costs nothing per turn while a tool schema
-is a permanent tax — and that the tax is worth paying only for a client with no shell,
-which could otherwise reach nothing.
-
-Nobody operates Docker on Windows from a client with no shell. So the fixed cost
-currently buys nothing here, and it would be worse than in that case because the natural
-tool count on this surface is higher.
-
-What would change the answer is evidence of such a caller, and then this lands as a
-**second head over the same methods** — never a parallel implementation, which is how a
-surface acquires two sets of semantics. Capped at six tools, with the schema total held
-by the same budget file DD23 gates, and a raise argued in the commit that makes it.
-
 ### §DD58 The invocation name is quoted in a file this project does not own
 
 The surface an agent drives is invoked by name, and the name is quoted in a place this

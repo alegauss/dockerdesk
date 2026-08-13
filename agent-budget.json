@@ -144,6 +144,35 @@
     }
   },
 
+  "mcp": {
+    "exists": false,
+    "about": [
+      "DD33. There is no MCP head, and this block is the decision rather than a placeholder for one.",
+      "The argument is in docs/specs/DD33-mcp-is-a-second-head.md; the numbers that gate it are here.",
+      "",
+      "A CLI verb is paid when it is called. A tool schema is paid before anything is called, on every",
+      "turn of every session - which makes the two heads different in kind and not in degree. The one",
+      "thing that reopens this is evidence of a caller with no shell, which could otherwise reach",
+      "nothing at all. A client that merely supports MCP is not that caller."
+    ],
+    "revisitWhen": "a real caller that has no shell and needs to drive Docker on Windows",
+    "maxTools": 6,
+    "maxSchemaTokens": 1100,
+    "$maxSchemaTokens": [
+      "Under half the borrowed 2400, and tighter than it pro-rata: 11 tools at 2400 is roughly 218",
+      "each, so six of them would be about 1300. The cap is 1100 on purpose - the whole argument",
+      "against a second head is its fixed cost, and a ceiling that merely matches the case it learned",
+      "from has learned nothing from it. 1200 was written first, and the test that holds this figure",
+      "under half of 2400 rejected it: exactly half is not under half."
+    ],
+    "borrowed": {
+      "from": "Viglet Shio, SH114",
+      "tools": 11,
+      "schemaTokens": 2400,
+      "note": "re-sent every turn of every session before any work happens; recorded moment of one token of headroom"
+    }
+  },
+
   "refusal": {
     "about": [
       "The expensive case, and the one a benchmark over well-formed calls cannot see. A refusal costs",

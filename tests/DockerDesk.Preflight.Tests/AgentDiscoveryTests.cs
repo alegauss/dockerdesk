@@ -142,6 +142,95 @@ public sealed class AgentDiscoveryTests
             $"after-install.txt carries U+{(int)character:X4}, which Inno will not render as written"));
     }
 
+    // ---- the head that does not exist (DD33) ---------------------------------------------------
+
+    /// <summary>What names an MCP implementation, whichever library it arrived from.</summary>
+    /// <remarks>
+    /// Deliberately broad. The point is not to identify a specific package: it is that a second head
+    /// cannot be added without this test noticing, and a contributor who has to widen the list is a
+    /// contributor who has read why it is here.
+    /// </remarks>
+    private static readonly string[] McpMarkers =
+        ["ModelContextProtocol", "tools/list", "McpServer", "IMcpTool"];
+
+    private static JsonDocument Budget() =>
+        JsonDocument.Parse(File.ReadAllBytes(RepositoryFile("agent-budget.json")));
+
+    [Fact]
+    public void There_is_no_MCP_head_and_the_budget_says_so_in_the_same_breath()
+    {
+        using var budget = Budget();
+        var mcp = budget.RootElement.GetProperty("mcp");
+
+        if (mcp.GetProperty("exists").GetBoolean())
+        {
+            // Flipping the flag on its own does not pass. Whoever does it has to come back here and
+            // replace this branch with a measurement of the schema against maxSchemaTokens, which is
+            // the argument DD33 exists to force.
+            Assert.Fail(
+                "agent-budget.json says an MCP head exists. This test has to be rewritten to measure "
+                + "its tools/list payload against mcp.maxSchemaTokens and count its tools against "
+                + "mcp.maxTools. See docs/specs/DD33-mcp-is-a-second-head.md.");
+        }
+
+        var source = new DirectoryInfo(
+            System.IO.Path.GetDirectoryName(RepositoryFile("agent-budget.json"))!)
+            .GetDirectories("src").Single();
+
+        foreach (var file in source.GetFiles("*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.FullName.Contains(@"\obj\", StringComparison.Ordinal)
+                     && !f.FullName.Contains(@"\bin\", StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(file.FullName);
+            foreach (var marker in McpMarkers)
+            {
+                Assert.False(
+                    text.Contains(marker, StringComparison.Ordinal),
+                    $"{file.Name} mentions {marker}, and agent-budget.json says no MCP head exists. "
+                    + "A second head is capped at six tools and gated by that file, and the raise is "
+                    + "argued in the commit that makes it — see docs/specs/DD33-mcp-is-a-second-head.md.");
+            }
+        }
+    }
+
+    [Fact]
+    public void The_cap_is_tighter_than_the_case_it_learned_from()
+    {
+        using var budget = Budget();
+        var mcp = budget.RootElement.GetProperty("mcp");
+        var borrowed = mcp.GetProperty("borrowed");
+
+        // A ceiling that merely matches the thing it learned from has learned nothing from it: the
+        // whole argument against a second head is its fixed cost.
+        Assert.True(mcp.GetProperty("maxTools").GetInt32() < borrowed.GetProperty("tools").GetInt32());
+        Assert.True(
+            mcp.GetProperty("maxSchemaTokens").GetInt32()
+            < borrowed.GetProperty("schemaTokens").GetInt32() / 2);
+
+        // And the condition is a caller, not a preference. An empty string here would make the
+        // decision unreopenable, which is the opposite of what it is.
+        Assert.False(string.IsNullOrWhiteSpace(mcp.GetProperty("revisitWhen").GetString()));
+    }
+
+    [Fact]
+    public void The_decision_is_written_down_where_it_survives_being_shipped()
+    {
+        // IMPROVEMENTS.md holds rationale for unshipped work, so shipping DD33 deletes its section
+        // from there. The record has to outlive the act of recording it.
+        var spec = File.ReadAllText(
+            RepositoryFile(@"docs\specs\DD33-mcp-is-a-second-head.md"));
+
+        Assert.Contains("no shell", spec, StringComparison.Ordinal);
+        Assert.Contains("2 400 tokens", spec, StringComparison.Ordinal);
+        Assert.Contains("six tools", spec, StringComparison.Ordinal);
+
+        // Reachable from the constitution, or it is a file nobody proposing MCP would find.
+        Assert.Contains(
+            "DD33-mcp-is-a-second-head.md",
+            File.ReadAllText(RepositoryFile(@"docs\specs\DD23-agent-first-dockerdesk.md")),
+            StringComparison.Ordinal);
+    }
+
     // ---- the brief -----------------------------------------------------------------------------
 
     private static ContextFacts Facts() => new(

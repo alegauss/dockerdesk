@@ -258,7 +258,7 @@ in somebody else's environment.
 | **DD29** | Session labels and a scoped `do reclaim`, so cleanup is an undo and not a `prune` |
 | **DD30** | `read verify` — the perception loop (P8): the port answers, the mount resolved |
 | **DD31** | `read changes --since <cursor>` over the tray's event stream (P9) |
-| **DD33** | 💭 An MCP head, if and only if a shell-less caller turns out to exist (§2.1) |
+| **DD33** | ✅ **Decided: no MCP head.** The condition that reopens it, and the terms if it does — [DD33-mcp-is-a-second-head.md](DD33-mcp-is-a-second-head.md) (§2.1) |
 
 ## 6. One task is not Block G's, and that is deliberate
 

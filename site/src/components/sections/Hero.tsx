@@ -17,7 +17,9 @@ export function Hero() {
         <p className="sub">
           <Rich runs={hero.sub} />
         </p>
-        <div className="hero-cta">
+        {/* S5: the call to action is dropped from the Markdown twin by this attribute —
+            it converts a reader and costs an agent the same forty words on every page. */}
+        <div className="hero-cta" data-twin="omit">
           <a className="btn btn-primary" href={repoUrl}>
             ★ View on GitHub
           </a>

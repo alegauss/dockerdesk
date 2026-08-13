@@ -1,4 +1,4 @@
-import { renderToString } from "react-dom/server";
+import { renderToString, renderToStaticMarkup } from "react-dom/server";
 import { App } from "./App";
 
 // The build-side render. scripts/prerender.mjs imports this from the SSR bundle and calls
@@ -7,6 +7,13 @@ import { App } from "./App";
 // routes.tsx has already checked against the component map.
 export { ROUTE_META, canonicalUrl, outputDir } from "./routes";
 
+/** The hydratable render written into the HTML file. */
 export function render(path: string): string {
   return renderToString(<App path={path} />);
+}
+
+/** The same component tree as clean static HTML — what the Markdown twin is converted from
+ *  (S5), so the twin cannot drift from the page because it is not authored a second time. */
+export function renderStatic(path: string): string {
+  return renderToStaticMarkup(<App path={path} />);
 }

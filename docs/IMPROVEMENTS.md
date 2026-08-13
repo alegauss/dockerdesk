@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD42 The Markdown twin, the manifest, and llms.txt
-
-DD23 says the primary operator is a coding agent. This site answers one in hydrated
-React markup, which is that argument failing in the first thing anybody reads - and
-failing P4 specifically, the law that a file an agent can grep beats a stream it must
-swallow whole. Every route also emits its Markdown twin, converted from the same render
-rather than written a second time: the copy lives in the content module but the
-composition lives in the JSX, so generating Markdown from the data alone would
-re-declare that composition and let the two drift. The nav and the footer never reach a
-twin, and the call to action is dropped by an attribute - it converts a reader and costs
-an agent the same forty words on every page. A manifest lists the routes, their twins
-and their sizes, so the discovery pattern DD25's context pack teaches is the one this
-site is found by. The llms.txt that exists today is good: it moves, gains the twin
-convention, and loses the line calling the container window in progress.
-
 ### §DD43 The status page, generated from roadkeep
 
 The page lists DD7 as in progress and DD8 through DD12 as open. All five have shipped.

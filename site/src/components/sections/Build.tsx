@@ -42,7 +42,7 @@ export function Build() {
             <Rich runs={build.planNote} />
           </p>
         </div>
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
+        <div style={{ textAlign: "center", marginTop: "30px" }} data-twin="omit">
           <a className="btn btn-primary" href={repoUrl}>
             ★ View on GitHub
           </a>

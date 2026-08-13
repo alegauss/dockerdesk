@@ -9,10 +9,12 @@ import { fileURLToPath } from "node:url";
 
 import {
   render,
+  renderStatic,
   ROUTE_META,
   canonicalUrl,
   outputDir,
 } from "../dist-server/entry-server.js";
+import { htmlToMarkdown } from "./markdown.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const distDir = join(here, "..", "dist");
@@ -43,6 +45,9 @@ function escapeHtml(s) {
 if (ROUTE_META.length === 0) {
   throw new Error("prerender: ROUTE_META is empty — nothing to render");
 }
+
+const byteLength = (s) => Buffer.byteLength(s, "utf8");
+const manifestRoutes = [];
 
 for (const meta of ROUTE_META) {
   const body = render(meta.path);
@@ -81,12 +86,43 @@ for (const meta of ROUTE_META) {
     'the <div id="root"> mount point',
   );
 
-  const dir = join(distDir, outputDir(meta.path));
+  // The Markdown twin, converted from the same render (S5).
+  const markdown = htmlToMarkdown(renderStatic(meta.path));
+
+  const rel = outputDir(meta.path);
+  const dir = join(distDir, rel);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "index.html"), html);
+  writeFileSync(join(dir, "index.md"), markdown);
+
+  const htmlPath = rel ? `${rel}/index.html` : "index.html";
+  const mdPath = rel ? `${rel}/index.md` : "index.md";
+  manifestRoutes.push({
+    path: meta.path,
+    url: canonical,
+    title: meta.title,
+    description: meta.description,
+    html: htmlPath,
+    markdown: mdPath,
+    htmlBytes: byteLength(html),
+    markdownBytes: byteLength(markdown),
+  });
   console.log(
-    `prerendered ${meta.path.padEnd(12)} -> ${outputDir(meta.path) || "index.html"}  (${body.length} bytes, ${canonical})`,
+    `prerendered ${meta.path.padEnd(12)} -> ${htmlPath} + ${mdPath}  (${byteLength(markdown)} md bytes)`,
   );
 }
 
-console.log(`prerender: ${ROUTE_META.length} route(s) written to dist/`);
+// The manifest lists the routes, their twins and their sizes, so the discovery pattern
+// DD25's context pack teaches is the one this site is found by (S5). No build timestamp —
+// the same input builds byte-identical output.
+const manifest = {
+  name: "DockerDesk",
+  base: "/dockerdesk/",
+  llms: "llms.txt",
+  routes: manifestRoutes,
+};
+writeFileSync(join(distDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+
+console.log(
+  `prerender: ${ROUTE_META.length} route(s) + twins + manifest.json written to dist/`,
+);

@@ -118,31 +118,6 @@ Filtering is over the rows in hand, never a second call to the daemon, and it su
 refresh from the event stream — the part easy to get wrong. An empty result is a third
 empty state, saying what was typed.
 
-### §DD38 A window is drawn from a fixture, not from whatever is running
-
-Nothing here can be looked at without a running daemon behind it. Every window takes a
-`DockerApi` and asks it for the rows it draws, so seeing the images tab means having
-images, seeing a failure line means causing a failure, and seeing a pending row means
-catching a stop mid-flight. The three empty states, designed prose, are the hardest to
-reach on purpose.
-
-That has two costs. A change to the window is reviewed by describing it, and a
-screenshot is whatever the machine happened to be running that afternoon — which is also
-somebody's container names in a public README. And it is the reason DD22 exists at all:
-a capture verb needs something to capture, and today that something is the live screen.
-
-claude-tray solves it with fixtures and flags. `ContextFixture`, `AccountFixture`,
-`EnvironmentFixture` and `SampleRoot` build a known machine; `--settings`, `--stats`,
-`--context --window` and the capture flags render one page from it; `PageWindow` is a
-bare host that exists so a preview is the page and not the shell around it. The captures
-are deterministic, which is what makes them reviewable.
-
-The equivalent here is a fake `DockerApi` — a small set of containers, images and
-volumes chosen to cover running, exited, published and exposed ports, dangling and
-in-use images, an anonymous volume, a pending row and a refusal — plus a flag that opens
-any page against it. The fixture is also the fastest route to the empty states, which
-are otherwise reached by deleting things.
-
 ### §DD39 The window remembers where it was and what was being read
 
 `WindowStartupLocation="CenterScreen"`, `Width="1040" Height="560"`, and nothing
@@ -188,30 +163,6 @@ so the brush exists — and the transmitted image goes away at the source. Or re
 main window outright and make the script take a popup or nothing, which is what it is
 actually for. The first keeps one script useful for both; the second is smaller and
 admits that a screen copy of a translucent window is not a thing worth making safe.
-
-### §DD66 The seam DD38 asked for is the one that works
-
-DD38 says "a fake `DockerApi`". It was attempted the other way first — serve the fixture
-from `FakeDockerDaemon` on a private pipe and hand the window a real `DockerApi` pointed
-at it — because that is the seam this repository already trusts everywhere else, and it
-exercises the real client, the real HTTP and the real JSON parsing.
-
-It does not work from a window. Instrumented, `ContainersPage.RefreshAsync` is entered
-with the engine reading `Running`, and `await _api.ContainersAsync()` then neither
-returns nor throws: no rows, no exception, nothing logged after the await, with the
-capture's settle raised from one second to six. The identical call against the identical
-daemon returns immediately from a test thread, which is how every agent-surface test
-runs. The difference is the WPF dispatcher, and the shape is a deadlock between it and
-the pipe client — not isolated further.
-
-What the failure looks like is worth recording, because it is quiet: the capture
-succeeds, the window renders, and what it renders is the XAML defaults — a header row
-with nothing under it, a prune button enabled because that is its markup value. Nothing
-says the read never completed.
-
-So the fixture should be injected rather than served: an interface over the ten methods
-the pages actually call, implemented by `DockerApi` and by a fixture, which is the
-literal reading of the section. It also removes the wait-for-the-pipe problem entirely.
 
 ## Block D — Container operations (what a user came to do)
 

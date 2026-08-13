@@ -19,7 +19,7 @@ internal partial class LogWindow : Window
     /// </remarks>
     private const long RedrawEveryMs = 60;
 
-    private readonly DockerApi _api;
+    private readonly IEngineClient _api;
     private readonly string _id;
     private readonly LogBuffer _buffer = new();
     private readonly CancellationTokenSource _closing = new();
@@ -43,7 +43,7 @@ internal partial class LogWindow : Window
     /// <param name="api">The Engine API client.</param>
     /// <param name="id">The container's full id.</param>
     /// <param name="name">What the container is called, for the title.</param>
-    internal LogWindow(DockerApi api, string id, string name)
+    internal LogWindow(IEngineClient api, string id, string name)
     {
         InitializeComponent();
         _api = api;

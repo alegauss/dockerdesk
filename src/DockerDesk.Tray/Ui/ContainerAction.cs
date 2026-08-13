@@ -90,7 +90,7 @@ public static class ContainerAction
     /// <param name="cancellation">Cancellation.</param>
     /// <returns>A task that completes when the daemon accepted the call.</returns>
     public static Task InvokeAsync(
-        DockerApi api,
+        IEngineClient api,
         ContainerVerb verb,
         string id,
         bool force = false,

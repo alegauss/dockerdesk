@@ -22,7 +22,7 @@ namespace DockerDesk.Tray.Ui.Pages;
 /// </remarks>
 internal partial class ContainersPage : System.Windows.Controls.UserControl
 {
-    private readonly DockerApi _api;
+    private readonly IEngineClient _api;
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
     private readonly RowActivity _activity = new();
@@ -32,7 +32,7 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// <param name="api">The Engine API client.</param>
     /// <param name="engineState">What the engine is doing, asked at render time.</param>
     /// <param name="startEngine">What the empty state's button does.</param>
-    internal ContainersPage(DockerApi api, Func<EngineState> engineState, Action startEngine)
+    internal ContainersPage(IEngineClient api, Func<EngineState> engineState, Action startEngine)
     {
         InitializeComponent();
         _api = api;

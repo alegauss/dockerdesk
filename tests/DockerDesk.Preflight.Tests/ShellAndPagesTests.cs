@@ -88,7 +88,10 @@ public sealed class ShellAndPagesTests
         foreach (var page in PageMarkup())
         {
             var markup = File.ReadAllText(page);
-            foreach (var style in new[] { "RowAction", "Header", "PortLink", "PortText" })
+            // Only the styles that are still the shell's. PortLink and PortText moved into the page
+            // that uses them (DD66): they are BasedOn by a row template, BasedOn is a CLR property,
+            // and a DynamicResource on it throws when the first row is measured.
+            foreach (var style in new[] { "RowAction", "Header" })
             {
                 Assert.DoesNotContain(
                     $"StaticResource {style}", markup, StringComparison.Ordinal);

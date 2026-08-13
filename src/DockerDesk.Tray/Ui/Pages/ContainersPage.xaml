@@ -11,6 +11,47 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="clr-namespace:DockerDesk.Tray.Ui"
              x:ClassModifier="internal">
+
+    <UserControl.Resources>
+        <!-- These two live here rather than in the shell, and BasedOn is why: it is a CLR property,
+             not a DependencyProperty, so a DynamicResource on it is illegal — and WPF says so at
+             RENDER time, on the first row measured, not at parse time. Moving them to the page that
+             uses them makes a StaticResource correct again, because they are resolved inside the
+             file that declares them.
+
+             Neither is BasedOn the Fluent Button, so neither has the problem that keeps RowAction in
+             the window (DD34). -->
+        <Style x:Key="PortLink" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Hit" Background="{TemplateBinding Background}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hit" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PortText" TargetType="TextBlock">
+            <Setter Property="Margin" Value="6,2,6,2" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Style>
+    </UserControl.Resources>
 <Grid Margin="0,10,0,0">
   <Grid.RowDefinitions>
     <RowDefinition Height="Auto" />
@@ -80,7 +121,7 @@
                                     Click="OpenPort" ToolTip="{Binding Url}">
                                 <Button.Style>
                                     <Style TargetType="Button"
-                                           BasedOn="{DynamicResource PortLink}">
+                                           BasedOn="{StaticResource PortLink}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsLink}" Value="True">
@@ -93,7 +134,7 @@
                             <TextBlock Text="{Binding Text}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock"
-                                           BasedOn="{DynamicResource PortText}">
+                                           BasedOn="{StaticResource PortText}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsLink}" Value="False">

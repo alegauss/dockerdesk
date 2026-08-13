@@ -27,7 +27,7 @@ namespace DockerDesk.Tray.Ui;
 /// </remarks>
 internal partial class MainWindow : Window
 {
-    private readonly DockerApi _api;
+    private readonly IEngineClient _api;
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
 
@@ -41,7 +41,7 @@ internal partial class MainWindow : Window
     /// <param name="api">The Engine API client.</param>
     /// <param name="engineState">What the engine is doing, asked at render time.</param>
     /// <param name="startEngine">What the empty state's button does.</param>
-    internal MainWindow(DockerApi api, Func<EngineState> engineState, Action startEngine)
+    internal MainWindow(IEngineClient api, Func<EngineState> engineState, Action startEngine)
     {
         InitializeComponent();
         _api = api;

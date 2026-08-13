@@ -64,7 +64,7 @@ DockerDesk.exe --window        the tray, with the window open
 DockerDesk.exe --preflight     what this machine can host; --json for a script
 DockerDesk.exe --provision     download, verify and install the engine
 DockerDesk.exe --run           start the engine and serve the pipe until Ctrl+C
-DockerDesk.exe --capture-window <png> [tab]
+DockerDesk.exe --capture-window <png> [page] [--fixture]
                                render the window to a PNG off-screen
 DockerDesk.exe --help          every verb
 ```
@@ -280,6 +280,14 @@ a `GET`. Addresses are names — a container by its name, a compose service as
 Every response shape has a ceiling in [`agent-budget.json`](agent-budget.json), and a test
 fails a build that made one more expensive. See
 [docs/specs/DD23-agent-first-dockerdesk.md](docs/specs/DD23-agent-first-dockerdesk.md).
+
+`--capture-window <png> [page] --fixture` draws the window from a **known machine** rather
+than from whatever is running: five containers covering running and exited, a published
+port and an exposed-only one, dangling images and an anonymous volume. Every name starts
+with `sample-`, so a screenshot of it is obviously a fixture and never somebody's real
+project; every write refuses, in the engine's own voice. The captures are deterministic,
+which is what makes a change to the window reviewable as a picture — and the three empty
+states, otherwise the hardest thing here to reach, are one flag away.
 
 `--capture-window` renders the window's own content and never photographs the screen, so it
 cannot catch anything that happens to be in front of it — and it needs no desktop at all,

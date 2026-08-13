@@ -9,7 +9,7 @@ namespace DockerDesk.Tray.Ui.Pages;
 /// </summary>
 internal partial class VolumesPage : System.Windows.Controls.UserControl
 {
-    private readonly DockerApi _api;
+    private readonly IEngineClient _api;
     private readonly Func<EngineState> _engineState;
     private readonly RowActivity _volumeActivity = new();
     private VolumeTotals _volumeTotals = new(0, 0, Measured: true);
@@ -17,7 +17,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
     /// <summary>Construct the page.</summary>
     /// <param name="api">The Engine API client.</param>
     /// <param name="engineState">What the engine is doing, asked at render time.</param>
-    internal VolumesPage(DockerApi api, Func<EngineState> engineState)
+    internal VolumesPage(IEngineClient api, Func<EngineState> engineState)
     {
         InitializeComponent();
         _api = api;

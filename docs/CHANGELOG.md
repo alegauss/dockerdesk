@@ -24,6 +24,8 @@
 - ✅ **DD22** **Verifying a window copies the screen, so a capture twice photographed private content that was in front of it** — A --capture-window verb renders the window off-screen so nothing else can be in the frame, and the screen copy kept for popups refuses when anything overlaps it.
 - ✅ **DD34** **The two windows redeclare their chrome and one red is spelled four times, so a meaning has four definitions** — The danger red, the engine's three colours and the font stack live in one Palette of bytes, and markup reaches them with x:Static as claude-tray's Brand does.
 - ✅ **DD35** **Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files** — The shell keeps the engine line, the terms and a nav strip; each list is a page built on first visit and kept alive, so a fourth adds a file rather than growing two.
+- ✅ **DD66** **Every container row threw while being measured, so the list has drawn nothing since the pages were split** — The two styles a row template is BasedOn moved into the page that uses them, where a StaticResource is legal, and a check refuses a DynamicResource on BasedOn.
+- ✅ **DD38** **No window can be drawn without a running daemon holding the containers the picture is meant to show** — The window takes a seam rather than the client, and a SampleMachine stands in at it, so --fixture draws every page from a machine that is the same everywhere.
 
 ## Block D — Container operations (what a user came to do)
 

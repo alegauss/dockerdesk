@@ -1,5 +1,6 @@
 using System.IO;
 using DockerDesk.Core.Api;
+using DockerDesk.Core.Fixtures;
 using DockerDesk.Core.Engine;
 
 namespace DockerDesk.Tray.Cli;
@@ -32,8 +33,11 @@ internal static class WindowCapture
     /// <summary>How long to let the window settle before rendering it.</summary>
     private static readonly TimeSpan Settle = TimeSpan.FromSeconds(1);
 
+    /// <summary>What asks for the fixture instead of the live engine (DD38).</summary>
+    public const string FixtureFlag = "--fixture";
+
     /// <summary>Render the window to a PNG.</summary>
-    /// <param name="args">The output path, then optionally a tab header.</param>
+    /// <param name="args">The output path, a tab header, and <c>--fixture</c>, all optional but the path.</param>
     /// <returns>The process exit code.</returns>
     internal static int Run(string[] args)
     {
@@ -43,6 +47,9 @@ internal static class WindowCapture
                 "takes an output path and optionally a tab, "
                 + $"e.g. {CommandLine.ExecutableName} {CommandLine.CaptureWindowVerb} window.png Images");
         }
+
+        var fixture = args.Contains(FixtureFlag, StringComparer.Ordinal);
+        args = [.. args.Where(a => !string.Equals(a, FixtureFlag, StringComparison.Ordinal))];
 
         if (args.Length > 2)
         {
@@ -67,11 +74,13 @@ internal static class WindowCapture
         // chrome would be a picture of something nobody runs (DD34).
         var app = Ui.Theme.Apply();
 
-        // Not connected to anything, and it does not need to be: with no engine answering, the window
-        // renders its own empty state, which is a picture of a real thing. A window drawn from a
-        // fixture is DD38 and is a separate argument.
-        var api = new DockerApi();
-        var window = new Ui.MainWindow(api, () => EngineState.Stopped, () => { })
+        // With no engine answering, the window renders its own empty state — a picture of a real
+        // thing, and the only picture this verb could take before DD38. --fixture is the other half:
+        // a known machine, so the rows, the ports, the sizes and the states are the same on every
+        // machine and in CI. The window is handed one or the other and never learns which.
+        IEngineClient api = fixture ? new SampleMachine() : new DockerApi();
+        var window = new Ui.MainWindow(
+            api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { })
         {
             WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
             // Off the desktop entirely. Not merely unfocused: there is no screen region for anything
@@ -131,7 +140,9 @@ internal static class WindowCapture
         settle.Start();
 
         app.Run();
-        api.Dispose();
+
+        // The fixture holds nothing to release; the real client holds a pipe and a pool.
+        (api as IDisposable)?.Dispose();
         return code;
     }
 

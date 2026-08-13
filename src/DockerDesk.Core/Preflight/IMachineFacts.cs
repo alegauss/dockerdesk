@@ -125,6 +125,42 @@ public sealed record WslInstallation
 }
 
 /// <summary>An engine that already owns what this one would take.</summary>
-/// <param name="Name">The product, as its own installer names it.</param>
-/// <param name="Evidence">The path, pipe or key it was found by — so the report can be argued with.</param>
-public sealed record RivalEngine(string Name, string Evidence);
+/// <remarks>
+/// The evidence is a list and not a sentence, which is DD52. It exists so a user can check it against
+/// <c>where docker</c>, and every item in it is a path, a pipe or a distribution name — things that
+/// cannot be broken across two lines and still be copied or grepped. Joining them into one string
+/// pushed that decision onto whoever printed the row, and the printer's only tool is a wrap on
+/// spaces, which is exactly the break a path must not take.
+/// </remarks>
+public sealed record RivalEngine
+{
+    /// <summary>Name a rival and the signals it was found by.</summary>
+    /// <param name="name">The product, as its own installer names it.</param>
+    /// <param name="signals">One item per signal, each atomic.</param>
+    public RivalEngine(string name, params string[] signals)
+        : this(name, (IReadOnlyList<string>)signals)
+    {
+    }
+
+    /// <summary>Name a rival and the signals it was found by.</summary>
+    /// <param name="name">The product, as its own installer names it.</param>
+    /// <param name="signals">One item per signal, each atomic.</param>
+    public RivalEngine(string name, IReadOnlyList<string> signals)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(signals);
+        Name = name;
+        Signals = signals;
+    }
+
+    /// <summary>The product, as its own installer names it.</summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// The paths, pipes and distribution names it was found by — so the report can be argued with.
+    /// </summary>
+    public IReadOnlyList<string> Signals { get; }
+
+    /// <summary>The same signals as one phrase, for a caller with one field to fill.</summary>
+    public string Evidence => string.Join(", ", Signals);
+}

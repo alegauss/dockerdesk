@@ -23,6 +23,18 @@ public sealed record PreflightCheck
     public required string Detail { get; init; }
 
     /// <summary>
+    /// The individual things this row was decided by, where naming them takes more than one line.
+    /// </summary>
+    /// <remarks>
+    /// DD52. Each item is printed whole on its own line and is never wrapped, because each is a path, a
+    /// pipe or a distribution name, and the renderer's only wrap breaks on spaces —
+    /// <c>…\Programs\DockerDesktop\Docker</c> on one line and <c>Desktop.exe)</c> on the next, which
+    /// nobody can copy into a shell or grep for. A row that fits in its <see cref="Detail"/> leaves
+    /// this empty; the alternative is every row paying for one row's problem.
+    /// </remarks>
+    public IReadOnlyList<string> Evidence { get; init; } = [];
+
+    /// <summary>
     /// The one action that changes <see cref="Detail"/>, or <see langword="null"/> where there is
     /// nothing to do.
     /// </summary>

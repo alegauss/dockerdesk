@@ -134,7 +134,10 @@ internal static class RivalEngineProbe
         // 3. The vendor paths, still evidence.
         foreach (var install in signals.VendorInstalls)
         {
-            Note(install.Name, install.Evidence);
+            foreach (var signal in install.Signals)
+            {
+                Note(install.Name, signal);
+            }
         }
 
         // 4. The pipe. Only ever its own row when nothing above identified anything: an engine
@@ -151,7 +154,9 @@ internal static class RivalEngineProbe
             }
         }
 
-        return [.. order.Select(name => new RivalEngine(name, string.Join(", ", evidence[name])))];
+        // Kept as a list, not joined (DD52): every item here is a path, a pipe or a distribution name,
+        // and which of them may share a line is the report's decision to make, not this one's.
+        return [.. order.Select(name => new RivalEngine(name, evidence[name]))];
     }
 
     /// <summary>

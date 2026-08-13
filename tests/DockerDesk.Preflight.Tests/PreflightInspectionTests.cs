@@ -184,8 +184,36 @@ public sealed class PreflightInspectionTests
         Assert.Equal(Verdict.Fail, row.Verdict);
         Assert.True(row.Blocks);
         Assert.False(report.CanHostEngine);
+        // The name is the answer and goes on the row; the path is what the answer is checked against
+        // and goes underneath, whole, on a line of its own (DD52).
         Assert.Contains("Docker Desktop", row.Detail, StringComparison.Ordinal);
-        Assert.Contains(@"C:\Program Files\Docker\x.exe", row.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(@"x.exe", row.Detail, StringComparison.Ordinal);
+
+        // No product prefix with one rival: the row above already says whose path this is, and
+        // repeating it on every line is noise where a user is trying to read a path.
+        Assert.Equal([@"C:\Program Files\Docker\x.exe"], row.Evidence);
+    }
+
+    [Fact]
+    public void Two_rivals_keep_their_evidence_apart_and_each_line_says_whose_it_is()
+    {
+        // A line copied out of the report has to still say what it is about. With two products
+        // installed, a bare path underneath a row naming both is evidence for neither.
+        var report = Run(new FakeMachine
+        {
+            RivalEngines =
+            [
+                new RivalEngine("Docker Desktop", @"docker resolves to C:\x\docker.exe", "a registered docker-desktop WSL distribution"),
+                new RivalEngine("Rancher Desktop", @"C:\y\Rancher Desktop.exe"),
+            ],
+        });
+
+        var row = Row(report, PreflightInspection.Rows.RivalEngine);
+
+        Assert.Equal("already installed: Docker Desktop, Rancher Desktop", row.Detail);
+        Assert.Equal(3, row.Evidence.Count);
+        Assert.All(row.Evidence, line => Assert.Contains(": ", line, StringComparison.Ordinal));
+        Assert.Equal(@"Rancher Desktop: C:\y\Rancher Desktop.exe", row.Evidence[^1]);
     }
 
     [Fact]

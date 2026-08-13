@@ -2,24 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD52 Wrapping a detail that contains paths
-
-Measured after DD16: the rival row's detail is 254 characters, because it now carries
-every signal the row was found by — a resolved command, a registered distribution and an
-installer path. A terminal wraps it, so nothing is lost, and that is why this is an idea
-rather than a defect.
-
-The obvious fix was tried and reverted in the same session. `ReportText.Wrap` breaks on
-spaces, which is right for the remedy — prose — and wrong here: aligned under the detail
-column it produced `…\Programs\DockerDesktop\Docker` on one line and `Desktop.exe)` on
-the next, and a path split at a space is one nobody can copy or grep. That is worse than
-a long line, which is the whole reason the change went back.
-
-So whatever is done here has to treat a path as atomic. One evidence item per line is
-the shape that avoids the problem rather than working around it, and it needs the detail
-to stop being a single joined string — which is a change to what a row carries, not to
-how a row is printed.
-
 ### §DD55 The distribution name and the app root are state, not spelling
 
 Two names in `EnginePaths` are the only ones the rename cannot simply overwrite.

@@ -101,6 +101,34 @@ public sealed class ReportTextTests
     }
 
     [Fact]
+    public void A_path_in_the_evidence_is_never_broken_across_two_lines()
+    {
+        // DD52, and the reason the obvious fix was reverted the first time: wrapping on spaces is
+        // right for the remedy and wrong here. It put `…\Programs\DockerDesktop\Docker` on one line
+        // and `Desktop.exe)` on the next, and a path split at a space is one nobody can copy into a
+        // shell or grep for. One item per line instead, however long the line ends up.
+        const string Resolved =
+            @"docker resolves to C:\Users\someone\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe";
+        const string Installer =
+            @"C:\Users\someone\AppData\Local\Programs\DockerDesktop\Docker Desktop.exe";
+
+        var text = ReportText.Render(PreflightInspection.Run(new FakeMachine
+        {
+            RivalEngines = [new RivalEngine("Docker Desktop", Resolved, Installer)],
+        }));
+
+        var lines = text.Split(Environment.NewLine);
+
+        Assert.Contains(lines, line => line.EndsWith(Resolved, StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.EndsWith(Installer, StringComparison.Ordinal));
+
+        // And the row itself stays short: it was 254 characters as one joined line, which is what
+        // sent anyone reading it to a wrap in the first place.
+        var row = lines.Single(line => line.Contains("Container engine", StringComparison.Ordinal));
+        Assert.True(row.Length <= 100, $"the rival row is {row.Length} characters: {row}");
+    }
+
+    [Fact]
     public void Render_refuses_a_null_report() =>
         Assert.Throws<ArgumentNullException>(() => ReportText.Render(null!));
 }

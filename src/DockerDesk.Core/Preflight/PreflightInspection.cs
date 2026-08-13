@@ -278,15 +278,28 @@ public static class PreflightInspection
                 "nothing else owns the docker command or the docker_engine pipe");
         }
 
-        var found = string.Join("; ",
-            facts.RivalEngines.Select(engine => $"{engine.Name} ({engine.Evidence})"));
+        // DD52. This used to be one joined line — 254 characters on the development machine, because
+        // the row carries every signal it was found by. The names go on the row, where they are the
+        // answer; the paths and pipes go underneath, one per line, where nothing can break them.
+        //
+        // The product prefix appears only where there is something to disambiguate. With two engines
+        // installed, a bare path under a row naming both is evidence for neither; with one, the row
+        // directly above already says whose it is, and repeating it on four lines is noise in the
+        // place a user is trying to read a path.
+        var names = string.Join(", ", facts.RivalEngines.Select(engine => engine.Name));
+        var attribute = facts.RivalEngines.Count > 1;
+        var evidence = facts.RivalEngines
+            .SelectMany(engine => engine.Signals.Select(
+                signal => attribute ? $"{engine.Name}: {signal}" : signal))
+            .ToArray();
 
         return new PreflightCheck
         {
             Id = Rows.RivalEngine,
             Title = "Container engine",
             Verdict = Verdict.Fail,
-            Detail = $"already installed: {found}",
+            Detail = $"already installed: {names}",
+            Evidence = evidence,
             Remedy = "Uninstall it first. Two engines competing for the docker_engine pipe "
                 + "leaves neither of them working.",
             Blocking = true,

@@ -57,6 +57,16 @@ public static class ReportText
                 .Append(check.Title.PadRight(titleWidth)).Append("  ")
                 .AppendLine(check.Detail);
 
+            // One item per line and never wrapped (DD52). These are paths, pipes and distribution
+            // names: a long line a terminal folds can still be copied, and one this renderer broke on
+            // a space cannot. Indented to the remedy's continuation column rather than to the detail
+            // column, so the evidence starts near the left margin and a long path has the width of the
+            // terminal rather than the width left over after a title.
+            foreach (var item in check.Evidence)
+            {
+                text.Append(' ', 14).AppendLine(item);
+            }
+
             if (check.Remedy is { } remedy && check.Verdict is not Verdict.Pass)
             {
                 // The arrow marks the remedy once. Repeating it on every wrapped line reads as

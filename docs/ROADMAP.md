@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 💭 **DD52** (deps: —) **The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path** — Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped. → §DD52
 - 📋 **DD55** (deps: DD54) **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable. → §DD55
 - 📋 **DD56** (deps: DD55) **The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not** — The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine. → §DD56
 

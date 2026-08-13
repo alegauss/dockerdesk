@@ -35,6 +35,7 @@
 - 📋 **DD58** (deps: DD54) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58
 - 📋 **DD63** (deps: DD29 ✅) **No verb on this surface creates anything, so the session stamp has nothing to stamp** — agent-budget.json already reserves a ceiling for do compose up, and DD29's label is reachable only from tests until a do verb creates something. → §DD63
 - 📋 **DD64** (deps: —) **The test that gates every cost claim can go red for a reason that is not cost** — AgentBudgetTests went red once in a full run and never again in 23; the only non-deterministic assertion in it is the daemon's recorded request count. → §DD64
+- 📋 **DD65** (deps: DD30 ✅) **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — agent-budget.json sets surface.exists false and names read context, doctor, logs and verify as not existing; all four shipped and are now measurable. → §DD65
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

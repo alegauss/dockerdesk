@@ -385,6 +385,31 @@ expensive". A gate that cries wolf is one somebody re-runs until it is green.
 The fix is to make the read complete rather than to widen the assertions: the fake
 should not dispose until the client has read what it was sent.
 
+### §DD65 The benchmark refused to invent a number, and now one exists
+
+`agent-budget.json` carries `"surface": { "exists": false }` beside an `about` naming
+`read context`, `read doctor`, `read logs` and `read verify` as work that "does not
+exist yet, so there is no number here and one is not invented". That refusal was right
+when written and is now false: all four shipped, each with a measured ceiling in the
+same file.
+
+What is missing is the thing DD23 built the file to produce. The baseline is recorded —
+6 calls, 11711 tokens for the canonical task through the Engine API — and the shaped
+side is still blank. The `target` block asks for 5 calls and 5000 tokens, and nothing
+yet says whether the surface met it.
+
+The work is to measure the canonical task through the surface the way
+`MeasureCanonicalTaskAsync` measures it through the API — same fixtures, same fake
+daemon, same estimator — and record calls, tokens and the ratio, with a test that fails
+if either side moves. Not to sum the per-shape ceilings: the claim is about a task, and
+a task is calls as well as tokens.
+
+Two cautions. DD64 is unfixed and it is the harness this would run on, so a number taken
+before that is one that can drift under load. And the honest comparison is
+task-for-task: the surface answers in fewer calls partly by answering a slightly
+different question, and the record should say so rather than let a ratio imply the two
+payloads are interchangeable.
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ### §DD59 The published surface is a path, not just prose

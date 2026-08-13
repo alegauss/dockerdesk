@@ -48,9 +48,56 @@ the substring accident it currently asserts. The `dockerdesk-absent-` and
 `dockerdesk-test-` prefixes across four test files are fixture names, carry no such
 meaning, and are DD54's mechanical sweep rather than this task's.
 
+### §DD68 A guard that can be satisfied by undoing a shipped fix
+
+`A_long_remedy_wraps_rather_than_running_off_the_console` ends with `Assert.All(lines,
+line => line.Length <= 100)`, and it means it about every line in the report. DD52 then
+shipped a row whose evidence lines must not be wrapped at all: a path is atomic, and
+breaking one at a space is the defect that made the first attempt at DD52 get reverted.
+
+The two rules now contradict each other, and the only reason the suite is green is the
+fixture. That test builds its report from `C:\Program Files\Docker\x.exe`, which lands
+at 58 characters. The real machine this was measured on renders `docker resolves to
+C:\Users\alexa\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe` at 113.
+
+So the next contributor who makes that fixture realistic gets a red test that names a
+line length, and the obvious repair is to wrap the line — which reintroduces the split
+path DD52 exists to prevent, with a test now demanding it. A guard that can be satisfied
+by undoing a shipped fix is worse than no guard, because it argues for the defect.
+
+The assertion is about the remedy and should say so: it belongs to the wrapped block,
+not to every line the renderer emits. Whatever replaces it should also state the other
+half out loud — that an evidence line is allowed to be as long as the thing it names —
+so the two rules read as one decision rather than as an exception somebody has to
+rediscover.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
+
+### §DD67 Nothing drives a popup open, so the path that captures one is unreachable
+
+DD61 settled what each capture path is for: `--capture-window` renders the window's own
+visual tree, and `scripts\Capture-Window.ps1` is the screen copy for a popup, because a
+popup is its own top-level window and is not in that tree. The refusal DD61 added makes
+that division real rather than advisory — the script now declines the Fluent shell
+outright.
+
+What it does not do is reach a popup. A menu exists only while it is open, and nothing
+opens one: the script launches the executable with `--window` and copies whatever it
+finds, and the only thing it finds is the window it has just been taught to refuse. The
+search was widened for `#32768`, `tooltips_class32` and the WinForms popup class, so an
+open menu would be found first — Z order puts it above the shell — but the default run
+refuses and writes nothing.
+
+So the tray's context menu, the balloon tip DD21 measured, and every other popup this
+product draws have never been photographed by anything.
+
+Two shapes worth weighing. The script could open the menu itself, which means a Win32
+click against the notification area — reaching into another process's UI, and the
+overflow makes finding the icon its own problem. Or the product could show its own popup
+behind a verb, the way `--capture-window` already renders on request, which keeps the
+driving inside the process that owns the menu and costs one more surface.
 
 ## Block D — Container operations (what a user came to do)
 

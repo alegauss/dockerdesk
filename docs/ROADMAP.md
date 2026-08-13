@@ -6,10 +6,13 @@
 
 - 📋 **DD55** (deps: DD54) **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable. → §DD55
 - 📋 **DD56** (deps: DD55) **The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not** — The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine. → §DD56
+- 📋 **DD68** (deps: —) **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — Only a short fixture path keeps the two rules from colliding, and the repair a red line-length assertion argues for is the split path DD52 was reverted over. → §DD68
 
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
+
+- 💭 **DD67** (deps: —) **No popup this product draws has ever been photographed, and the one path that could is not reachable** — DD61 made the screen copy refuse the shell, which is right, and left the script with nothing it can find: a menu exists only while open, and nothing opens one. → §DD67
 
 ## Block D — Container operations (what a user came to do)
 

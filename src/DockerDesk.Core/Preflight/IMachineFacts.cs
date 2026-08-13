@@ -49,6 +49,37 @@ public interface IMachineFacts
     /// Container engines already on this machine. Empty is the state an install wants.
     /// </summary>
     IReadOnlyList<RivalEngine> RivalEngines { get; }
+
+    /// <summary>Where this user's own <c>docker</c> command will send a request.</summary>
+    DockerClientTarget DockerClient { get; }
+}
+
+/// <summary>Where the <c>docker</c> CLI points, as facts.</summary>
+/// <remarks>
+/// Read rather than judged: whether this is a problem depends on the pipe this engine serves, and
+/// that comparison belongs to the report.
+/// </remarks>
+public sealed record DockerClientTarget
+{
+    /// <summary>
+    /// The active context's name, or <see langword="null"/> where <c>DOCKER_HOST</c> decided and no
+    /// context was consulted.
+    /// </summary>
+    public string? ContextName { get; init; }
+
+    /// <summary>
+    /// The endpoint the CLI will use, or <see langword="null"/> where it could not be worked out.
+    /// </summary>
+    public string? Host { get; init; }
+
+    /// <summary>
+    /// Whether <c>DOCKER_HOST</c> is what decided. It outranks the active context, so a remedy that
+    /// says "switch context" would change nothing while this is true.
+    /// </summary>
+    public bool FromEnvironment { get; init; }
+
+    /// <summary>Why the endpoint is absent, when something was wrong rather than unset.</summary>
+    public string? Unreadable { get; init; }
 }
 
 /// <summary>What was found of WSL, as facts.</summary>

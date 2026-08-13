@@ -26,6 +26,9 @@ public static class PreflightInspection
 
         /// <summary>The rival-engine row.</summary>
         public const string RivalEngine = "rival-engine";
+
+        /// <summary>The row saying where this user's own docker command points.</summary>
+        public const string DockerContext = "docker-context";
     }
 
     /// <summary>Read every row from <paramref name="facts"/>, in report order.</summary>
@@ -39,6 +42,7 @@ public static class PreflightInspection
             CheckVirtualization(facts),
             CheckWsl2(facts),
             CheckRivalEngines(facts),
+            CheckDockerContext(facts),
         ]);
     }
 
@@ -202,6 +206,68 @@ public static class PreflightInspection
 
         var version = wsl.Version is null ? "" : $"WSL {wsl.Version}, ";
         return Green(Rows.Wsl2, "WSL2", $"{version}kernel {wsl.KernelVersion}");
+    }
+
+    /// <summary>
+    /// Where the user's own <c>docker</c> will go, said out loud (DD20).
+    /// </summary>
+    /// <remarks>
+    /// Never blocking, and that is deliberate: a leftover context does not stop this engine from
+    /// working, it stops the user's CLI from finding it. The install succeeds and then the tool looks
+    /// broken with nothing wrong with it, which is a thing to be told rather than stopped for.
+    ///
+    /// It also changes nothing. DD20 weighed registering a context of this project's own and making
+    /// it active — what a rival does — against saying where the CLI points and leaving the setting to
+    /// the person who owns it. This is the second.
+    /// </remarks>
+    private static PreflightCheck CheckDockerContext(IMachineFacts facts)
+    {
+        var client = facts.DockerClient;
+        var ours = $@"\\.\pipe\{Api.DockerApi.DefaultPipeName}";
+
+        if (client.Unreadable is { } why)
+        {
+            return new PreflightCheck
+            {
+                Id = Rows.DockerContext,
+                Title = "docker context",
+                Verdict = Verdict.Warn,
+                Detail = why,
+                Remedy = $"Run `docker context use {Windows.DockerContextProbe.DefaultContextName}` "
+                    + $"to point your docker at {ours}.",
+            };
+        }
+
+        if (Windows.DockerContextProbe.ReachesThisEngine(client.Host))
+        {
+            var via = client.FromEnvironment
+                ? "DOCKER_HOST"
+                : client.ContextName ?? Windows.DockerContextProbe.DefaultContextName;
+            return Green(Rows.DockerContext, "docker context", $"{via} reaches this engine");
+        }
+
+        var where = client.Host is { Length: > 0 } host ? host : "somewhere this cannot read";
+
+        // DOCKER_HOST outranks the active context, so a remedy naming `docker context use` would be
+        // advice that changes nothing while the variable is set.
+        var remedy = client.FromEnvironment
+            ? $"DOCKER_HOST is set to {where}. Clear it to let the context decide, or point it at "
+                + $"{ours}."
+            : $"Run `docker context use {Windows.DockerContextProbe.DefaultContextName}` to point "
+                + "your docker at this engine. Nothing here changes it for you.";
+
+        var named = client.FromEnvironment
+            ? $"DOCKER_HOST sends docker to {where}"
+            : $"docker follows {client.ContextName} → {where}";
+
+        return new PreflightCheck
+        {
+            Id = Rows.DockerContext,
+            Title = "docker context",
+            Verdict = Verdict.Warn,
+            Detail = $"{named}, and this engine serves {ours}",
+            Remedy = remedy,
+        };
     }
 
     private static PreflightCheck CheckRivalEngines(IMachineFacts facts)

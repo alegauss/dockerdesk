@@ -35,4 +35,14 @@ internal sealed record FakeMachine : IMachineFacts
     };
 
     public IReadOnlyList<RivalEngine> RivalEngines { get; init; } = [];
+
+    /// <summary>
+    /// The healthy machine's CLI reaches this engine. `default` is what a machine that never had a
+    /// rival reports, and it is the pipe this engine serves.
+    /// </summary>
+    public DockerClientTarget DockerClient { get; init; } = new()
+    {
+        ContextName = "default",
+        Host = "npipe:////./pipe/docker_engine",
+    };
 }

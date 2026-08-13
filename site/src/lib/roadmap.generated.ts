@@ -8,8 +8,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 2,
-      "shipped": 7,
+      "open": 1,
+      "shipped": 8,
       "retired": 0
     },
     {
@@ -63,19 +63,11 @@ export const roadmap: RoadmapData = {
     }
   ],
   "totals": {
-    "open": 22,
-    "shipped": 31,
+    "open": 21,
+    "shipped": 32,
     "retired": 0
   },
   "open": [
-    {
-      "id": "DD20",
-      "status": "📋",
-      "block": "A",
-      "symptom": "A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering",
-      "why": "The context outlives a rival uninstall because it lives in the user profile, and the result is a tool that looks broken with nothing wrong with it.",
-      "deps": []
-    },
     {
       "id": "DD52",
       "status": "💭",
@@ -233,7 +225,7 @@ export const roadmap: RoadmapData = {
       "deps": [
         "DD24",
         "DD16 ✅",
-        "DD20"
+        "DD20 ✅"
       ]
     },
     {
@@ -333,6 +325,14 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start",
       "why": "The row reads whether this machine is itself a guest, and abstains inside one instead of reading HypervisorPresent as proof it can host a hypervisor.",
+      "deps": []
+    },
+    {
+      "id": "DD20",
+      "status": "✅",
+      "block": "A",
+      "symptom": "A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering",
+      "why": "A preflight row reads the active context and names both endpoints, so a CLI pointing elsewhere is visible, and it changes no setting of the user's.",
       "deps": []
     },
     {
@@ -528,5 +528,5 @@ export const roadmap: RoadmapData = {
       "deps": []
     }
   ],
-  "next": "DD20"
+  "next": "DD21"
 };

@@ -30,6 +30,7 @@ public sealed class PreflightInspectionTests
                 PreflightInspection.Rows.Virtualization,
                 PreflightInspection.Rows.Wsl2,
                 PreflightInspection.Rows.RivalEngine,
+                PreflightInspection.Rows.DockerContext,
             ],
             report.Checks.Select(check => check.Id));
     }
@@ -196,8 +197,17 @@ public sealed class PreflightInspectionTests
             VirtualizationFirmwareEnabled = false,
             Wsl = new WslInstallation { CommandPresent = false },
             RivalEngines = [new RivalEngine("Rancher Desktop", "somewhere")],
+            DockerClient = new DockerClientTarget
+            {
+                ContextName = "desktop-linux",
+                Host = "npipe:////./pipe/dockerDesktopLinuxEngine",
+            },
         });
 
+        // Five rows are wrong and every one of them names an action. Four blockers, not five: the
+        // docker-context row warns, because a leftover context does not stop this engine from
+        // working — it stops the user's CLI from finding it (DD20).
+        Assert.Equal(5, report.Checks.Count);
         Assert.Equal(4, report.Blockers.Count);
         Assert.All(report.Checks, check => Assert.NotNull(check.Remedy));
     }

@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD20** (deps: —) **A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering** — The context outlives a rival uninstall because it lives in the user profile, and the result is a tool that looks broken with nothing wrong with it. → §DD20
 - 💭 **DD52** (deps: —) **The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path** — Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped. → §DD52
 
 ## Block B — The daemon client (talk to the engine)
@@ -36,7 +35,7 @@
 - 📋 **DD25** (deps: DD24) **Learning what this machine is running costs five commands, and it repeats in full every session** — Discovery is answered by a truncating human-readable table with no cursor, so an agent pays for the whole machine each time and reads four fields out of six hundred lines. → §DD25
 - 📋 **DD26** (deps: DD24) **Why a container is not answering is a join across five commands, and inspect is read for four fields** — One inspect is three to six hundred lines of JSON paid in full, and the join that turns those fields into a conclusion has no command at all. → §DD26
 - 📋 **DD27** (deps: DD25) **A container log is read unbounded, so a restart loop is paid for eight times in identical traces** — Logs are the largest token sink here and the read has no cursor, no level, no dedup and no ceiling, so the cost is the size of the file rather than of the answer. → §DD27
-- 📋 **DD28** (deps: DD24, DD16 ✅, DD20) **Port is already allocated does not say what holds the port, and the answer is not in Docker at all** — The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete. → §DD28
+- 📋 **DD28** (deps: DD24, DD16 ✅, DD20 ✅) **Port is already allocated does not say what holds the port, and the answer is not in Docker at all** — The daemon knows a bind failed and a Windows process knows which PID owns the socket, so the one refusal an agent cannot act on is the one this app can complete. → §DD28
 - 📋 **DD29** (deps: DD24) **What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing** — Prune is scoped to the whole machine and is the one command nobody delegates, so leftovers stay rather than risk a volume the session did not create. → §DD29
 - 📋 **DD30** (deps: DD26) **Nothing proves a service is reachable: a running container with a bound port can answer nothing** — An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle. → §DD30
 - 📋 **DD31** (deps: DD25, DD7 ✅) **Every session re-derives the whole machine, because nothing states what moved since the last one** — The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first. → §DD31

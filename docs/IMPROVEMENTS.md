@@ -2,43 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD20 The CLI follows its active context, not the pipe this engine serves
-
-The engine is reached through `\\.\pipe\docker_engine`, which is what the CLI's
-`default` context names and what every tutorial assumes. But the CLI does not read that
-context unless it is the active one, and the active one is a per-user setting in
-`~/.docker/config.json` that any Docker distribution may have written. Docker Desktop
-writes one.
-
-Measured on the development machine, with this project's engine answering and no
-`DOCKER_HOST` set:
-
-    docker version
-      failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
-
-    docker context ls
-      default           npipe:////./pipe/docker_engine
-      desktop-linux *   npipe:////./pipe/dockerDesktopLinuxEngine
-
-    docker --context default version
-      client 29.7.2 / server 29.7.2 / api 1.55 / os linux/amd64
-
-So the engine was running, serving the right pipe, and the user's own `docker` went
-somewhere else and reported the daemon as absent. The tool looks broken and nothing is
-wrong with it.
-
-This is not DD16. That one is about the preflight failing to *notice* a rival before
-installing. This is about what happens after a clean install on a machine that once had
-one: the leftover context outlives the uninstall, because it is configuration in the
-user's profile rather than anything the rival's installer removes.
-
-Two candidate answers, not equivalent. Registering a context of this project's own and
-making it active is what Docker Desktop does, and it takes the setting over from the
-user. Reading the active context and saying so — "your docker points at X, this engine
-is at `\\.\pipe\docker_engine`" — leaves the choice with them. The second suits a tool
-whose argument is that it takes nothing over, and picking between them is the task
-rather than the implementation.
-
 ### §DD52 Wrapping a detail that contains paths
 
 Measured after DD16: the rival row's detail is 254 characters, because it now carries

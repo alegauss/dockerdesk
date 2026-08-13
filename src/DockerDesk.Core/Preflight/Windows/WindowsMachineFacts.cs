@@ -22,6 +22,8 @@ public sealed class WindowsMachineFacts : IMachineFacts
 
     private readonly Lazy<IReadOnlyList<RivalEngine>> _rivals = new(RivalEngineProbe.Read);
 
+    private readonly Lazy<DockerClientTarget> _dockerClient = new(DockerContextProbe.Read);
+
     /// <inheritdoc/>
     public Version OperatingSystem => Environment.OSVersion.Version;
 
@@ -39,6 +41,9 @@ public sealed class WindowsMachineFacts : IMachineFacts
 
     /// <inheritdoc/>
     public IReadOnlyList<RivalEngine> RivalEngines => _rivals.Value;
+
+    /// <inheritdoc/>
+    public DockerClientTarget DockerClient => _dockerClient.Value;
 
     /// <summary>
     /// Read what the firmware calls this machine, and ask whether that names a hypervisor.

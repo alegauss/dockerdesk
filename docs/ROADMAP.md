@@ -47,7 +47,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD43** (deps: DD40 ✅) **The status rows are typed into the page, and five of them are already wrong about what has shipped** — The build reads roadkeep export --json, so a shipped task moves the row it is on and a renamed id fails the build rather than leaving the page confidently stale. → §DD43
 - 📋 **DD44** (deps: DD40 ✅) **The hero asserts what the tool is, so what it costs an agent per call is nowhere on the page** — An autoplaying transcript of the five-call session, scrolling its own list and never the window, because what is sold here is how cheaply an agent operates the machine. → §DD44
 - 📋 **DD45** (deps: DD40 ✅) **Nothing on the site says who the operator is, so the positioning is still a GUI with no licence fee** — A section per design law in the order an agent meets them, and the two-actor split, which is the description this project ships under and the reason its surface is shaped so. → §DD45
 - 📋 **DD46** (deps: DD40 ✅) **Nobody configuring an agent can find the read and do split, or the one allowlist line that pays for it** — A page for the agent's operator: the allowlist entry, the calls a session opens with, the plugin that makes the surface discoverable, and what it deliberately refuses. → §DD46
@@ -55,7 +54,7 @@
 - 📋 **DD48** (deps: DD41 ✅) **Everything is one scroll, so a pillar gets a paragraph and there is no page to link at** — One page per pillar from one record each, with the route, the title and the description read off the same record, so a new pillar cannot ship half-declared or untitled. → §DD48
 - 📋 **DD49** (deps: DD40 ✅) **The og image points at an svg, so every share of this link renders a card with no image at all** — A 1200 by 630 card rasterised from an svg on every build, with the favicon and the marks beside it, so a shared link does not introduce the project as an empty rectangle. → §DD49
 - 📋 **DD50** (deps: DD41 ✅) **The site is whatever was last committed to docs, so a broken page is public with no gate between** — A dispatch-only job whose gates are the build's own, typecheck then the prerender's route and head checks, publishing to the same URL the project already has. → §DD50
-- 📋 **DD51** (deps: DD41 ✅, DD42 ✅, DD43) **A claim on the site that has gone false is invisible until somebody reads the page against the product** — node --test beside the scripts that own them: the generated figures, the route pair, the twin per route, and the rule that only the reader scrolls the window. → §DD51
+- 📋 **DD51** (deps: DD41 ✅, DD42 ✅, DD43 ✅) **A claim on the site that has gone false is invisible until somebody reads the page against the product** — node --test beside the scripts that own them: the generated figures, the route pair, the twin per route, and the rule that only the reader scrolls the window. → §DD51
 
 ## Non-goals
 

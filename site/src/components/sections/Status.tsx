@@ -1,19 +1,12 @@
 import { status } from "../../lib/site-content";
+import { blocksWithTasks, blockName, nextTask, roadmap } from "../../lib/roadmap";
 import { Rich } from "../ui/Rich";
 
-const rowClass: Record<string, string> = {
-  done: "row done",
-  now: "row now",
-  open: "row",
-};
-
-const markGlyph: Record<string, string> = {
-  done: "✅",
-  now: "🛠",
-  open: "📋",
-};
-
+// The landing summary. Like the full /status page, it reads the generated module and
+// nothing else (S2): the intro copy stays in the content module, every figure is derived.
 export function Status() {
+  const blocks = blocksWithTasks();
+  const next = nextTask();
   return (
     <section id="status">
       <div className="wrap">
@@ -24,47 +17,49 @@ export function Status() {
             <Rich runs={status.intro} />
           </p>
         </div>
-        <div className="legend reveal">
-          {status.legend.map((item) => (
-            <span key={item.label}>
-              {item.mark} {item.label}
-            </span>
-          ))}
+
+        <div className="status-totals reveal">
           <span>
-            <Rich runs={status.legendNote} />
+            <b>{roadmap.totals.shipped}</b> shipped
+          </span>
+          <span>
+            <b>{roadmap.totals.open}</b> open
+          </span>
+          <span className="status-generated">
+            generated from <code>roadkeep export --json</code>
           </span>
         </div>
-        <div className="rows reveal">
-          {status.rows.map((row) => (
-            <div className={rowClass[row.mark]} key={row.id}>
-              <div className="mark">{markGlyph[row.mark]}</div>
-              <div className="id">{row.id}</div>
-              <div className="what">
-                <b>{row.title}</b>
-                <span>
-                  <Rich runs={row.body} />
+
+        <div className="block-summary reveal">
+          {blocks.map((block) => (
+            <a className="block-chip" href={`status/#block-${block.label}`} key={block.label}>
+              <div className="block-chip-head">
+                <span className="block-label">{block.label}</span>
+                <span className="block-chip-name">{blockName(block)}</span>
+                <span className="block-chip-count">
+                  {block.shipped}/{block.total}
                 </span>
               </div>
-            </div>
+              <span className="bar-track" aria-hidden="true">
+                <span className="bar-fill" style={{ width: `${Math.round(block.progress * 100)}%` }} />
+              </span>
+            </a>
           ))}
         </div>
-        <p
-          style={{
-            textAlign: "center",
-            color: "var(--muted-2)",
-            fontSize: ".9rem",
-            marginTop: "28px",
-          }}
-        >
-          The full list, with the reason each line exists, is in{" "}
-          <a href={status.roadmapUrl} style={{ color: "var(--accent-strong)" }}>
-            docs/ROADMAP.md
-          </a>{" "}
-          and{" "}
-          <a href={status.improvementsUrl} style={{ color: "var(--accent-strong)" }}>
-            docs/IMPROVEMENTS.md
-          </a>
-          .
+
+        {next && (
+          <div className="next-line reveal">
+            <span className="next-tag">Next</span>
+            <span className="next-id">{next.id}</span>
+            <span className="next-symptom">{next.symptom}</span>
+          </div>
+        )}
+
+        <p className="status-more reveal">
+          <a href="status/">See every line on the status page →</a> The full roadmap, with the
+          reason each exists, is in{" "}
+          <a href={status.roadmapUrl}>docs/ROADMAP.md</a> and{" "}
+          <a href={status.improvementsUrl}>docs/IMPROVEMENTS.md</a>.
         </p>
       </div>
     </section>

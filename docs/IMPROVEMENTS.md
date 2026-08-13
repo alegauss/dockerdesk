@@ -647,21 +647,6 @@ by the same budget file DD23 gates, and a raise argued in the commit that makes 
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD43 The status page, generated from roadkeep
-
-The page lists DD7 as in progress and DD8 through DD12 as open. All five have shipped.
-Nothing failed, because the rows are prose in markup and no build reads the roadmap.
-That is the whole case: a status a human retypes is wrong within a month, and being
-wrong about your own progress in the section a visitor reads for exactly that is worse
-than having no section. roadkeep already emits the payload - every block with its
-counts, every task with its id, marker, block, symptom and why, and the next ready line
-- and its export --site exists because roadkeep expects to own a projection into a page.
-So the build runs it, writes a generated module, and the status page and the landing
-summary read that and nothing else. A renamed id or a dropped block fails the build
-instead of quietly losing a row. This is the local form of Shio's rule that a measured
-number is generated and never typed, and it is the only measurement this project has
-until DD23 produces the other one.
-
 ### §DD44 The hero is a session, and it does not steal the scroll
 
 The hero says what the tool is. What sells the argument is what it costs, and DD23

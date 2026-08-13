@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { Landing } from "./pages/Landing";
+import { StatusPage } from "./pages/Status";
 import { meta } from "./lib/site-content";
 
 // The URL does not change (§6): the site stays at https://alegauss.github.io/dockerdesk/,
@@ -27,6 +28,15 @@ export const ROUTE_META: RouteMeta[] = [
     ogTitle: meta.og.title,
     ogDescription: meta.og.description,
   },
+  {
+    path: "/status",
+    title: "DockerDesk — status, generated from the roadmap",
+    description:
+      "Every DD roadmap line, its marker and its block, generated from roadkeep export --json on every build — so a shipped task moves its own row.",
+    ogTitle: "DockerDesk — status",
+    ogDescription:
+      "Every DD roadmap line and its marker, generated from roadkeep so the page is never stale about the project's own progress.",
+  },
 ];
 
 // S4 — the route → component map. The client (App) and the prerender (entry-server) both
@@ -34,6 +44,7 @@ export const ROUTE_META: RouteMeta[] = [
 // the static file.
 export const ROUTES: { path: string; component: ComponentType }[] = [
   { path: "/", component: Landing },
+  { path: "/status", component: StatusPage },
 ];
 
 /** The canonical/og:url for a route, carrying the base the URL never drops. */

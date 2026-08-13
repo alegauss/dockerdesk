@@ -505,52 +505,15 @@ export const nonGoals = {
 };
 
 /* ------------------------------------------------------------------ status */
-// Ported as-is for DD40 — DD43 replaces these rows with a module generated from
-// `roadkeep export --json`, so a shipped task moves its own row and a renamed id fails
-// the build (S2). Until then this is the honest current picture, kept in the content
-// module like every other claim.
-
-export type StatusMark = "done" | "now" | "open";
+// The intro copy stays here; every figure and every row is generated from
+// `roadkeep export --json` and read through src/lib/roadmap.ts (S2, DD43). The landing
+// summary and the /status page are the two readers, and neither types a task.
 
 export const status = {
   eyebrow: "Where it actually is",
   heading: "Honest status: there is nothing to download yet",
   intro: [
-    "The engine half works end to end — provision, start, stop, the pipe, the API, the event stream, the tray. What does not exist yet is the thing you would install: no executable, no installer, no release. Building from source is the only way in today.",
-  ] as Rich,
-  legend: [
-    { mark: "✅", label: "shipped" },
-    { mark: "🛠", label: "in progress" },
-    { mark: "📋", label: "open" },
-  ],
-  legendNote: [
-    "Every line is a numbered ",
-    { b: "DD" },
-    " task in the roadmap",
-  ] as Rich,
-  rows: [
-    { mark: "done" as StatusMark, id: "DD1", title: "The preflight", body: ["The Windows build, virtualization, the WSL2 kernel and any rival engine — one row each with the action that fixes it, and exit 1 while a blocking row is not green."] as Rich },
-    { mark: "done" as StatusMark, id: "DD2", title: "Unattended provisioning", body: ["Upstream Moby 29.7.2 into an owned WSL2 distribution, and ", { code: "docker.exe" }, " where an installer can add it to PATH."] as Rich },
-    { mark: "done" as StatusMark, id: "DD3", title: "Start, stop, and the pipe", body: ["Starts the distro and the daemon, serves ", { code: "\\\\.\\pipe\\docker_engine" }, ", and reports Running only once the engine answers."] as Rich },
-    { mark: "done" as StatusMark, id: "DD4", title: "The Engine API client", body: ["Ping, version, containers and a stream for endpoints that never end — over the named pipe, with no NuGet dependency."] as Rich },
-    { mark: "done" as StatusMark, id: "DD5", title: "The event stream", body: ["Reads ", { code: "/events" }, " as the daemon writes it and re-opens after every break, so nothing here polls."] as Rich },
-    { mark: "done" as StatusMark, id: "DD6", title: "The tray icon", body: ["Carries the engine state as a shape, and its menu starts the engine in a process that outlives the tray, or stops it."] as Rich },
-    { mark: "done" as StatusMark, id: "DD17", title: "A clean Windows to test on", body: ["The product preflight is driven inside a Windows 11 guest and what it said is read back — so a red row is something that has actually been executed."] as Rich },
-    { mark: "now" as StatusMark, id: "DD7", title: "The window: the container list", body: ["Name, image, state, uptime and the ports as links, on the WPF Fluent theme. In progress — this is the screen the tool is opened for."] as Rich },
-    { mark: "open" as StatusMark, id: "DD8", title: "Acting on a container", body: ["Start, stop, restart and remove from the list — the work is the pending state and the confirmation, not the four endpoints."] as Rich },
-    { mark: "open" as StatusMark, id: "DD9", title: "Logs", body: ["A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal."] as Rich },
-    { mark: "open" as StatusMark, id: "DD10", title: "A shell inside a container", body: ["Anything the log does not say is currently unreachable."] as Rich },
-    { mark: "open" as StatusMark, id: "DD11–12", title: "Images and volumes", body: ["Which layers are dangling and which are still in use; and for volumes, making an irreversible deletion legible rather than reclaiming space."] as Rich },
-    { mark: "open" as StatusMark, id: "DD13", title: "The licence, stated", body: ["Apache-2.0 where the choice is made, and a NOTICE covering the bundled upstream binaries — a compliance requirement, not a courtesy."] as Rich },
-    { mark: "open" as StatusMark, id: "DD14–15", title: "Something to hand a user", body: ["A per-user install into ", { code: "LOCALAPPDATA" }, " with no admin prompt, an uninstall that respects your data, and a release built by CI rather than on one developer's machine."] as Rich },
-    { mark: "open" as StatusMark, id: "DD16, 18–21", title: "Known defects", body: ["A per-user Docker Desktop that the rival-engine row misses; fifteen seconds spent failing to read WSL on a machine that never had it; “virtualization enabled” inside a VM that WSL2 then refuses to start in; a leftover ", { code: "docker context" }, " pointing the CLI at another pipe; and a tray icon that Windows 11 files into the overflow, where a state indicator is not the thing it was built to be."] as Rich },
-  ],
-  footnote: [
-    "The full list, with the reason each line exists, is in ",
-    { code: "docs/ROADMAP.md" },
-    " and ",
-    { code: "docs/IMPROVEMENTS.md" },
-    ".",
+    "The engine and the container window work end to end — provision, start, stop, the pipe, the API, the event stream, the tray, the list. What does not exist yet is the thing you would install: no executable, no installer, no release. Building from source is the only way in today.",
   ] as Rich,
   roadmapUrl: `${repoUrl}/blob/main/docs/ROADMAP.md`,
   improvementsUrl: `${repoUrl}/blob/main/docs/IMPROVEMENTS.md`,

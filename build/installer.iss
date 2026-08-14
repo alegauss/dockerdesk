@@ -195,11 +195,160 @@ var
   ProvisionStepsSeen: Integer;
   ProvisionLastLine: string;
 
+  // DD123. The tasks page, drawn here rather than by Setup, and the four boxes on it.
+  TasksPage: TWizardPage;
+  WantDesktopIcon, WantStartupIcon, WantEngine, WantPathEntry: TNewCheckBox;
+
+// ---------------------------------------------------------------------------------------------
+// The tasks page, drawn rather than asked for (DD123)
+// ---------------------------------------------------------------------------------------------
+//
+// Setup's own Select Additional Tasks page draws each box narrower than the glyph it holds: an
+// unticked one is a vertical sliver and a ticked one a fragment of a check. Measured on Windows 11
+// at 3840x2160, 200% scaling — and reproduced with Inno Setup 6.7.3's factory defaults and nothing
+// of this script in them, so it is `TNewCheckListBox` and not anything here.
+//
+// Three of the four tasks are on by default, and one of them spends a quarter of a gigabyte of
+// somebody's connection. A page where the reader cannot make out which boxes are ticked is not a
+// page they can decline anything on, and dropping choices to dodge a drawing bug would trade an
+// unreadable wizard for a decision taken on their behalf.
+//
+// So the page is rebuilt out of plain TNewCheckBox controls, which draw correctly at the same
+// scaling — measured on this project's own uninstall page (DD121).
+//
+// [Tasks] STAYS, and that is what makes this small. It remains the source of truth: `Tasks:`
+// parameters in [Files], [Icons] and [Registry] keep working untouched, `/MERGETASKS` keeps
+// working for unattended installs, and a silent install never reaches this page at all. All this
+// does is skip the broken page and hand Setup the same answer through WizardSelectTasks.
+
+/// One of Setup's own messages, with the placeholders its own pages would have filled in.
+function Message(const Id: string): string;
+begin
+  // SetupMessage hands back the raw string, and the standard messages carry [name] and [name/ver]
+  // for the page that shows them to substitute. Setup's own pages do it; a page built here has to,
+  // or the wizard reads "...while installing [name], then click Next" in every language shipped.
+  // Measured on the page below before this existed.
+  Result := Id;
+  StringChange(Result, '[name/ver]', '{#MyAppName} {#MyAppVersion}');
+  StringChange(Result, '[name]', '{#MyAppName}');
+end;
+
+/// Add one checkbox under a group heading, and answer the Y the next control starts at.
+function TaskBox(Page: TWizardPage; const Group, Caption: string; Ticked: Boolean;
+                 Top: Integer; var Box: TNewCheckBox): Integer;
+var
+  Heading: TNewStaticText;
+begin
+  Heading := TNewStaticText.Create(Page);
+  Heading.Parent := Page.Surface;
+  Heading.Left := 0;
+  Heading.Top := Top;
+  Heading.Caption := Group;
+
+  Box := TNewCheckBox.Create(Page);
+  Box.Parent := Page.Surface;
+
+  // Width before Caption, and both after the control exists: the same ordering rule DD121 measured
+  // on the uninstall page, where a caption assigned to a control that had not been given its width
+  // wrapped at a column of zero.
+  Box.Left := ScaleX(8);
+  Box.Top := Heading.Top + Heading.Height + ScaleY(6);
+  Box.Width := Page.SurfaceWidth - ScaleX(8);
+  Box.Height := ScaleY(17);
+  Box.Caption := Caption;
+  Box.Checked := Ticked;
+
+  Result := Box.Top + Box.Height + ScaleY(12);
+end;
+
+procedure BuildTasksPage;
+var
+  Intro: TNewStaticText;
+  Y: Integer;
+begin
+  // Positioned after the directory page, which is exactly where Setup's own tasks page stands in
+  // this wizard — there is no components page and DisableProgramGroupPage takes the other one.
+  TasksPage := CreateCustomPage(
+    wpSelectDir, SetupMessage(msgWizardSelectTasks), SetupMessage(msgSelectTasksDesc));
+
+  Intro := TNewStaticText.Create(TasksPage);
+  Intro.Parent := TasksPage.Surface;
+  Intro.Left := 0;
+  Intro.Top := 0;
+  Intro.Width := TasksPage.SurfaceWidth;
+  Intro.WordWrap := True;
+  Intro.AutoSize := True;
+  Intro.Caption := Message(SetupMessage(msgSelectTasksLabel2));
+  Y := Intro.Top + Intro.Height + ScaleY(16);
+
+  // The captions are Setup's own messages where Setup has one, so a translation this script never
+  // wrote still reaches the page. A PackagingTests case holds each of these equal to the
+  // [Tasks] description it stands in for — two spellings of one string is how a box ends up
+  // promising something other than what ticking it does.
+  // Which boxes start ticked, stated here because it cannot be asked for. WizardIsTaskSelected is
+  // the obvious reader and it does not work from a page that replaces the one it reads: Setup fills
+  // its task list while preparing wpSelectTasks, this skips that page, and the function answered
+  // False for all four — measured, on this page, with every box coming up empty.
+  //
+  // So it is the same shape as DistroName and ProvisioningSteps elsewhere in this file: a value
+  // restated in Pascal beside the section that owns it, with a PackagingTests case holding the two
+  // equal. `Flags: unchecked` on the desktop icon and nothing on the other three is the fact, and
+  // that test is what notices if either side moves. Getting it wrong is not theoretical — the
+  // desktop icon came up ticked on the first build of this page.
+  Y := TaskBox(TasksPage, ExpandConstant('{cm:AdditionalIcons}'),
+       ExpandConstant('{cm:CreateDesktopIcon}'), False, Y, WantDesktopIcon);
+  Y := TaskBox(TasksPage, 'Startup:',
+       'Start {#MyAppName} with Windows', True, Y, WantStartupIcon);
+  Y := TaskBox(TasksPage, 'Container engine:',
+       'Download and install the container engine (about 250 MB)', True, Y, WantEngine);
+  TaskBox(TasksPage, 'Command line:',
+       'Put docker and freewilly on my PATH', True, Y, WantPathEntry);
+end;
+
+/// One task's term, named whether it was ticked or not.
+function Term(const Name: string; Ticked: Boolean): string;
+begin
+  // Both directions, always. Naming only the ticked ones would leave a default standing through an
+  // untick, and the default that costs somebody a quarter of a gigabyte is one of these four.
+  if Ticked then
+    Result := Name + ','
+  else
+    Result := '!' + Name + ',';
+end;
+
+/// Hand Setup the answer this page collected, in the spelling /MERGETASKS uses.
+function ChosenTasks: string;
+begin
+  Result := Term('desktopicon', WantDesktopIcon.Checked)
+          + Term('startupicon', WantStartupIcon.Checked)
+          + Term('engine', WantEngine.Checked)
+          + Term('pathentry', WantPathEntry.Checked);
+
+  // The trailing comma an empty final term would otherwise leave.
+  Result := Copy(Result, 1, Length(Result) - 1);
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  // The broken one, and only ever this one. Skipped rather than removed, because [Tasks] is still
+  // what every `Tasks:` parameter and every /MERGETASKS reads.
+  Result := PageID = wpSelectTasks;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID = TasksPage.ID then
+    WizardSelectTasks(ChosenTasks);
+end;
+
 procedure InitializeWizard;
 begin
   ProvisionPage := CreateOutputProgressPage(
     'Container engine',
     'Setup is putting the engine on this machine. Nothing is started by this.');
+
+  BuildTasksPage;
 end;
 
 // ---------------------------------------------------------------------------------------------

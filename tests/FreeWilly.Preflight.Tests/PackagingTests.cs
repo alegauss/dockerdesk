@@ -562,6 +562,112 @@ public sealed class PackagingTests
         }
     }
 
+    // ---- DD123: the tasks page is drawn rather than asked for ----------------------------------
+
+    [Fact]
+    public void The_page_this_script_draws_offers_exactly_the_tasks_the_script_declares()
+    {
+        // DD123. Setup's own Select Additional Tasks page draws each box narrower than the glyph it
+        // holds — measured at 200% scaling on 4K, and reproduced with Inno Setup 6.7.3's factory
+        // defaults and nothing of this script in them, so it is the control. The page is rebuilt out
+        // of plain TNewCheckBox controls, which draw correctly at the same scaling.
+        //
+        // That leaves two lists of the same four things, and this is what holds them equal: a
+        // checkbox whose caption drifts from its [Tasks] description promises one thing and does
+        // another, and nothing else in the build would notice.
+        var script = InstallerScript();
+        var tasks = script[script.IndexOf("[Tasks]", StringComparison.Ordinal)..];
+        tasks = tasks[..tasks.IndexOf("[Files]", StringComparison.Ordinal)];
+
+        var page = script[script.IndexOf("procedure BuildTasksPage;", StringComparison.Ordinal)..];
+        page = page[..page.IndexOf("function ChosenTasks:", StringComparison.Ordinal)];
+
+        foreach (var (name, caption) in new[]
+                 {
+                     ("desktopicon", "{cm:CreateDesktopIcon}"),
+                     ("startupicon", "Start {#MyAppName} with Windows"),
+                     ("engine", "Download and install the container engine (about 250 MB)"),
+                     ("pathentry", "Put docker and freewilly on my PATH"),
+                 })
+        {
+            Assert.Contains($"Name: \"{name}\"", tasks, StringComparison.Ordinal);
+            Assert.Contains($"Description: \"{caption}\"", tasks, StringComparison.Ordinal);
+            Assert.Contains(caption, page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Each_box_starts_in_the_state_the_tasks_section_asks_for()
+    {
+        // The other half of DD123's cost, and the one that already bit once: WizardIsTaskSelected
+        // cannot be the reader here, because Setup fills its task list while preparing the page this
+        // one replaces — measured, it answered False for all four and every box came up empty. So
+        // the starting state is restated in Pascal, the same shape as DistroName and
+        // ProvisioningSteps, and this is what holds the two sides equal.
+        //
+        // `Flags: unchecked` is the whole of the fact. A task carrying it starts off; one without it
+        // starts on. The first build of the page had the desktop icon ticked against a section that
+        // says it must not be, and nothing else in the build would have said so.
+        var script = InstallerScript();
+        var tasks = script[script.IndexOf("[Tasks]", StringComparison.Ordinal)..];
+        tasks = tasks[..tasks.IndexOf("[Files]", StringComparison.Ordinal)];
+
+        var page = script[script.IndexOf("procedure BuildTasksPage;", StringComparison.Ordinal)..];
+        page = page[..page.IndexOf("function ChosenTasks:", StringComparison.Ordinal)];
+
+        foreach (var (name, box) in new[]
+                 {
+                     ("desktopicon", "WantDesktopIcon"),
+                     ("startupicon", "WantStartupIcon"),
+                     ("engine", "WantEngine"),
+                     ("pathentry", "WantPathEntry"),
+                 })
+        {
+            // The declaration is one logical line, continued with a backslash where it wraps.
+            var at = tasks.IndexOf($"Name: \"{name}\"", StringComparison.Ordinal);
+            var end = tasks.IndexOf("\nName: \"", at, StringComparison.Ordinal);
+            var entry = end < 0 ? tasks[at..] : tasks[at..end];
+            var startsOff = entry.Contains("Flags: unchecked", StringComparison.Ordinal);
+
+            // The call that builds this box, whose Ticked argument is what the page opens with.
+            var call = page[..page.IndexOf(box, StringComparison.Ordinal)];
+            var lastCall = call.LastIndexOf("TaskBox(", StringComparison.Ordinal);
+            var arguments = call[lastCall..];
+
+            Assert.True(
+                arguments.Contains(startsOff ? "False," : "True,", StringComparison.Ordinal),
+                $"{name} is {(startsOff ? "unchecked" : "checked")} in [Tasks], and the page "
+                + $"builds {box} the other way round");
+        }
+    }
+
+    [Fact]
+    public void The_declared_tasks_stay_the_answer_Setup_acts_on()
+    {
+        // The half that makes this a small change. [Tasks] is untouched, so every `Tasks:` parameter
+        // in [Files], [Icons] and [Registry] keeps working and /MERGETASKS keeps steering an
+        // unattended install — a page that replaced the section outright would have silently taken
+        // the command-line switch with it, and nothing installs silently often enough to notice.
+        var script = InstallerScript();
+
+        Assert.Contains("WizardSelectTasks(ChosenTasks)", script, StringComparison.Ordinal);
+        Assert.Contains("Result := PageID = wpSelectTasks;", script, StringComparison.Ordinal);
+        Assert.Contains("WizardIsTaskSelected('engine')", script, StringComparison.Ordinal);
+
+        // Every box states its answer either way, which `Term` is what guarantees: naming only the
+        // ticked ones would let a default survive an untick, and the default that costs somebody a
+        // quarter of a gigabyte is one of these four.
+        var chosen = script[script.IndexOf("function ChosenTasks:", StringComparison.Ordinal)..];
+        chosen = chosen[..chosen.IndexOf("function ShouldSkipPage", StringComparison.Ordinal)];
+
+        foreach (var name in new[] { "desktopicon", "startupicon", "engine", "pathentry" })
+        {
+            Assert.Contains($"Term('{name}',", chosen, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("Result := '!' + Name + ',';", script, StringComparison.Ordinal);
+    }
+
     // ---- DD121: the uninstall stops what is running before it deletes anything ------------------
 
     /// <summary>The uninstall half of the script, which is the only part these read.</summary>

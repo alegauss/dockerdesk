@@ -102,13 +102,79 @@ public static class StateIcon
 
     /// <summary>Draw the state as an icon a <c>NotifyIcon</c> can wear.</summary>
     /// <param name="state">The state.</param>
-    /// <param name="size">The edge, in pixels.</param>
+    /// <param name="size">The edge in pixels, or nothing to ask Windows (DD99).</param>
     /// <returns>The icon, owned by the caller.</returns>
-    public static Icon Icon(EngineState state, int size = 16)
+    public static Icon Icon(EngineState state, int? size = null)
     {
-        using var bitmap = Draw(state, size);
+        using var bitmap = Draw(state, size ?? NotificationAreaSize());
         return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
     }
+
+    /// <summary>
+    /// The edge Windows wants a notification-area icon drawn at, on this display (DD99).
+    /// </summary>
+    /// <remarks>
+    /// <c>app.manifest</c> opts this process into <c>PerMonitorV2</c>, and its comment says exactly
+    /// why: "a tray icon drawn for 96 DPI and scaled up by Windows is the blurry square every
+    /// WinForms tray app is recognised by". Under that awareness Windows does not scale for the
+    /// app — it expects the app to hand over the size the display asks for — and this was drawing 16
+    /// regardless, so the manifest bought the right to be sharp and nothing spent it. It matters
+    /// more since DD85: three abstract rings survive a bad resample and a traced orca does not.
+    ///
+    /// <para><b>Windows is asked rather than a scale factor applied.</b> The metric is what the shell
+    /// itself uses, so a future Windows that spaces the notification area differently is answered
+    /// without a constant here being wrong.</para>
+    ///
+    /// <para><b>The system DPI, not the monitor's.</b> The icon lives on the taskbar and there is no
+    /// window here whose monitor could be asked. This is right wherever the taskbar is on the display
+    /// Windows scaled for, and it is a better answer than 16 everywhere else.</para>
+    ///
+    /// <para><b>Measured on the development machine, at 200%:</b> a DPI-unaware process is told 96
+    /// and 16, an aware one 192 and 32. The manifest makes this process the second, so the tray had
+    /// been handing the shell a sixteen-pixel picture for a thirty-two-pixel slot on the very machine
+    /// it was written on. It also means a test cannot assert the number — the test host carries its
+    /// own manifest and is unaware, so it is told 16 whatever this returns to the tray.</para>
+    /// </remarks>
+    /// <returns>The edge in pixels, never below 16.</returns>
+    public static int NotificationAreaSize()
+    {
+        try
+        {
+            return Bounded(GetSystemMetricsForDpi(SmallIconWidth, GetDpiForSystem()));
+        }
+        catch (Exception exception) when (exception is EntryPointNotFoundException
+            or DllNotFoundException)
+        {
+            // Both arrived in Windows 10 1607 and the manifest names no older one, so this is the
+            // impossible branch — and an icon is not worth a crash, so it takes the old constant.
+            return Fallback;
+        }
+    }
+
+    /// <summary>Keep an answer from Windows inside what this can actually draw.</summary>
+    /// <param name="metric">What the metric said.</param>
+    /// <returns>The edge to draw at.</returns>
+    /// <remarks>
+    /// Zero is what a failed metric returns, and <see cref="Draw"/> refuses anything under 8 — so
+    /// without a floor a machine that answered badly would take the tray down rather than look
+    /// wrong. The ceiling is the largest frame the mark carries; past it there is nothing to scale
+    /// from and the result would be the blur this exists to remove.
+    /// </remarks>
+    internal static int Bounded(int metric) => Math.Clamp(metric, Fallback, 256);
+
+    /// <summary>What a tray icon was before anybody asked Windows.</summary>
+    private const int Fallback = 16;
+
+    /// <summary>SM_CXSMICON — the width of a small icon, which is what the tray draws.</summary>
+    private const int SmallIconWidth = 49;
+
+    // DllImport rather than the source-generated LibraryImport: that one requires unsafe blocks to
+    // be enabled for the whole project, which is a large permission to buy for two integers.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForSystem();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetSystemMetricsForDpi(int index, uint dpi);
 
     /// <summary>
     /// How many pixels of the drawing are painted at all, ignoring colour.

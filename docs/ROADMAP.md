@@ -10,11 +10,12 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD99** (deps: —) **The tray icon is always drawn at 16 pixels, so the per-monitor-DPI manifest buys a shell-scaled icon anyway** — app.manifest opts in to PerMonitorV2 and names the blurry square it avoids, and every caller of StateIcon.Icon takes the 16 default, so above 100% the shell scales after all. → §DD99
+- ⏳ **DD99** (deps: —) **The tray icon is always drawn at 16 pixels, so the per-monitor-DPI manifest buys a shell-scaled icon anyway** — app.manifest opts in to PerMonitorV2 and names the blurry square it avoids, and every caller of StateIcon.Icon takes the 16 default, so above 100% the shell scales after all. → §DD99
 - 📋 **DD100** (deps: —) **The test named for verb coverage checks a hand-written list, so a verb added to the router is asserted by nothing** — Two were already missing from it and it stayed green: the routes are not enumerable the way EngineVerbs is, so the list is maintained by memory. → §DD100
 - 📋 **DD103** (deps: —) **Three tests fail whenever a tray is running, and the failure names an assertion rather than the tray** — They claim the product's real named objects on purpose, so the suite cannot pass on a machine using the product, and the message points at none of that. → §DD103
 
 ## Block D — Container operations (what a user came to do)
+
 
 ## Block E — Images, volumes and networks
 

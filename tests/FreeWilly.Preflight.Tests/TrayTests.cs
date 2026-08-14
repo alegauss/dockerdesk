@@ -122,6 +122,43 @@ public sealed class TrayTests
         Assert.True(StateIcon.InkedPixels(drawn) > 10, "an icon nobody can see is not an icon");
     }
 
+    // ---- the size the shell asked for (DD99) --------------------------------------------------
+
+    [Fact]
+    public void The_icon_is_drawn_at_the_size_windows_asked_for_and_not_at_sixteen()
+    {
+        // The defect: `Icon` took `size = 16` and its only caller passed nothing, so a manifest
+        // opting into PerMonitorV2 bought the right to draw sharp and nothing spent it. Asserted as
+        // an identity rather than a number, because the number is the machine's — and this test
+        // host is DPI-unaware whatever the tray is, so a literal here would assert the wrong
+        // process. Measured on the development machine at 200%: the tray is told 32, this is told 16.
+        using var icon = StateIcon.Icon(EngineState.Running);
+
+        Assert.Equal(StateIcon.NotificationAreaSize(), icon.Width);
+        Assert.Equal(icon.Width, icon.Height);
+    }
+
+    [Fact]
+    public void A_size_that_is_named_is_still_honoured()
+    {
+        // Asking Windows is the default and not the law: the About page and any capture want a size
+        // of their own, and a default that could not be overridden would be a constant again.
+        using var icon = StateIcon.Icon(EngineState.Stopped, 48);
+
+        Assert.Equal(48, icon.Width);
+    }
+
+    [Theory]
+    [InlineData(0, 16)]      // what a failed metric returns, and Draw refuses anything under 8
+    [InlineData(16, 16)]
+    [InlineData(24, 24)]
+    [InlineData(32, 32)]
+    [InlineData(9999, 256)]  // past the largest frame the mark carries there is nothing to scale from
+    public void What_windows_answers_is_kept_inside_what_can_be_drawn(int metric, int expected) =>
+        // The floor is not tidiness: without it a machine that answered 0 would take the tray down
+        // rather than look wrong, because `Draw` refuses a size under 8.
+        Assert.Equal(expected, StateIcon.Bounded(metric));
+
     [Fact]
     public void The_three_states_are_also_three_colours()
     {

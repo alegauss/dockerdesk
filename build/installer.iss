@@ -126,9 +126,12 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Registry]
-; Autostart, per-user and off unless it was asked for.
+; Autostart, per-user and off unless it was asked for. --tray is load-bearing: a bare launch opens
+; the window (DD80), and a window in the face at every logon is exactly the regression that change
+; could otherwise cause. This is the only caller that wants the tray on its own.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
-    ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; \
+    ValueType: string; ValueName: "{#MyAppName}"; \
+    ValueData: """{app}\{#MyAppExeName}"" --tray"; \
     Flags: uninsdeletevalue; Tasks: startupicon
 
 ; EnginePaths says putting the CLI folder on PATH is the installer's job, and this is it. HKCU, so

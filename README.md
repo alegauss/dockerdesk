@@ -77,8 +77,8 @@ Engine API to every distribution when the pipe's ACL exists to hold it to one ac
 The same executable is every verb — there is no second tool to find:
 
 ```
-FreeWilly.exe                 the tray icon
-FreeWilly.exe --window        the tray, with the window open
+FreeWilly.exe                 the tray icon and the window
+FreeWilly.exe --tray          the tray icon alone — what "start with Windows" uses
 FreeWilly.exe --preflight     what this machine can host; --json for a script
 FreeWilly.exe --provision     download, verify and install the engine
 FreeWilly.exe --run           start the engine and serve the pipe until Ctrl+C

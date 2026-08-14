@@ -48,8 +48,26 @@ public static class CommandLine
     /// <summary>The verb that asks for the preflight.</summary>
     public const string PreflightVerb = "--preflight";
 
-    /// <summary>The verb that opens the window along with the tray.</summary>
+    /// <summary>
+    /// The verb that opens the window along with the tray, kept as a synonym that does nothing.
+    /// </summary>
+    /// <remarks>
+    /// A bare launch already opens the window (DD80), so this asks for what it would get anyway. It
+    /// stays accepted because shortcuts created by an earlier install carry it and a user edits one
+    /// of those by hand — refusing it would break a shortcut that has been working.
+    /// </remarks>
     public const string WindowVerb = "--window";
+
+    /// <summary>
+    /// The verb that starts the tray and no window.
+    /// </summary>
+    /// <remarks>
+    /// The inversion DD80 makes, and the one caller that wants it: the Run key the installer writes
+    /// for "start with Windows". A window in the face at every logon is the regression the rest of
+    /// this change would otherwise cause, so silence stops being the default and becomes the thing
+    /// that has to ask.
+    /// </remarks>
+    public const string TrayOnlyVerb = "--tray";
 
     /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
     public const string CaptureWindowVerb = "--capture-window";
@@ -88,9 +106,14 @@ public static class CommandLine
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
+        // A bare launch shows the window (DD80). Explorer, the Start menu, the desktop icon and a
+        // developer running it out of the publish folder all pass nothing, and every one of them
+        // used to land in silence — the icon goes to the Windows 11 overflow, which DD21 measured
+        // and which nothing here can promote it out of, so there was no feedback at all and a user
+        // with none clicks again.
         if (arguments.Length == 0)
         {
-            return new Route(Surface.Tray, OpenWindow: false, []);
+            return new Route(Surface.Tray, OpenWindow: true, []);
         }
 
         var first = arguments[0];
@@ -122,8 +145,15 @@ public static class CommandLine
             return new Route(Surface.Preflight, OpenWindow: false, arguments[1..]);
         }
 
-        // Case-insensitive and position-independent, because this is the one argument a Windows
-        // shortcut carries and a shortcut is edited by hand.
+        // Case-insensitive and position-independent, because these are the arguments a Windows
+        // shortcut or a Run value carries and both are edited by hand.
+        if (arguments.Contains(TrayOnlyVerb, StringComparer.OrdinalIgnoreCase))
+        {
+            return arguments.Length == 1
+                ? new Route(Surface.Tray, OpenWindow: false, [])
+                : new Route(Surface.Unknown, OpenWindow: false, arguments);
+        }
+
         if (arguments.Contains(WindowVerb, StringComparer.OrdinalIgnoreCase))
         {
             return arguments.Length == 1
@@ -144,12 +174,13 @@ public static class CommandLine
         $"""
         {ExecutableName} — install and drive Docker on Windows.
 
-        With no arguments it is the tray icon. Everything else is a console verb and prints
-        into the terminal it was started from.
+        With no arguments it is the tray icon and the window. Everything else is a console
+        verb and prints into the terminal it was started from.
 
           read <verb>      the agent surface, which mutates nothing
           do <verb>        the agent surface that does
-          {WindowVerb}         the tray, with the window open straight away
+          {TrayOnlyVerb}           the tray icon alone, which is what "start with Windows" uses
+          {WindowVerb}         accepted, and what a bare launch already does
           {CaptureWindowVerb} <out.png> [tab]
                            render the window to a PNG off-screen, photographing nothing else
 

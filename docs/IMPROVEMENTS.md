@@ -78,27 +78,6 @@ the capture's settle would break the byte-identical PNG the review harness rests
 `Ui/Breathing.cs` is the worked example: it restores its end state rather than leaving
 the value wherever the animation reached.
 
-### §DD80 Why the default inverts instead of the shortcuts
-
-The launch contract is inverted here rather than in the shortcuts, because the shortcuts
-are not the only way in: a developer who installs by building runs the executable
-straight out of the publish folder, and that path carries no arguments either.
-
-So a bare argv becomes tray plus window, and the silent start becomes the thing that has
-to ask for itself. Only one caller wants silence, the Run key the installer writes for
-the start with Windows task, and a window in the face at every logon would be the
-regression this change could otherwise cause. That value gains an explicit flag and
-nothing else moves.
-
-The window verb stays accepted as a synonym that does nothing, because shortcuts already
-created carry it and a user edits one of those by hand.
-
-What this buys over DD21 is a remedy that does not depend on somebody reading an
-after-install page. DD21 measured that the icon lands in the overflow and that nothing
-here can promote it out of one; the window is the feedback channel that needs no
-promoting, and the taskbar button it raises already carries the mark. Identity arrives
-without the tray icon giving up shape as its way of stating engine state.
-
 ### §DD81 One tray, and what the second launch does instead
 
 One mutex, held only by the tray surface. The console verbs stay concurrent: an agent

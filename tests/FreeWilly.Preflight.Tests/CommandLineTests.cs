@@ -15,22 +15,47 @@ namespace FreeWilly.Preflight.Tests;
 public sealed class CommandLineTests
 {
     [Fact]
-    public void No_arguments_is_the_tray_and_no_window()
+    public void No_arguments_is_the_tray_and_the_window()
     {
+        // Inverted by DD80. Explorer, the Start menu, the desktop icon and a developer running the
+        // published .exe by hand all pass nothing, and every one of them used to land in silence:
+        // the icon goes to the Windows 11 overflow, which nothing here can promote it out of, so
+        // there was no feedback at all and a user with none clicks again.
         var route = CommandLine.Of([]);
 
         Assert.Equal(Surface.Tray, route.Surface);
+        Assert.True(route.OpenWindow);
+    }
+
+    [Theory]
+    [InlineData("--tray")]
+    [InlineData("--TRAY")]
+    public void The_tray_verb_is_the_one_way_to_ask_for_silence(string spelling)
+    {
+        // The Run key the installer writes for "start with Windows" is the only caller that wants
+        // it: a window in the face at every logon is the regression inverting the default could
+        // otherwise cause. Case-insensitive, because a Run value is edited by hand.
+        var route = CommandLine.Of([spelling]);
+
+        Assert.Equal(Surface.Tray, route.Surface);
         Assert.False(route.OpenWindow);
+    }
+
+    [Fact]
+    public void The_tray_verb_takes_nothing_else()
+    {
+        Assert.Equal(Surface.Unknown, CommandLine.Of(["--tray", "--window"]).Surface);
     }
 
     [Theory]
     [InlineData("--window")]
     [InlineData("--WINDOW")]
     [InlineData("--Window")]
-    public void The_window_verb_is_the_tray_with_the_window_open(string spelling)
+    public void The_window_verb_still_works_and_now_asks_for_the_default(string spelling)
     {
-        // Case-insensitive because this is the argument a Windows shortcut carries, and a shortcut
-        // is edited by hand in a properties dialog.
+        // Kept as a synonym rather than removed (DD80): a shortcut created by an earlier install
+        // carries it, and a user edits one of those by hand in a properties dialog. Refusing it
+        // would break a shortcut that has been working. Case-insensitive for the same reason.
         var route = CommandLine.Of([spelling]);
 
         Assert.Equal(Surface.Tray, route.Surface);

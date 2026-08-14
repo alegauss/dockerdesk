@@ -105,6 +105,31 @@ public sealed class PackagingTests
     }
 
     [Fact]
+    public void Start_with_windows_asks_for_the_tray_alone()
+    {
+        // DD80 inverted the default: a bare launch opens the window, so the Run value has to say
+        // it wants the tray on its own or every logon puts a window in somebody's face. The two
+        // spellings are in two files and nothing else would notice them drifting apart.
+        //
+        // The line rather than the whole literal: Inno doubles its own quotes, so an exact match
+        // asserts that escaping as much as it asserts the argument, and the argument is the claim.
+        var runValue = Assert.Single(
+            InstallerScript().Split('\n'),
+            line => line.Contains("ValueData:", StringComparison.Ordinal)
+                && line.Contains("MyAppExeName", StringComparison.Ordinal));
+
+        Assert.EndsWith(
+            $"{Tray.Cli.CommandLine.TrayOnlyVerb}\"; \\",
+            runValue.TrimEnd('\r'),
+            StringComparison.Ordinal);
+
+        // And it really is silence: the flag the script writes has to be the one that means it.
+        var route = Tray.Cli.CommandLine.Of([Tray.Cli.CommandLine.TrayOnlyVerb]);
+        Assert.Equal(Tray.Cli.Surface.Tray, route.Surface);
+        Assert.False(route.OpenWindow);
+    }
+
+    [Fact]
     public void The_version_the_assembly_states_is_the_one_the_installer_would_read() =>
         // GetStringFileInfo(PRODUCT_VERSION) reads the informational version, which is what
         // BuildVersion prints. Two ways to ask, and they have to agree or the installed version and

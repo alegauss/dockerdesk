@@ -42,6 +42,7 @@
 - ✅ **DD61** **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — Capture-Window.ps1 asks DWM for the window's system backdrop and refuses to copy one that has it, with no flag to waive it - so the leak is a refusal rather than a printed warning.
 - ✅ **DD69** **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The window's foot is the mark's own water, in the site's three blues and geometry, drifting only while the engine runs and held at phase zero for a capture.
 - ✅ **DD70 (the dot)** **A list that changed under a refresh and an engine that is still starting both arrive with no transition** — The engine dot breathes while the engine is starting and stops the moment it is not, behind one motion gate the water now shares.
+- ✅ **DD80** **Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb** — A bare launch is the tray and the window, and the Run key that starts with Windows is the one caller that asks for silence with --tray.
 
 ## Block D — Container operations (what a user came to do)
 

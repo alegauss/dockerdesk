@@ -592,13 +592,22 @@ public static class AgentSurface
                 }
             }
 
+            // One shell in the distribution per source nothing else could settle, and the common
+            // container has none of those — a mapped drive is answered from Windows and another
+            // engine's spelling is not ours to judge (DD101). Through `machine` for the reason every
+            // other Windows read on this surface is: `read doctor` is measured to the token, and a
+            // subprocess reached from inside this body would make the figure this machine's again.
+            var sources = ContainerDoctor.SourcesOnlyTheDistributionCanSettle(inspect)
+                .ToDictionary(source => source, machine.Sources.Look, StringComparer.Ordinal);
+
             var report = ContainerDoctor.Diagnose(new DoctorFacts(
                 Address: address,
                 Summary: summary,
                 Inspect: inspect,
                 ListeningHostPorts: machine.Ports.Listening(),
                 StandardError: summary is null ? [] : StandardErrorTail(engine, summary.Id),
-                Now: DateTimeOffset.UtcNow));
+                Now: DateTimeOffset.UtcNow,
+                BindSources: sources));
 
             output.Write(json
                 ? System.Text.Json.JsonSerializer.Serialize(

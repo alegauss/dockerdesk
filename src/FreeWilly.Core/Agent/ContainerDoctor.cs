@@ -14,13 +14,19 @@ namespace FreeWilly.Core.Agent;
 /// </param>
 /// <param name="StandardError">The last lines that went to stderr, newest last.</param>
 /// <param name="Now">When this was gathered, so a restart window is a span rather than a date.</param>
+/// <param name="BindSources">
+/// What the distribution said about each source only it could settle, keyed by the source as the
+/// daemon holds it (DD101). Absent, and every such source stays unchecked exactly as before —
+/// which is what a caller that cannot reach a distribution should report.
+/// </param>
 public sealed record DoctorFacts(
     Address Address,
     ContainerSummary? Summary,
     ContainerInspect? Inspect,
     IReadOnlySet<int> ListeningHostPorts,
     IReadOnlyList<string> StandardError,
-    DateTimeOffset Now);
+    DateTimeOffset Now,
+    IReadOnlyDictionary<string, BindSource>? BindSources = null);
 
 /// <summary>
 /// Why a container is not answering, as a conclusion rather than a field dump.
@@ -349,6 +355,8 @@ public static class ContainerDoctor
         var text = new List<string>();
         var broken = 0;
         var unchecked_ = 0;
+        var hollow = 0;
+        var uncheckedBind = false;
 
         foreach (var mount in mounts.OrderBy(m => m.Destination, StringComparer.Ordinal))
         {
@@ -368,10 +376,39 @@ public static class ContainerDoctor
                 // unchecked, and deliberately: the default pipe is one Docker Desktop also serves,
                 // so a container carrying its spelling may be a container of its own.
                 var here = Wsl.WindowsFolderSpelledElsewhere(mount.Source);
-                text.Add(here is null
-                    ? $"{mount.Destination} ← {mount.Source} (not a mapped drive, unchecked)"
-                    : $"{mount.Destination} ← {mount.Source} (unchecked; here {here})");
-                unchecked_++;
+                if (here is not null)
+                {
+                    text.Add($"{mount.Destination} ← {mount.Source} (unchecked; here {here})");
+                    unchecked_++;
+                    uncheckedBind = true;
+                    continue;
+                }
+
+                // Nothing about the string settles it, which is the case DD96 named as the one that
+                // costs an afternoon. The distribution can be asked, and DD101 asks it.
+                switch (Settled(facts, mount.Source))
+                {
+                    case BindSource.Missing:
+                        text.Add($"{mount.Destination} ← {mount.Source} (not in this distribution)");
+                        hollow++;
+                        break;
+
+                    case BindSource.Empty:
+                        text.Add($"{mount.Destination} ← {mount.Source} (empty in this distribution)");
+                        hollow++;
+                        break;
+
+                    case BindSource.Holds:
+                        text.Add($"{mount.Destination} ← {mount.Source} (in this distribution)");
+                        break;
+
+                    default:
+                        text.Add($"{mount.Destination} ← {mount.Source} (not a mapped drive, unchecked)");
+                        unchecked_++;
+                        uncheckedBind = true;
+                        break;
+                }
+
                 continue;
             }
 
@@ -387,26 +424,75 @@ public static class ContainerDoctor
         {
             Id = Rows.Mounts,
             Title = "mounts",
-            Verdict = broken > 0 ? Verdict.Fail : unchecked_ == mounts.Count ? Verdict.Unknown : Verdict.Pass,
+            // Hollow is a warning and never a failure, and that is DD101's whole restraint: a bind
+            // source that is genuinely empty is somebody's output directory, not a defect, and a row
+            // that calls it one is the false diagnosis DD26 puts above every other consideration.
+            Verdict = broken > 0 ? Verdict.Fail
+                : hollow > 0 ? Verdict.Warn
+                : unchecked_ == mounts.Count ? Verdict.Unknown
+                : Verdict.Pass,
             Detail = string.Join(", ", text),
             Remedy = broken > 0
                 ? "A missing bind source gives the container an empty directory rather than an "
                     + "error, so this reads as missing code."
-                : unchecked_ > 0 && mounts.Any(m =>
-                    string.Equals(m.Type, "bind", StringComparison.Ordinal)
-                    && Wsl.ToWindowsPath(m.Source) is null)
-                    // DD96: the same empty directory, arrived at from the other side. `do compose up`
-                    // respells a Windows source into the override it generates, and nothing else
-                    // does — so a bind typed at a prompt, brought up by the user's own compose, or
-                    // set by an IDE reaches the daemon as written. A source the daemon cannot
-                    // resolve is not refused; it is created, and the container gets an empty
-                    // directory. Said here because this row is the one place that sees the source.
-                    ? "An unreachable bind source is created empty, not refused. Here a Windows "
-                        + "folder is /mnt/<drive>/..., written for you only by `do compose up`."
-                    : null,
+                : hollow > 0
+                    // Both possibilities, because the daemon erases the difference: it creates a
+                    // source it cannot resolve rather than refusing, so a path typed in a WSL shell
+                    // where $(pwd) is not a path this distribution has looks afterwards exactly like
+                    // an output directory nothing has written to yet. Naming one of the two would be
+                    // a verdict this cannot support.
+                    ? "The container sees nothing behind this mount. Either the source is somewhere "
+                        + "the engine's distribution cannot see, or it is genuinely empty."
+                    : uncheckedBind
+                        // DD96: the same empty directory, arrived at from the other side. `do compose
+                        // up` respells a Windows source into the override it generates, and nothing
+                        // else does — so a bind typed at a prompt, brought up by the user's own
+                        // compose, or set by an IDE reaches the daemon as written. A source the
+                        // daemon cannot resolve is not refused; it is created, and the container gets
+                        // an empty directory. Said here because this row is the one place that sees
+                        // the source.
+                        ? "An unreachable bind source is created empty, not refused. Here a Windows "
+                            + "folder is /mnt/<drive>/..., written for you only by `do compose up`."
+                        : null,
             Blocking = broken > 0,
         };
     }
+
+    /// <summary>What the distribution said about a source only it could settle (DD101).</summary>
+    /// <param name="facts">What was gathered.</param>
+    /// <param name="source">The source, as the daemon holds it.</param>
+    /// <returns>The answer, or <see cref="BindSource.Unasked"/> where nobody asked.</returns>
+    /// <remarks>
+    /// The absent dictionary and the source nobody asked about are one answer on purpose: a caller
+    /// with no distribution to reach and a caller that reached one and learned nothing should both
+    /// leave the row saying "unchecked", which is what it said before this task.
+    /// </remarks>
+    private static BindSource Settled(DoctorFacts facts, string source) =>
+        facts.BindSources is { } asked && asked.TryGetValue(source, out var answer)
+            ? answer
+            : BindSource.Unasked;
+
+    /// <summary>
+    /// The bind sources whose state only the distribution can settle (DD101).
+    /// </summary>
+    /// <param name="inspect">The container's entity tree, or nothing.</param>
+    /// <returns>Each such source once, in a stable order.</returns>
+    /// <remarks>
+    /// Public because the gathering happens in the caller and the rule lives here: a mapped drive is
+    /// answered from Windows and another engine's spelling is not ours to judge, so neither is worth
+    /// a subprocess. Two spellings of that rule would be two chances for the row to ask about a
+    /// source it then reports as unchecked anyway.
+    /// </remarks>
+    public static IReadOnlyList<string> SourcesOnlyTheDistributionCanSettle(ContainerInspect? inspect) =>
+        (inspect?.Mounts ?? [])
+            .Where(mount => string.Equals(mount.Type, "bind", StringComparison.Ordinal))
+            .Select(mount => mount.Source)
+            .Where(source => !string.IsNullOrWhiteSpace(source)
+                && Wsl.ToWindowsPath(source) is null
+                && Wsl.WindowsFolderSpelledElsewhere(source) is null)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(source => source, StringComparer.Ordinal)
+            .ToList();
 
     /// <summary>
     /// The last lines that went to stderr, rather than the whole log.

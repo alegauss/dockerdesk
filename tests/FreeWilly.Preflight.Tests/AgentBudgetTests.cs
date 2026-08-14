@@ -335,6 +335,7 @@ public sealed class AgentBudgetTests
         Ports = new NoListeners(),
         Client = new FixedContext(),
         Service = new NeverProbed(),
+        Sources = new FixedSource(),
     };
 
     private sealed class NoListeners : IHostPorts
@@ -361,6 +362,26 @@ public sealed class AgentBudgetTests
     /// connecting to whatever holds 8080 on the measuring machine, which is the class of input this
     /// task exists to take out of the figure.
     /// </remarks>
+    /// <summary>
+    /// What the distribution says about the shaped task's one bind source (DD101).
+    /// </summary>
+    /// <remarks>
+    /// A fixture rather than an assertion, because the shaped task genuinely reaches this: its
+    /// container's bind source is <c>/c/Users/dev/shop/api</c>, which is the case DD96 named as the
+    /// one nothing about the string can settle, and DD101 is exactly the read that settles it. So the
+    /// question is not whether the measured task asks, but that the answer is the fixture's and never
+    /// this machine's — a real read would run <c>wsl.exe</c> here and the figure would drift with
+    /// whatever distribution the measuring machine has.
+    ///
+    /// <para><c>Missing</c> because that is what the fixture describes: a Git-Bash spelling of a
+    /// Windows folder, typed at a prompt, reaching a daemon that has no such path and creates it.
+    /// Choosing the cheapest answer instead would measure a row this task rarely produces.</para>
+    /// </remarks>
+    private sealed class FixedSource : IBindSources
+    {
+        public BindSource Look(string source) => BindSource.Missing;
+    }
+
     private sealed class NeverProbed : IServiceProbe
     {
         public PortAnswer Connect(int hostPort, string containerPort, TimeSpan timeout) =>

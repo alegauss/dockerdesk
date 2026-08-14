@@ -2,33 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD101 The case a string cannot settle
-
-DD96 gave the mounts row two certain answers: a drive-lettered source, and another
-engine's host mapping. Both are recognisable from the string alone, so neither can be a
-false diagnosis. It did not answer the third case, which DD96's design named as the one
-that costs an afternoon — `/home/you/project`, typed in a WSL shell where `$(pwd)` is a
-path this distribution does not have. The daemon does not refuse it: it creates the
-directory, and behind the mount is nothing.
-
-From the string it is unanswerable: that spelling is equally a legitimate path inside
-the distribution, and `Wsl.WindowsFolderSpelledElsewhere` returns null on it for that
-reason.
-
-The distribution can be asked: `IWsl` already runs a command in it, and whether the
-source holds anything is a fact a read verb could gather.
-
-Two things to settle before writing it. **The false positive**: a bind source that is
-genuinely empty is not a defect, and a row that calls it one is the thing DD26 puts
-above every other consideration. So the finding is probably "empty, and the daemon
-creates a missing source rather than refusing" — a warning naming both possibilities —
-rather than a verdict.
-
-**And the seam**: `read doctor` is measured to the token by `agent-budget.json`, so a
-subprocess inside it has to arrive through `MachineReads` like the other machine reads,
-or the benchmark starts running `wsl.exe`. DD98 is about that seam being held by nothing
-but memory; this is the first change that would test it.
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

@@ -84,13 +84,18 @@ public sealed class ContainerDoctorTests
         ContainerSummary? summary = null,
         ContainerInspect? inspect = null,
         IEnumerable<int>? listening = null,
-        IReadOnlyList<string>? stderr = null) => new(
+        IReadOnlyList<string>? stderr = null,
+        IReadOnlyDictionary<string, BindSource>? sources = null) => new(
             Address: Address.Parse("shop-api-1"),
             Summary: summary,
             Inspect: inspect,
             ListeningHostPorts: (listening ?? []).ToHashSet(),
             StandardError: stderr ?? [],
-            Now: Now);
+            Now: Now,
+            BindSources: sources);
+
+    private static IReadOnlyDictionary<string, BindSource> Asked(string source, BindSource answer) =>
+        new Dictionary<string, BindSource>(StringComparer.Ordinal) { [source] = answer };
 
     private static PreflightCheck? Row(PreflightReport report, string id) => report[id];
 
@@ -467,6 +472,141 @@ public sealed class ContainerDoctorTests
         Assert.Equal(Verdict.Pass, row.Verdict);
         Assert.Null(row.Remedy);
     }
+
+    // ---- the case only the distribution can settle (DD101) ---------------------------------------
+
+    [Theory]
+    [InlineData(BindSource.Missing, "not in this distribution")]
+    [InlineData(BindSource.Empty, "empty in this distribution")]
+    public void A_source_the_distribution_finds_nothing_behind_is_a_warning_and_not_a_failure(
+        BindSource answer, string said)
+    {
+        // The whole restraint of DD101. `/home/you/project` typed in a WSL shell where $(pwd) is a
+        // path this distribution does not have is the case DD96 named as the one that costs an
+        // afternoon — and a source that is genuinely empty is somebody's output directory, so the
+        // row states what it found and never which of the two it was.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind", Source = "/home/you/project", Destination = "/app",
+            }]),
+            sources: Asked("/home/you/project", answer)));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Warn, row.Verdict);
+        Assert.False(row.Blocking, "an empty source may be somebody's output directory");
+        Assert.Contains(said, row.Detail, StringComparison.Ordinal);
+        Assert.Contains("cannot see", row.Remedy!, StringComparison.Ordinal);
+        Assert.Contains("genuinely empty", row.Remedy!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_source_the_distribution_does_hold_stops_being_unchecked()
+    {
+        // The answer worth having most often: before this the row said "unchecked" about a source
+        // that was there all along, so the one row a reader consults about mounts said nothing.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind", Source = "/srv/app", Destination = "/app",
+            }]),
+            sources: Asked("/srv/app", BindSource.Holds)));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Pass, row.Verdict);
+        Assert.Contains("in this distribution", row.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("unchecked", row.Detail, StringComparison.Ordinal);
+        Assert.Null(row.Remedy);
+    }
+
+    [Theory]
+    [InlineData(BindSource.Unasked)]
+    [InlineData(null)]
+    public void A_question_nobody_managed_to_ask_reads_exactly_as_it_did_before(BindSource? answer)
+    {
+        // A stopped distribution, a missing wsl.exe and a command that timed out all land here, and
+        // so does a caller with no distribution to reach at all. None of them is evidence about the
+        // user's path, so none of them may move the row off Unknown (Verdict.Unknown's own rule).
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind", Source = "/home/you/project", Destination = "/app",
+            }]),
+            sources: answer is { } known ? Asked("/home/you/project", known) : null));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Unknown, row.Verdict);
+        Assert.Contains("unchecked", row.Detail, StringComparison.Ordinal);
+        Assert.Contains("created empty", row.Remedy!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_missing_windows_source_still_outranks_a_source_the_distribution_doubts()
+    {
+        // Precedence, and it is not arbitrary: a mapped drive that is not there was read from
+        // Windows and is certain, while the distribution's answer cannot separate "somewhere the
+        // engine cannot see" from "empty". The certain finding is the one the row leads with.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts:
+            [
+                new ContainerMount
+                {
+                    Type = "bind",
+                    Source = "/mnt/c/definitely/not/here/" + Guid.NewGuid().ToString("N"),
+                    Destination = "/gone",
+                },
+                new ContainerMount
+                {
+                    Type = "bind", Source = "/home/you/project", Destination = "/app",
+                },
+            ]),
+            sources: Asked("/home/you/project", BindSource.Missing)));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Fail, row.Verdict);
+        Assert.True(row.Blocking);
+    }
+
+    [Fact]
+    public void Only_the_sources_nothing_else_could_settle_are_worth_a_subprocess()
+    {
+        // The rule lives beside the row that uses it, because the caller gathers: a mapped drive is
+        // answered from Windows, another engine's spelling is not ours to judge, and a volume lives
+        // inside the distribution under a name rather than a path. One shell each for the rest.
+        var sources = ContainerDoctor.SourcesOnlyTheDistributionCanSettle(Inspect(mounts:
+        [
+            new ContainerMount { Type = "volume", Name = "shop_data", Destination = "/data" },
+            new ContainerMount
+            {
+                Type = "bind", Source = "/mnt/c/Users/dev/shop", Destination = "/win",
+            },
+            new ContainerMount
+            {
+                Type = "bind",
+                Source = "/run/desktop/mnt/host/c/Users/dev/shop",
+                Destination = "/rival",
+            },
+            new ContainerMount { Type = "bind", Source = @"D:\shop\data", Destination = "/drive" },
+            new ContainerMount { Type = "bind", Source = "/home/you/project", Destination = "/app" },
+            new ContainerMount { Type = "bind", Source = "/home/you/project", Destination = "/again" },
+        ]));
+
+        Assert.Equal(["/home/you/project"], sources);
+    }
+
+    [Fact]
+    public void Nothing_is_asked_about_a_container_that_could_not_be_inspected() =>
+        // The doctor still answers for a container the list knew and the inspect lost, and a
+        // gathering loop over a null tree must be no loop rather than a null reference.
+        Assert.Empty(ContainerDoctor.SourcesOnlyTheDistributionCanSettle(null));
 
     // ---- the reverse path mapping ---------------------------------------------------------------
 

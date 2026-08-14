@@ -21,6 +21,7 @@
 - ✅ **DD76** **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — A WSL shell is told the engine is on the Windows side, that docker.exe reaches it through interop, and that it reads every path it is handed as a Windows one.
 - ✅ **DD95** **DD75 shipped its bind translation with no test, and left the two helpers it replaced behind as dead code** — An edit that silently did not apply took three guards and one deletion with it, so the new behaviour was verified by hand and by nothing the build runs.
 - ✅ **DD96** **A bind source only compose up can respell, so every other route to the daemon still mounts an empty directory** — `read doctor`'s mounts row says an unreachable bind source is created empty rather than refused, and gives the spelling this engine needs.
+- ✅ **DD101** **A bind source that looks like a distribution path and is not there stays unchecked, and it is the expensive failure** — `read doctor` asks the engine's distribution whether a bind source it cannot settle from the string is there, and warns without claiming which of empty and unreachable it is.
 
 ## Block B — The daemon client (talk to the engine)
 

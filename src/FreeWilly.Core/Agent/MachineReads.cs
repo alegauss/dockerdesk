@@ -97,4 +97,14 @@ public sealed class MachineReads
     /// answers — so it is here for the reason the others are, and one step ahead of needing to be.
     /// </remarks>
     public IRivalEngines Rivals { get; init; } = new RivalEngines();
+
+    /// <summary>Whether a bind source is there inside the distribution the engine runs in.</summary>
+    /// <remarks>
+    /// The first read on this list that is squarely on the measured task: <c>read doctor</c> is one
+    /// of the four verbs the benchmark drives, and DD101 gives its mounts row a subprocess. DD98
+    /// said the seam was held by memory alone and this is the change that would have tested it — so
+    /// the read arrives here rather than inside the verb, and the benchmark keeps answering from
+    /// fixtures instead of running <c>wsl.exe</c>.
+    /// </remarks>
+    public IBindSources Sources { get; init; } = new BindSources();
 }

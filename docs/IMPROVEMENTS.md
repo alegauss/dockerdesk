@@ -112,28 +112,4 @@ leave one this product did not put there, which it cannot currently tell apart.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD78 A gate is only as tight as its least deterministic input
-
-DD65 recorded the shaped side at 4 calls, 16 requests and 774 tokens. The request count
-is asserted exactly, because the fixtures fully determine it. The token figure is banded
-at the file's own 15% — 658 to 890 — for two inputs that are not fixtures at all:
-
-- `ContextPack` names the Docker client from `WindowsMachineFacts()`, so the engine line
-  differs between a developer's machine and a CI runner with no Docker.
-- `ContainerDoctor` asks `new HostPorts().Listening()` whether anything on Windows holds
-  port 8080, so the fixture container's ports row is a pass on one machine and a failure
-  on another.
-
-Measured variance is perhaps 5%, so the band is three times wider than what it exists to
-absorb, and a response that grew by 100 tokens would land inside it silently. That is
-the defect the whole file exists to prevent, arrived at from the other direction.
-
-Both are constructed inside the verb rather than passed to it, so there is no seam to
-supply either. `AgentSurface.ReadVerify` already takes an `IServiceProbe` for exactly
-this reason and is the shape to follow — the argument is optional, defaulted to the real
-one, and only a measurement passes anything else.
-
-The band on the baseline stays: that one exists for a different reason, which is a
-fixture somebody shrinks, and it is honest about being one.
-
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -82,7 +82,7 @@
     "measured": {
       "calls": 4,
       "requests": 16,
-      "tokens": 774
+      "tokens": 771
     },
     "ratio": {
       "about": [
@@ -90,7 +90,7 @@
         "against the two `measured` blocks so no one of the three can move on its own."
       ],
       "calls": 1.5,
-      "tokens": 15.1
+      "tokens": 15.2
     },
     "caveat": [
       "Task-for-task, not payload-for-payload, and the difference is not a rounding error. `read doctor`",
@@ -100,10 +100,18 @@
       "strictly larger question: whether the host port accepts, which /networks/... cannot say at all.",
       "Read the ratio as what the task costs, never as two interchangeable payloads compared.",
       "",
-      "Two inputs are read from the machine rather than from a fixture: the Docker client named in the",
-      "context pack's engine line, and whether anything on Windows holds port 8080 in the doctor's",
-      "ports row. That is why the token figure is banded like the baseline's and the request count,",
-      "which the fixtures fully determine, is asserted exactly."
+      "Every figure here is asserted exactly (DD78). Two inputs used to be read from the machine",
+      "rather than from a fixture - the Docker client named in the context pack's engine line, and",
+      "whether anything on Windows holds port 8080 in the doctor's ports row - so the token figure",
+      "was banded at the 15% below - 658..890 - while the variance it absorbed was measured at",
+      "736..774: a machine holding port 8080 costs 736, one with no Docker at all 768, and the",
+      "machine DD65 was first measured on 774. So the band was three times wider than its job and a",
+      "response that grew by 100 tokens landed inside it silently. Both arrive through a seam now,",
+      "defaulted to this machine and overridden only by the measurement, so the whole task is",
+      "determined by this file. 774 becoming 771 is that first machine leaving the figure.",
+      "",
+      "The band on the baseline stays. It is there for a different reason - a fixture somebody shrinks",
+      "- and is honest about being one."
     ],
     "target": {
       "calls": 5,

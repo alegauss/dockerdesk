@@ -23,8 +23,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD78** (deps: —) **The shaped token figure is banded because two of its inputs are read from the machine and not a fixture** — A 15% band is wide enough to hide a regression a build could ship, and the request count recorded beside it is exact for want of the same seam. → §DD78
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ## Non-goals

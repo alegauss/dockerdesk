@@ -169,23 +169,34 @@ public static class AgentSurface
     /// <param name="engine">The read-only half of the engine.</param>
     /// <param name="rest">Everything after the two words.</param>
     /// <param name="output">Where the payload goes.</param>
+    /// <param name="machine">
+    /// What the verb reads off Windows rather than off the engine, defaulted to this machine (DD78).
+    /// Only a measurement passes anything else — the two reads behind it are the reason the recorded
+    /// token figure had to be banded at all.
+    /// </param>
     /// <returns>The process exit code.</returns>
-    internal static int Read(AgentVerb verb, IEngineReads engine, string[] rest, TextWriter output)
+    internal static int Read(
+        AgentVerb verb,
+        IEngineReads engine,
+        string[] rest,
+        TextWriter output,
+        MachineReads? machine = null)
     {
         ArgumentNullException.ThrowIfNull(verb);
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(rest);
         ArgumentNullException.ThrowIfNull(output);
+        machine ??= MachineReads.OfThisMachine;
 
         return verb.Name switch
         {
             "changes" => ReadChanges(engine, rest, output),
-            "context" => ReadContext(engine, rest, output),
-            "doctor" => ReadDoctor(engine, rest, output),
+            "context" => ReadContext(engine, rest, output, machine.Client),
+            "doctor" => ReadDoctor(engine, rest, output, machine.Ports),
             "logs" => ReadLogs(engine, rest, output),
             "ports" => ReadPorts(engine, rest, output, new PortOwners()),
             "ps" => ReadPs(engine, rest, output),
-            "verify" => ReadVerify(engine, rest, output, new ServiceProbe()),
+            "verify" => ReadVerify(engine, rest, output, machine.Service),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
     }
@@ -319,7 +330,8 @@ public static class AgentSurface
     /// costs both. Inspects are still rationed to the containers that are not running, because those
     /// are the only ones an inspect tells you anything the list did not.
     /// </remarks>
-    private static int ReadContext(IEngineReads engine, string[] rest, TextWriter output)
+    private static int ReadContext(
+        IEngineReads engine, string[] rest, TextWriter output, IContextProbe client)
     {
         var json = false;
         var brief = false;
@@ -417,14 +429,14 @@ public static class AgentSurface
                 }
             }
 
-            var client = new Core.Preflight.Windows.WindowsMachineFacts().DockerClient;
+            var target = client.Read();
             var facts = new ContextFacts(
                 EngineState: "running",
                 Distribution: new EnginePaths().DistributionName,
                 ApiVersion: version.ApiVersion,
-                ContextName: client.FromEnvironment ? "DOCKER_HOST" : client.ContextName,
+                ContextName: target.FromEnvironment ? "DOCKER_HOST" : target.ContextName,
                 ContextReachesEngine:
-                    Core.Preflight.Windows.DockerContextProbe.ReachesThisEngine(client.Host),
+                    Core.Preflight.Windows.DockerContextProbe.ReachesThisEngine(target.Host),
                 Containers: containers,
                 Diagnoses: diagnoses,
                 Images: engine.ImagesAsync().GetAwaiter().GetResult(),
@@ -520,7 +532,8 @@ public static class AgentSurface
     /// cost. The rows are <see cref="Core.Preflight.PreflightCheck"/>, so the vocabulary is the one the
     /// preflight already established and the renderer is the one it already has.
     /// </remarks>
-    private static int ReadDoctor(IEngineReads engine, string[] rest, TextWriter output)
+    private static int ReadDoctor(
+        IEngineReads engine, string[] rest, TextWriter output, IHostPorts ports)
     {
         var json = false;
         string? target = null;
@@ -578,7 +591,7 @@ public static class AgentSurface
                 Address: address,
                 Summary: summary,
                 Inspect: inspect,
-                ListeningHostPorts: new HostPorts().Listening(),
+                ListeningHostPorts: ports.Listening(),
                 StandardError: summary is null ? [] : StandardErrorTail(engine, summary.Id),
                 Now: DateTimeOffset.UtcNow));
 

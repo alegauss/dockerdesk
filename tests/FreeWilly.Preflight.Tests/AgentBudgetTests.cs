@@ -317,6 +317,61 @@ public sealed class AgentBudgetTests
         return [.. head, .. frame];
     }
 
+    /// <summary>
+    /// Everything the shaped task reads off Windows, as fixtures (DD78).
+    /// </summary>
+    /// <remarks>
+    /// The whole reason the shaped figure could not be exact. <c>read context</c> named the CLI's
+    /// context from this machine's own <c>.docker/config.json</c> and <c>read doctor</c> asked Windows
+    /// whether anything held port 8080, so the same build measured differently on a developer's
+    /// machine and on a runner with no Docker on it.
+    ///
+    /// <para>Chosen to agree with the fixtures rather than to be convenient. The pack states the
+    /// engine running, so the CLI points at <c>default</c> and reaches it; the container the task is
+    /// about was OOM-killed and exited, so nothing on the host holds its published port.</para>
+    /// </remarks>
+    private static MachineReads FixedMachine() => new()
+    {
+        Ports = new NoListeners(),
+        Client = new FixedContext(),
+        Service = new NeverProbed(),
+    };
+
+    private sealed class NoListeners : IHostPorts
+    {
+        public IReadOnlySet<int> Listening() => new HashSet<int>();
+    }
+
+    private sealed class FixedContext : IContextProbe
+    {
+        public Core.Preflight.DockerClientTarget Read() => new()
+        {
+            ContextName = Core.Preflight.Windows.DockerContextProbe.DefaultContextName,
+            Host = "npipe:////./pipe/" + DockerApi.DefaultPipeName,
+            FromEnvironment = false,
+        };
+    }
+
+    /// <summary>
+    /// The probe the shaped task must not reach.
+    /// </summary>
+    /// <remarks>
+    /// An assertion and not a stub. <c>read verify</c> probes nothing for a container that is not
+    /// running, and this fixture's is exited — so a build where that stopped being true would start
+    /// connecting to whatever holds 8080 on the measuring machine, which is the class of input this
+    /// task exists to take out of the figure.
+    /// </remarks>
+    private sealed class NeverProbed : IServiceProbe
+    {
+        public PortAnswer Connect(int hostPort, string containerPort, TimeSpan timeout) =>
+            throw new InvalidOperationException(
+                "the shaped task probed a host port, so its token figure is this machine's again");
+
+        public RequestAnswer Get(int hostPort, string path, TimeSpan timeout) =>
+            throw new InvalidOperationException(
+                "the shaped task made an HTTP request, so its token figure is this machine's again");
+    }
+
     /// <summary>Drive the same task through the surface and return what it cost.</summary>
     /// <remarks>
     /// A call here is a verb invocation, which is what the caller pays for — not a request the daemon
@@ -334,7 +389,7 @@ public sealed class AgentBudgetTests
         foreach (var call in ShapedTask)
         {
             var output = new StringWriter();
-            AgentSurface.Read(AgentSurface.Find(call)!, engine, call[2..], output);
+            AgentSurface.Read(AgentSurface.Find(call)!, engine, call[2..], output, FixedMachine());
             paid.Add(output.ToString());
         }
 
@@ -495,16 +550,16 @@ public sealed class AgentBudgetTests
         // verb quietly starts asking the daemon something it did not ask before.
         Assert.Equal(measured.GetProperty("requests").GetInt32(), served);
 
+        // Exact since DD78, and that is the whole of it. This was banded at the file's own 15% for
+        // two inputs read off Windows rather than off a fixture — against a measured variance of
+        // about 5%, so a response that grew by 100 tokens landed inside the band and the gate said
+        // nothing. The seam removed them, and what is left is fully determined by this file.
         var recorded = measured.GetProperty("tokens").GetInt32();
-        var tolerance = budget.RootElement.GetProperty("fixtures")
-            .GetProperty("sizes").GetProperty("tolerance").GetDouble();
-        var low = (int)(recorded * (1 - tolerance));
-        var high = (int)(recorded * (1 + tolerance));
         Assert.True(
-            cost.Tokens >= low && cost.Tokens <= high,
-            $"the shaped task now estimates {cost.Tokens} tokens, outside the recorded {recorded} "
-            + $"+/-{tolerance:P0} ({low}..{high}). If this is deliberate, raise it in "
-            + "agent-budget.json and say in the commit what the tokens bought.");
+            cost.Tokens == recorded,
+            $"the shaped task now estimates {cost.Tokens} tokens against the recorded {recorded}. "
+            + "If this is deliberate, record it in agent-budget.json and say in the commit what the "
+            + "tokens bought.");
     }
 
     [Fact]

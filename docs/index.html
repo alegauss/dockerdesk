@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DockerDesk — Docker on Windows, without Docker Desktop</title>
+<title>FreeWilly — Docker on Windows, without Docker Desktop</title>
 <meta name="description" content="A free Windows desktop app that installs upstream Moby into a WSL2 distribution it owns, serves the docker_engine pipe your existing tools already look for, and shows your containers in one window. Per-user install, no admin, nothing resident.">
 
 <!-- Open Graph / social -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="DockerDesk">
+<meta property="og:title" content="FreeWilly">
 <meta property="og:description" content="Upstream Moby in a WSL2 distro it owns, the docker_engine pipe your tools already look for, and one window of containers. No licence fee, nothing resident.">
 <meta property="og:image" content="logo.svg">
 <meta property="og:url" content="https://alegauss.github.io/freewilly/">
@@ -334,7 +334,7 @@
 <nav>
   <div class="wrap">
     <div class="nav-left">
-      <a class="brand" href="#top"><img src="logo.svg" alt="">DockerDesk</a>
+      <a class="brand" href="#top"><img src="logo.svg" alt="">FreeWilly</a>
       <a class="parent" href="https://alegauss.github.io/" title="alegauss — small developer tools">
         <span class="pre">part of</span><b>alegauss</b>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -358,11 +358,11 @@
 <!-- HERO -->
 <header class="hero" id="top">
   <div class="wrap">
-    <img class="hero-icon" src="logo.svg" alt="DockerDesk logo">
+    <img class="hero-icon" src="logo.svg" alt="FreeWilly logo">
     <div class="badge"><span class="dot"></span> In development · No release yet · Windows 10 / 11</div>
     <h1>Docker on Windows,<br><span class="grad">without Docker Desktop.</span></h1>
     <p class="sub">
-      DockerDesk puts <b>upstream Moby</b> into a WSL2 distribution it owns, serves the
+      FreeWilly puts <b>upstream Moby</b> into a WSL2 distribution it owns, serves the
       <code>docker_engine</code> pipe every tool you already have looks for, and shows your
       containers in one window. Per-user install, no administrator prompt, and nothing left
       running that you did not ask for.
@@ -393,7 +393,7 @@
       <h2>The engine is free. The desktop app is what costs.</h2>
       <p>
         Moby and the <code>docker</code> CLI are Apache-2.0 and always were. What a company pays
-        for, and what a managed laptop cannot install, is the wrapper around them. DockerDesk is a
+        for, and what a managed laptop cannot install, is the wrapper around them. FreeWilly is a
         different wrapper: it installs the same engine, gets out of the way, and stops when you
         tell it to.
       </p>
@@ -412,7 +412,7 @@
       <div class="card reveal">
         <div class="ico">🧍</div>
         <h3>Per-user, no admin prompt</h3>
-        <p>Everything lands under <code>%LOCALAPPDATA%\DockerDesk</code>: the verified downloads, the distribution's disk, and the <code>docker.exe</code> that goes on your PATH. Which is what reaches a corporate laptop you are not an administrator on.</p>
+        <p>Everything lands under <code>%LOCALAPPDATA%\FreeWilly</code>: the verified downloads, the distribution's disk, and the <code>docker.exe</code> that goes on your PATH. Which is what reaches a corporate laptop you are not an administrator on.</p>
       </div>
       <div class="card reveal">
         <div class="ico">📦</div>
@@ -427,7 +427,7 @@
       <div class="card reveal">
         <div class="ico">🗑️</div>
         <h3>An uninstall that is one command</h3>
-        <p>The distribution is called <code>dockerdesk</code> and it is this tool's, never yours. Your own WSL distros are untouched, and removing the engine cannot take anything of yours with it.</p>
+        <p>The distribution is called <code>freewilly</code> and it is this tool's, never yours. Your own WSL distros are untouched, and removing the engine cannot take anything of yours with it.</p>
       </div>
     </div>
   </div>
@@ -441,15 +441,15 @@
       <h2>Why Docker will not run here — in four rows</h2>
       <p>
         “It does not work on my machine” has four common causes on Windows, and they have four
-        different remedies. <code>dockerdesk-preflight</code> names the one you have, prints the
+        different remedies. <code>freewilly-preflight</code> names the one you have, prints the
         command that fixes it, changes nothing, and exits <code>1</code> so an installer can stop
         rather than fail halfway.
       </p>
     </div>
     <div class="reveal">
       <div class="term">
-        <div class="bar"><i></i><i></i><i></i><span>dockerdesk-preflight</span></div>
-<pre>DockerDesk preflight — what this machine can host
+        <div class="bar"><i></i><i></i><i></i><span>freewilly-preflight</span></div>
+<pre>FreeWilly preflight — what this machine can host
 
   [<span class="ok">ok  </span>]  Windows build            Windows 10.0, build 26200
   [<span class="ok">ok  </span>]  Hardware virtualization  enabled — a hypervisor is already running
@@ -504,7 +504,7 @@
       <div class="step">
         <div class="n">3</div>
         <h4>Import an owned distro</h4>
-        <p><code>wsl --import dockerdesk … --version 2</code>. A fixed name that is this tool's, so an <code>apt upgrade</code> or a <code>wsl --unregister</code> you ran for your own reasons cannot take the engine with it.</p>
+        <p><code>wsl --import freewilly … --version 2</code>. A fixed name that is this tool's, so an <code>apt upgrade</code> or a <code>wsl --unregister</code> you ran for your own reasons cannot take the engine with it.</p>
       </div>
       <div class="step">
         <div class="n">4</div>
@@ -514,7 +514,7 @@
       <div class="step">
         <div class="n">5</div>
         <h4>Place the Windows CLI</h4>
-        <p><code>docker.exe</code> is extracted to <code>…\DockerDesk\bin</code>. Putting that directory on your PATH is the installer's job, and this step's only job is being the path it points at.</p>
+        <p><code>docker.exe</code> is extracted to <code>…\FreeWilly\bin</code>. Putting that directory on your PATH is the installer's job, and this step's only job is being the path it points at.</p>
       </div>
       <div class="step">
         <div class="n ask">?</div>
@@ -523,8 +523,8 @@
       </div>
     </div>
     <div class="term reveal">
-      <div class="bar"><i></i><i></i><i></i><span>dockerdesk-engine --help</span></div>
-<pre>dockerdesk-engine — put upstream Moby into a WSL2 distribution this tool owns.
+      <div class="bar"><i></i><i></i><i></i><span>freewilly-engine --help</span></div>
+<pre>freewilly-engine — put upstream Moby into a WSL2 distribution this tool owns.
 
   --plan        the pinned versions, digests and paths; reaches nothing
   --acquire     download and verify every artefact, and stop
@@ -555,11 +555,11 @@
       <p>
         A Linux <code>dockerd</code> cannot create a Windows named pipe — that is a Win32 object.
         So something on the Windows side has to, or every shell and every script you already have
-        needs a <code>DOCKER_HOST</code>. DockerDesk is that something.
+        needs a <code>DOCKER_HOST</code>. FreeWilly is that something.
       </p>
     </div>
     <div class="shot-frame reveal">
-      <svg viewBox="0 0 900 250" role="img" aria-label="docker.exe, compose and the DockerDesk window all connect to the Windows named pipe docker_engine, which the relay forwards over wsl.exe stdio to socat inside the dockerdesk distribution, and on to the dockerd unix socket">
+      <svg viewBox="0 0 900 250" role="img" aria-label="docker.exe, compose and the FreeWilly window all connect to the Windows named pipe docker_engine, which the relay forwards over wsl.exe stdio to socat inside the freewilly distribution, and on to the dockerd unix socket">
         <defs>
           <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="#67C3F2"/>
@@ -570,7 +570,7 @@
         <!-- windows side -->
         <text x="30" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WINDOWS</text>
         <line x1="470" y1="16" x2="470" y2="234" stroke="#22404f" stroke-width="1" stroke-dasharray="5 5"/>
-        <text x="500" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WSL2 · dockerdesk</text>
+        <text x="500" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WSL2 · freewilly</text>
 
         <!-- clients -->
         <rect x="30" y="54" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
@@ -578,7 +578,7 @@
         <rect x="30" y="100" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
         <text x="105" y="122" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">docker compose</text>
         <rect x="30" y="146" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
-        <text x="105" y="168" text-anchor="middle" fill="#e9f2f8" font-family="Inter,sans-serif" font-size="11.5">the DockerDesk window</text>
+        <text x="105" y="168" text-anchor="middle" fill="#e9f2f8" font-family="Inter,sans-serif" font-size="11.5">the FreeWilly window</text>
 
         <!-- arrows into the pipe -->
         <path d="M186 71 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
@@ -621,7 +621,7 @@
       <div class="card reveal">
         <div class="ico">🧩</div>
         <h3>Your existing tools, unchanged</h3>
-        <p>It is the same pipe name, so the CLI, Compose, Testcontainers, an IDE plugin and whatever your CI script does locally all find it without a setting. Nothing has to be told about DockerDesk.</p>
+        <p>It is the same pipe name, so the CLI, Compose, Testcontainers, an IDE plugin and whatever your CI script does locally all find it without a setting. Nothing has to be told about FreeWilly.</p>
       </div>
       <div class="card reveal">
         <div class="ico">🧵</div>
@@ -693,7 +693,7 @@
           <text x="300" y="235" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">14:08</text>
           <!-- the tooltip, where Windows puts it: above the icon it describes -->
           <rect x="96" y="180" width="160" height="22" rx="4" fill="#1b2f3c" stroke="#2a4655"/>
-          <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">DockerDesk — engine running</text>
+          <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">FreeWilly — engine running</text>
         </svg>
       </div>
     </div>
@@ -714,12 +714,12 @@
       </p>
     </div>
     <figure class="shot-frame reveal" style="margin:0">
-      <svg viewBox="0 0 900 420" role="img" aria-label="The DockerDesk window: engine running, then a table of containers with name, image, state, status and clickable published ports">
+      <svg viewBox="0 0 900 420" role="img" aria-label="The FreeWilly window: engine running, then a table of containers with name, image, state, status and clickable published ports">
         <rect width="900" height="420" rx="12" fill="#0e1a22"/>
         <!-- title bar -->
         <rect x="0" y="0" width="900" height="42" rx="12" fill="#132029"/>
         <rect x="0" y="30" width="900" height="12" fill="#132029"/>
-        <text x="24" y="27" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">DockerDesk</text>
+        <text x="24" y="27" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">FreeWilly</text>
         <text x="820" y="27" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="14" letter-spacing="6">─☐✕</text>
 
         <!-- engine state -->
@@ -779,7 +779,7 @@
           <rect width="420" height="280" rx="12" fill="#0e1a22"/>
           <rect x="0" y="0" width="420" height="36" rx="12" fill="#132029"/>
           <rect x="0" y="24" width="420" height="12" fill="#132029"/>
-          <text x="18" y="23" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">DockerDesk</text>
+          <text x="18" y="23" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">FreeWilly</text>
           <circle cx="26" cy="64" r="5" fill="#8B949E"/>
           <text x="38" y="68" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Engine stopped</text>
           <text x="210" y="150" text-anchor="middle" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="19">The engine is not running</text>
@@ -970,7 +970,7 @@
       <div class="step">
         <div class="n">2</div>
         <h4>Install the engine</h4>
-        <p><code>--provision</code> downloads and verifies, imports the <code>dockerdesk</code> distribution, and puts <code>docker.exe</code> under <code>%LOCALAPPDATA%\DockerDesk\bin</code>.</p>
+        <p><code>--provision</code> downloads and verifies, imports the <code>freewilly</code> distribution, and puts <code>docker.exe</code> under <code>%LOCALAPPDATA%\FreeWilly\bin</code>.</p>
       </div>
       <div class="step">
         <div class="n">3</div>
@@ -980,25 +980,25 @@
     </div>
     <div style="max-width:720px;margin:0 auto">
       <div class="codeblock copy" style="margin-bottom:12px">
-        <code id="cmd-clone">git clone <span class="g">https://github.com/alegauss/freewilly</span> &amp;&amp; cd dockerdesk</code>
+        <code id="cmd-clone">git clone <span class="g">https://github.com/alegauss/freewilly</span> &amp;&amp; cd freewilly</code>
         <button class="copy-btn" type="button" data-target="cmd-clone" aria-label="Copy the clone command">
           <span class="ic">⧉</span><span class="lbl">Copy</span>
         </button>
       </div>
       <div class="codeblock copy" style="margin-bottom:12px">
-        <code id="cmd-preflight">dotnet run --project <span class="g">src/DockerDesk.Preflight</span></code>
+        <code id="cmd-preflight">dotnet run --project <span class="g">src/FreeWilly.Preflight</span></code>
         <button class="copy-btn" type="button" data-target="cmd-preflight" aria-label="Copy the preflight command">
           <span class="ic">⧉</span><span class="lbl">Copy</span>
         </button>
       </div>
       <div class="codeblock copy" style="margin-bottom:12px">
-        <code id="cmd-provision">dotnet run --project <span class="g">src/DockerDesk.Engine</span> -- --provision</code>
+        <code id="cmd-provision">dotnet run --project <span class="g">src/FreeWilly.Engine</span> -- --provision</code>
         <button class="copy-btn" type="button" data-target="cmd-provision" aria-label="Copy the provision command">
           <span class="ic">⧉</span><span class="lbl">Copy</span>
         </button>
       </div>
       <div class="codeblock copy">
-        <code id="cmd-tray">dotnet run --project <span class="g">src/DockerDesk.Tray</span></code>
+        <code id="cmd-tray">dotnet run --project <span class="g">src/FreeWilly.Tray</span></code>
         <button class="copy-btn" type="button" data-target="cmd-tray" aria-label="Copy the tray command">
           <span class="ic">⧉</span><span class="lbl">Copy</span>
         </button>
@@ -1018,7 +1018,7 @@
 <footer>
   <div class="wrap">
     <div class="foot-grid">
-      <a class="foot-brand" href="#top"><img src="logo.svg" alt="">DockerDesk</a>
+      <a class="foot-brand" href="#top"><img src="logo.svg" alt="">FreeWilly</a>
       <div class="foot-links">
         <a href="https://github.com/alegauss/freewilly">GitHub</a>
         <a href="https://github.com/alegauss/freewilly/blob/main/docs/ROADMAP.md">Roadmap</a>

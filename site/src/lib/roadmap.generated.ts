@@ -8,7 +8,7 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 2,
+      "open": 3,
       "shipped": 14,
       "retired": 0
     },
@@ -57,14 +57,14 @@ export const roadmap: RoadmapData = {
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
-      "open": 2,
-      "shipped": 15,
+      "open": 1,
+      "shipped": 16,
       "retired": 0
     }
   ],
   "totals": {
     "open": 15,
-    "shipped": 70,
+    "shipped": 71,
     "retired": 0
   },
   "open": [
@@ -82,6 +82,14 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration",
       "why": "The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all.",
+      "deps": []
+    },
+    {
+      "id": "DD86",
+      "status": "📋",
+      "block": "A",
+      "symptom": "The old name survives as adoption code and an agent skill, for a product that has no installed base to adopt",
+      "why": "Three shipped tasks bought compatibility with installs that were never made, and the cost is a second name in the paths, the labels, the rival probe and the installer.",
       "deps": []
     },
     {
@@ -179,18 +187,8 @@ export const roadmap: RoadmapData = {
       "deps": []
     },
     {
-      "id": "DD59",
-      "status": "🛠",
-      "block": "H",
-      "symptom": "The site is served from a base path containing the old name, so every published route moves at once",
-      "why": "GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones.",
-      "deps": [
-        "the GitHub repository rename"
-      ]
-    },
-    {
       "id": "DD84",
-      "status": "📋",
+      "status": "🛠",
       "block": "H",
       "symptom": "The published site serves no robots.txt and no sitemap.xml, and both answer 404 where the old folder had them",
       "why": "Nothing tells a crawler which routes exist, so discovery rests on whatever links inward, and the sitemap the old folder published is gone rather than replaced.",
@@ -757,7 +755,15 @@ export const roadmap: RoadmapData = {
       "symptom": "README and the site still name the product and the distribution as they were before the rename",
       "why": "README, the site copy, llms.txt and the DD23 spec filename name FreeWilly, and the distribution is freewilly with no second name anywhere.",
       "deps": []
+    },
+    {
+      "id": "DD59",
+      "status": "✅",
+      "block": "H",
+      "symptom": "The site is served from a base path containing the old name, so every published route moves at once",
+      "why": "The base path, the canonical URL and the repository URL are freewilly everywhere, written once in vite.config.ts, and the site build is green again.",
+      "deps": []
     }
   ],
-  "next": "DD67"
+  "next": "DD84"
 };

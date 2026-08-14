@@ -1,4 +1,4 @@
-# DockerDesk
+# FreeWilly
 
 **A free Docker Desktop alternative for Windows, under Apache-2.0 — no headcount
 threshold, no revenue threshold, no licence to buy.** Docker Desktop is free only below
@@ -14,7 +14,7 @@ the engine's state, and one window for containers, images and volumes.
 
 - **A preflight, not a support case.** Every check states a fact, a verdict, and the one
   action that changes it — before anything is installed.
-- **An owned distribution.** The engine lives in a WSL2 distribution called `dockerdesk`
+- **An owned distribution.** The engine lives in a WSL2 distribution called `freewilly`
   that this tool created. An `apt upgrade` or a `wsl --unregister` you ran for another
   reason cannot take the engine with it, and the uninstall is one command.
 - **A tray icon you can read at a glance — once Windows shows it.** Shape carries the
@@ -48,8 +48,8 @@ These are binding, not aspirational — see the non-goals in
 
 ## Installing
 
-One `.exe`, and an installer around it. Both are per-user: DockerDesk installs into
-`%LOCALAPPDATA%\DockerDesk` and **asks for no administrator prompt**, which is what
+One `.exe`, and an installer around it. Both are per-user: FreeWilly installs into
+`%LOCALAPPDATA%\FreeWilly` and **asks for no administrator prompt**, which is what
 reaches a managed corporate laptop — the audience Docker Desktop's terms send here. The
 engine's WSL2 feature may still need elevation of its own, and the installer runs the
 preflight and says so rather than failing halfway through a download.
@@ -58,25 +58,25 @@ Windows 10 2004 (build 19041) or later, 64-bit. Nothing else: the executable car
 own .NET runtime, so a clean machine needs no prerequisite.
 
 Uninstalling removes what was installed and **asks about what was created**. The
-`dockerdesk` WSL2 distribution holds every image, container and volume you have, so it is
+`freewilly` WSL2 distribution holds every image, container and volume you have, so it is
 never deleted without a question, and an unattended uninstall keeps it.
 
 The same executable is every verb — there is no second tool to find:
 
 ```
-DockerDesk.exe                 the tray icon
-DockerDesk.exe --window        the tray, with the window open
-DockerDesk.exe --preflight     what this machine can host; --json for a script
-DockerDesk.exe --provision     download, verify and install the engine
-DockerDesk.exe --run           start the engine and serve the pipe until Ctrl+C
-DockerDesk.exe --capture-window <png> [page] [--fixture]
+FreeWilly.exe                 the tray icon
+FreeWilly.exe --window        the tray, with the window open
+FreeWilly.exe --preflight     what this machine can host; --json for a script
+FreeWilly.exe --provision     download, verify and install the engine
+FreeWilly.exe --run           start the engine and serve the pipe until Ctrl+C
+FreeWilly.exe --capture-window <png> [page] [--fixture]
                                render the window to a PNG off-screen
-DockerDesk.exe --help          every verb
+FreeWilly.exe --help          every verb
 ```
 
 ## The agent surface
 
-DockerDesk's other operator is a coding agent, and the split that matters to one is in argv:
+FreeWilly's other operator is a coding agent, and the split that matters to one is in argv:
 
 ```
 freewilly read context       the whole machine in one budgeted payload
@@ -177,7 +177,7 @@ every poll.
 `read context` is the one that replaces a session's first five calls:
 
 ```
-engine  running  wsl:dockerdesk  api=v1.43  ctx=default(ok)
+engine  running  wsl:freewilly  api=v1.43  ctx=default(ok)
 shop-api-1  exited 137  svc:shop/api  8080->8080/tcp  OOM  ×3  limit=512M
 shop-db-1  up 4m (healthy)  svc:shop/db  5432->5432/tcp
 disk    images 14G (2G dangling)  volumes 2
@@ -256,7 +256,7 @@ ask. Separating them makes the rule one line:
 ```
 
 A surface nobody discovers is one nobody uses, so the install ships how it is found — and
-**proposes it, never writes it**. Two files land in `%LOCALAPPDATA%\DockerDesk\agent\`: a
+**proposes it, never writes it**. Two files land in `%LOCALAPPDATA%\FreeWilly\agent\`: a
 skill naming the verbs and the one rule that matters, and the allowlist line above. The
 after-install page prints the two commands. Nothing here touches your `.claude` directory,
 which is where a tool editing your configuration unasked would be least forgivable, and a
@@ -284,7 +284,7 @@ a `GET`. Addresses are names — a container by its name, a compose service as
 
 Every response shape has a ceiling in [`agent-budget.json`](agent-budget.json), and a test
 fails a build that made one more expensive. See
-[docs/specs/DD23-agent-first-dockerdesk.md](docs/specs/DD23-agent-first-dockerdesk.md).
+[docs/specs/DD23-agent-first-freewilly.md](docs/specs/DD23-agent-first-freewilly.md).
 
 `--capture-window <png> [page] --fixture` draws the window from a **known machine** rather
 than from whatever is running: five containers covering running and exited, a published
@@ -302,12 +302,12 @@ the window — or when the window has a translucent system backdrop, which compo
 behind it into the copy and is a leak no overlap check can see.
 
 A windowed program does not hold the prompt, so a typed verb prints *after* the prompt
-returns. Redirecting (`DockerDesk.exe --preflight > report.txt`) has neither problem, and
+returns. Redirecting (`FreeWilly.exe --preflight > report.txt`) has neither problem, and
 is the form a script or an installer uses anyway.
 
 ## Licence and attribution
 
-DockerDesk is [Apache-2.0](LICENSE). Copyright DockerDesk contributors.
+FreeWilly is [Apache-2.0](LICENSE). Copyright FreeWilly contributors.
 
 The engine it installs is upstream software under its own terms, and those files are not
 redistributed here — they are downloaded from their official locations at install time,
@@ -320,8 +320,8 @@ where the choice is actually made.
 ```
 dotnet build
 dotnet test
-build\build.cmd              one self-contained DockerDesk.exe
-build\build-installer.cmd    that, wrapped in dist\DockerDesk-Setup.exe
+build\build.cmd              one self-contained FreeWilly.exe
+build\build-installer.cmd    that, wrapped in dist\FreeWilly-Setup.exe
 ```
 
 Requires the .NET 10 SDK and Windows; the installer also needs

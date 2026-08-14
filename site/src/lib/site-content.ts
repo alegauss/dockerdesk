@@ -19,11 +19,11 @@ export type Rich = Run[];
 /* ------------------------------------------------------------------ meta + chrome */
 
 export const meta = {
-  title: "DockerDesk — Docker on Windows, without Docker Desktop",
+  title: "FreeWilly — Docker on Windows, without Docker Desktop",
   description:
     "A free Windows desktop app that installs upstream Moby into a WSL2 distribution it owns, serves the docker_engine pipe your existing tools already look for, and shows your containers in one window. Per-user install, no admin, nothing resident.",
   og: {
-    title: "DockerDesk",
+    title: "FreeWilly",
     description:
       "Upstream Moby in a WSL2 distro it owns, the docker_engine pipe your tools already look for, and one window of containers. No licence fee, nothing resident.",
     url: "https://alegauss.github.io/dockerdesk/",
@@ -67,7 +67,7 @@ export const hero = {
   titleLead: "Docker on Windows,",
   titleAccent: "without Docker Desktop.",
   sub: [
-    "DockerDesk puts ",
+    "FreeWilly puts ",
     { b: "upstream Moby" },
     " into a WSL2 distribution it owns, serves the ",
     { code: "docker_engine" },
@@ -99,11 +99,11 @@ export const heroSession = {
     "bring this project's stack up and tell me why the api container is not responding",
   steps: [
     {
-      cmd: "dockerdesk read context",
+      cmd: "freewilly read context",
       cost: "~150 tok",
       // the context pack (§4.2): one budgeted payload in a terse line format, not JSON
       pack: [
-        "engine  running  wsl:dockerdesk  api=v1.43  pipe=docker_engine  ctx=default(ok)",
+        "engine  running  wsl:freewilly  api=v1.43  pipe=docker_engine  ctx=default(ok)",
         "web     up 6m       healthy   svc:shop/web   :8080→80   listening",
         "db      up 6m       healthy   svc:shop/db    :5432→5432 listening",
         "api     exited 137  ×3/2m     svc:shop/api   OOM  limit=512m",
@@ -113,22 +113,22 @@ export const heroSession = {
       ],
     },
     {
-      cmd: "dockerdesk read doctor api",
+      cmd: "freewilly read doctor api",
       cost: "~200 tok",
       out: "api  OOM-killed ×3  ·  mem_limit 512m too low  →  raise it in compose",
     },
     {
-      cmd: "dockerdesk read logs api --dedup --budget 1500 --out .dockerdesk/logs/api.log",
+      cmd: "freewilly read logs api --dedup --budget 1500 --out .freewilly/logs/api.log",
       cost: "~300 tok",
       out: "1 unique line ×3 (deduped from 41), written to file — then Grep, paying for matches only",
     },
     {
-      cmd: "dockerdesk do compose up --wait",
+      cmd: "freewilly do compose up --wait",
       cost: "~100 tok",
       out: "shop  3/3 ready  ·  api healthy in 4.2s  (this one still asks — it writes)",
     },
     {
-      cmd: "dockerdesk read verify svc:shop/api",
+      cmd: "freewilly read verify svc:shop/api",
       cost: "~80 tok",
       out: ":8080 answers from Windows  ·  200 OK  ·  PASS",
     },
@@ -139,7 +139,7 @@ export const heroSession = {
     "A scripted session — the costs are ",
     { b: "targets DD23 must prove or falsify" },
     ", acceptance criteria and not measurements. Steps 1, 2, 3 and 5 are reads, so one allowlist line — ",
-    { code: "Bash(dockerdesk read:*)" },
+    { code: "Bash(freewilly read:*)" },
     " — removes every prompt on the inspection path while step 4 still asks.",
   ] as Rich,
 };
@@ -154,13 +154,13 @@ export const operator = {
   eyebrow: "Who operates this",
   heading: "The operator is an agent. You install and approve.",
   intro: [
-    "DockerDesk is a Docker installation whose primary operator is a coding agent. The agent runs, inspects and diagnoses; you install, approve and intervene. Every decision on the agent surface is judged in tokens rather than clicks — which is why the site opens on a session and not a screenshot.",
+    "FreeWilly is a Docker installation whose primary operator is a coding agent. The agent runs, inspects and diagnoses; you install, approve and intervene. Every decision on the agent surface is judged in tokens rather than clicks — which is why the site opens on a session and not a screenshot.",
   ] as Rich,
   actors: [
     {
       who: "Agent",
       sub: "Claude Code",
-      iface: "the dockerdesk CLI, over an ordinary shell",
+      iface: "the freewilly CLI, over an ordinary shell",
       job: "Run, inspect, diagnose, clean up after itself",
     },
     {
@@ -183,8 +183,8 @@ export const operator = {
     "Binding, in the same sense as the product's. A feature that breaks one is wrong even if it was asked for. Each names the defect it prevents.",
   ] as Rich,
   laws: [
-    { id: "P1", title: "The shell is the surface", body: "Every agent-facing capability is a dockerdesk CLI verb first. An MCP tool is a second head over the same method, or it does not exist." },
-    { id: "P2", title: "One call replaces a session", body: "Learning what the machine is running is a product feature, not a docs problem. Needing six commands to learn the engine's state is a defect in DockerDesk." },
+    { id: "P1", title: "The shell is the surface", body: "Every agent-facing capability is a freewilly CLI verb first. An MCP tool is a second head over the same method, or it does not exist." },
+    { id: "P2", title: "One call replaces a session", body: "Learning what the machine is running is a product feature, not a docs problem. Needing six commands to learn the engine's state is a defect in FreeWilly." },
     { id: "P3", title: "Tokens are a measured budget", body: "Every response has a size ceiling and the canonical task has a measured cost. “It got cheaper” has to be a number, and a regression fails the build." },
     { id: "P4", title: "A file beats a stream", body: "An unbounded log read is the largest token sink here. Write it to disk and let the agent Grep it — it pays for the lines that match, not for the whole log." },
     { id: "P5", title: "Names, not ids", body: "A 64-hex id changes on every recreate. The address is the name — svc:<project>/<service>, or the container name — so ids stop being currency threaded across calls." },
@@ -204,7 +204,7 @@ export const why = {
   intro: [
     "Moby and the ",
     { code: "docker" },
-    " CLI are Apache-2.0 and always were. What a company pays for, and what a managed laptop cannot install, is the wrapper around them. DockerDesk is a different wrapper: it installs the same engine, gets out of the way, and stops when you tell it to.",
+    " CLI are Apache-2.0 and always were. What a company pays for, and what a managed laptop cannot install, is the wrapper around them. FreeWilly is a different wrapper: it installs the same engine, gets out of the way, and stops when you tell it to.",
   ] as Rich,
   cards: [
     {
@@ -228,7 +228,7 @@ export const why = {
       title: "Per-user, no admin prompt",
       body: [
         "Everything lands under ",
-        { code: "%LOCALAPPDATA%\\DockerDesk" },
+        { code: "%LOCALAPPDATA%\\FreeWilly" },
         ": the verified downloads, the distribution's disk, and the ",
         { code: "docker.exe" },
         " that goes on your PATH. Which is what reaches a corporate laptop you are not an administrator on.",
@@ -256,7 +256,7 @@ export const why = {
       title: "An uninstall that is one command",
       body: [
         "The distribution is called ",
-        { code: "dockerdesk" },
+        { code: "freewilly" },
         " and it is this tool's, never yours. Your own WSL distros are untouched, and removing the engine cannot take anything of yours with it.",
       ] as Rich,
     },
@@ -270,12 +270,12 @@ export const preflight = {
   heading: "Why Docker will not run here — in four rows",
   intro: [
     "“It does not work on my machine” has four common causes on Windows, and they have four different remedies. ",
-    { code: "dockerdesk-preflight" },
+    { code: "freewilly --preflight" },
     " names the one you have, prints the command that fixes it, changes nothing, and exits ",
     { code: "1" },
     " so an installer can stop rather than fail halfway.",
   ] as Rich,
-  terminalTitle: "dockerdesk-preflight",
+  terminalTitle: "freewilly --preflight",
   checks: [
     ["Windows build", " — 19041 or later, because below it no amount of configuration gets a WSL2 kernel"],
     [
@@ -338,7 +338,7 @@ export const engine = {
       n: "3",
       title: "Import an owned distro",
       body: [
-        { code: "wsl --import dockerdesk … --version 2" },
+        { code: "wsl --import freewilly … --version 2" },
         ". A fixed name that is this tool's, so an ",
         { code: "apt upgrade" },
         " or a ",
@@ -371,7 +371,7 @@ export const engine = {
       body: [
         { code: "docker.exe" },
         " is extracted to ",
-        { code: "…\\DockerDesk\\bin" },
+        { code: "…\\FreeWilly\\bin" },
         ". Putting that directory on your PATH is the installer's job, and this step's only job is being the path it points at.",
       ] as Rich,
     },
@@ -387,8 +387,8 @@ export const engine = {
       ] as Rich,
     },
   ],
-  helpTitle: "dockerdesk-engine --help",
-  help: `dockerdesk-engine — put upstream Moby into a WSL2 distribution this tool owns.
+  helpTitle: "freewilly --help",
+  help: `freewilly — put upstream Moby into a WSL2 distribution this tool owns.
 
   --plan        the pinned versions, digests and paths; reaches nothing
   --acquire     download and verify every artefact, and stop
@@ -420,7 +420,7 @@ export const pipe = {
     { code: "dockerd" },
     " cannot create a Windows named pipe — that is a Win32 object. So something on the Windows side has to, or every shell and every script you already have needs a ",
     { code: "DOCKER_HOST" },
-    ". DockerDesk is that something.",
+    ". FreeWilly is that something.",
   ] as Rich,
   cards: [
     {
@@ -438,7 +438,7 @@ export const pipe = {
       icon: "🧩",
       title: "Your existing tools, unchanged",
       body: [
-        "It is the same pipe name, so the CLI, Compose, Testcontainers, an IDE plugin and whatever your CI script does locally all find it without a setting. Nothing has to be told about DockerDesk.",
+        "It is the same pipe name, so the CLI, Compose, Testcontainers, an IDE plugin and whatever your CI script does locally all find it without a setting. Nothing has to be told about FreeWilly.",
       ] as Rich,
     },
     {
@@ -642,10 +642,10 @@ export const status = {
 
 export const claudeCode = {
   meta: {
-    title: "DockerDesk for Claude Code — the friction it removes",
+    title: "FreeWilly for Claude Code — the friction it removes",
     description:
       "What plain docker costs an agent — a table it cannot read, an inspect paid for four fields, a restart loop billed once per restart, and a permission prompt on every read — and the verb that replaces each one.",
-    ogTitle: "DockerDesk for Claude Code",
+    ogTitle: "FreeWilly for Claude Code",
     ogDescription:
       "The friction plain docker puts on an agent, item by item, with the measured cost of each and the verb that replaces it.",
   },
@@ -670,7 +670,7 @@ export const claudeCode = {
   ] as Rich,
   allowlistHeading: "The one line that pays for it",
   allowlistLead: "One entry in .claude/settings.json:",
-  allowlistLine: "Bash(dockerdesk read:*)",
+  allowlistLine: "Bash(freewilly read:*)",
   allowlistNote: [
     { code: "read" },
     " is a promise, not a naming convention: a verb under it that writes is a defect. So this single grant removes every prompt on the inspection path, while every ",
@@ -709,7 +709,7 @@ export const claudeCode = {
   ] as Rich,
   refusesHeading: "What it deliberately refuses",
   refusesLead: [
-    "DockerDesk is the substrate; the intelligence is the caller's. It is a CLI over the Engine API and facts Windows already knows — not a second Docker CLI (P10).",
+    "FreeWilly is the substrate; the intelligence is the caller's. It is a CLI over the Engine API and facts Windows already knows — not a second Docker CLI (P10).",
   ] as Rich,
   refuses: [
     { t: "No model", b: "It calls no LLM." },
@@ -766,7 +766,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read context",
+        cmd: "freewilly read context",
         verb: "read context",
         task: "DD25",
         body: [
@@ -786,7 +786,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read doctor api",
+        cmd: "freewilly read doctor api",
         verb: "read doctor",
         task: "DD26",
         body: [
@@ -805,7 +805,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read logs api --dedup --level warn --out .dockerdesk/logs/api.log",
+        cmd: "freewilly read logs api --dedup --level warn --out .freewilly/logs/api.log",
         verb: "read logs",
         task: "DD27",
         body: [
@@ -847,7 +847,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read doctor svc:shop/api",
+        cmd: "freewilly read doctor svc:shop/api",
         task: "DD24",
         body: [
           "The address is the name: the container's, or ",
@@ -869,11 +869,11 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read verify svc:shop/api",
+        cmd: "freewilly read verify svc:shop/api",
         verb: "read verify",
         task: "DD30",
         body: [
-          "DockerDesk is a Windows process, so it can join what the daemon cannot: whether the host port actually listens, which PID holds it, whether a rival engine is answering the pipe, whether a stale context is pointing the CLI elsewhere. ",
+          "FreeWilly is a Windows process, so it can join what the daemon cannot: whether the host port actually listens, which PID holds it, whether a rival engine is answering the pipe, whether a stale context is pointing the CLI elsewhere. ",
           { code: "read doctor" },
           " already carries the port fact; the standalone proof is DD30 and the refusal that names the process holding the port is DD28.",
         ] as Rich,
@@ -893,7 +893,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "Bash(dockerdesk read:*)",
+        cmd: "Bash(freewilly read:*)",
         task: "DD24",
         body: [
           "Reads and writes are separate words in argv, so the rule is one line — and it is enforced under it: a read verb is written against a handle with no start, no remove and no prune on it, and a test drives every one of them and requires each request it made to be a GET.",
@@ -909,7 +909,7 @@ export const friction = {
         ] as Rich,
       },
       here: {
-        cmd: "dockerdesk read changes --since c:4f21a0",
+        cmd: "freewilly read changes --since c:4f21a0",
         task: "DD31",
         body: [
           "Every pack already prints a state cursor, and the tray already holds the engine's event stream open for the window — so the delta is a cursor over a stream the user started rather than a daemon this adds. That is DD31, and it is the only mechanism that makes a second session cheaper than the first.",
@@ -930,10 +930,10 @@ export const friction = {
 
 export const compare = {
   meta: {
-    title: "DockerDesk vs Docker Desktop, Rancher, Podman, plain WSL2",
+    title: "FreeWilly vs Docker Desktop, Rancher, Podman, plain WSL2",
     description:
-      "What DockerDesk does that Docker Desktop, Rancher Desktop, Podman Desktop or a hand-rolled WSL2 daemon does not — and what each of those is genuinely better at.",
-    ogTitle: "DockerDesk — the honest comparison",
+      "What FreeWilly does that Docker Desktop, Rancher Desktop, Podman Desktop or a hand-rolled WSL2 daemon does not — and what each of those is genuinely better at.",
+    ogTitle: "FreeWilly — the honest comparison",
     ogDescription:
       "Checkable rows grouped by the law each comes from, and a column for what every alternative wins.",
   },
@@ -942,7 +942,7 @@ export const compare = {
   intro: [
     "You arrive having already decided against something. A matrix that wins every row is one nobody believes, so this one is grouped by the law each row comes from, and every alternative keeps the column it genuinely wins.",
   ] as Rich,
-  columns: ["DockerDesk", "Docker Desktop", "Rancher Desktop", "Podman Desktop", "WSL2 daemon"],
+  columns: ["FreeWilly", "Docker Desktop", "Rancher Desktop", "Podman Desktop", "WSL2 daemon"],
   legend: [
     { sym: "✓", label: "yes" },
     { sym: "~", label: "partial" },
@@ -1022,11 +1022,11 @@ export const build = {
       body: [
         { code: "--provision" },
         " downloads and verifies, imports the ",
-        { code: "dockerdesk" },
+        { code: "freewilly" },
         " distribution, and puts ",
         { code: "docker.exe" },
         " under ",
-        { code: "%LOCALAPPDATA%\\DockerDesk\\bin" },
+        { code: "%LOCALAPPDATA%\\FreeWilly\\bin" },
         ".",
       ] as Rich,
     },
@@ -1044,9 +1044,9 @@ export const build = {
   ],
   commands: [
     { id: "clone", label: "Copy the clone command", text: "git clone https://github.com/alegauss/dockerdesk && cd dockerdesk" },
-    { id: "preflight", label: "Copy the preflight command", text: "dotnet run --project src/DockerDesk.Preflight" },
-    { id: "provision", label: "Copy the provision command", text: "dotnet run --project src/DockerDesk.Engine -- --provision" },
-    { id: "tray", label: "Copy the tray command", text: "dotnet run --project src/DockerDesk.Tray" },
+    { id: "preflight", label: "Copy the preflight command", text: "dotnet run --project src/FreeWilly.Preflight" },
+    { id: "provision", label: "Copy the provision command", text: "dotnet run --project src/FreeWilly.Engine -- --provision" },
+    { id: "tray", label: "Copy the tray command", text: "dotnet run --project src/FreeWilly.Tray" },
   ],
   planNote: [
     "Prefer to look before you download anything? ",

@@ -67,7 +67,7 @@ test("no twin leaks the nav, the footer or the call to action (S5)", () => {
 
 test("the landing twin carries the hero session (the whole product an agent can grep)", () => {
   const md = readFileSync(join(distDir, "index.md"), "utf8");
-  assert.ok(md.includes("dockerdesk read context"), "landing twin missing the session");
+  assert.ok(md.includes("freewilly read context"), "landing twin missing the session");
 });
 
 test("the social card is a 1200x630 PNG (DD49)", () => {

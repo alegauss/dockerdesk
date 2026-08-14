@@ -258,7 +258,7 @@ public sealed class AgentDiscoveryTests
         // Reachable from the constitution, or it is a file nobody proposing MCP would find.
         Assert.Contains(
             "DD33-mcp-is-a-second-head.md",
-            File.ReadAllText(RepositoryFile(@"docs\specs\DD23-agent-first-dockerdesk.md")),
+            File.ReadAllText(RepositoryFile(@"docs\specs\DD23-agent-first-freewilly.md")),
             StringComparison.Ordinal);
     }
 

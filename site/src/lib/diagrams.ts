@@ -6,7 +6,7 @@
 // because it is static, author-controlled content with no interpolation.
 
 export const pipeDiagram = `
-<svg viewBox="0 0 900 250" role="img" aria-label="docker.exe, compose and the DockerDesk window all connect to the Windows named pipe docker_engine, which the relay forwards over wsl.exe stdio to socat inside the dockerdesk distribution, and on to the dockerd unix socket">
+<svg viewBox="0 0 900 250" role="img" aria-label="docker.exe, compose and the FreeWilly window all connect to the Windows named pipe docker_engine, which the relay forwards over wsl.exe stdio to socat inside the freewilly distribution, and on to the dockerd unix socket">
   <defs>
     <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#67C3F2"/>
@@ -16,14 +16,14 @@ export const pipeDiagram = `
 
   <text x="30" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WINDOWS</text>
   <line x1="470" y1="16" x2="470" y2="234" stroke="#22404f" stroke-width="1" stroke-dasharray="5 5"/>
-  <text x="500" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WSL2 · dockerdesk</text>
+  <text x="500" y="34" fill="#7d95a5" font-family="Inter,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4">WSL2 · freewilly</text>
 
   <rect x="30" y="54" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
   <text x="105" y="76" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">docker.exe</text>
   <rect x="30" y="100" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
   <text x="105" y="122" text-anchor="middle" fill="#e9f2f8" font-family="JetBrains Mono,monospace" font-size="13">docker compose</text>
   <rect x="30" y="146" width="150" height="34" rx="8" fill="#11212c" stroke="#22404f"/>
-  <text x="105" y="168" text-anchor="middle" fill="#e9f2f8" font-family="Inter,sans-serif" font-size="11.5">the DockerDesk window</text>
+  <text x="105" y="168" text-anchor="middle" fill="#e9f2f8" font-family="Inter,sans-serif" font-size="11.5">the FreeWilly window</text>
 
   <path d="M186 71 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
   <path d="M186 117 H250" stroke="#67C3F2" stroke-width="1.6" fill="none" marker-end="url(#arw)"/>
@@ -69,15 +69,15 @@ export const trayMenuDiagram = `
   <circle cx="248" cy="230" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
   <text x="300" y="235" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">14:08</text>
   <rect x="96" y="180" width="160" height="22" rx="4" fill="#1b2f3c" stroke="#2a4655"/>
-  <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">DockerDesk — engine running</text>
+  <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">FreeWilly — engine running</text>
 </svg>`;
 
 export const windowDiagram = `
-<svg viewBox="0 0 900 420" role="img" aria-label="The DockerDesk window: engine running, then a table of containers with name, image, state, status and clickable published ports">
+<svg viewBox="0 0 900 420" role="img" aria-label="The FreeWilly window: engine running, then a table of containers with name, image, state, status and clickable published ports">
   <rect width="900" height="420" rx="12" fill="#0e1a22"/>
   <rect x="0" y="0" width="900" height="42" rx="12" fill="#132029"/>
   <rect x="0" y="30" width="900" height="12" fill="#132029"/>
-  <text x="24" y="27" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">DockerDesk</text>
+  <text x="24" y="27" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">FreeWilly</text>
   <text x="820" y="27" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="14" letter-spacing="6">─☐✕</text>
 
   <circle cx="34" cy="76" r="6" fill="#2EA043"/>
@@ -126,7 +126,7 @@ export const emptyStateDiagram = `
   <rect width="420" height="280" rx="12" fill="#0e1a22"/>
   <rect x="0" y="0" width="420" height="36" rx="12" fill="#132029"/>
   <rect x="0" y="24" width="420" height="12" fill="#132029"/>
-  <text x="18" y="23" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">DockerDesk</text>
+  <text x="18" y="23" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">FreeWilly</text>
   <circle cx="26" cy="64" r="5" fill="#8B949E"/>
   <text x="38" y="68" fill="#9db3c1" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Engine stopped</text>
   <text x="210" y="150" text-anchor="middle" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="19">The engine is not running</text>
@@ -139,7 +139,7 @@ export const emptyStateDiagram = `
 // the column alignment and the per-cell status colours render exactly as the hand-written
 // original. The claims it carries (the build number, the remedy command) stay greppable
 // in this source. Rendered inside a .term <pre>.
-export const preflightTerminal = `DockerDesk preflight — what this machine can host
+export const preflightTerminal = `FreeWilly preflight — what this machine can host
 
   [<span class="ok">ok  </span>]  Windows build            Windows 10.0, build 26200
   [<span class="ok">ok  </span>]  Hardware virtualization  enabled — a hypervisor is already running

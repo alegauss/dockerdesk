@@ -11,7 +11,7 @@ namespace FreeWilly.Preflight.Tests;
 /// What the canonical task costs an agent, measured rather than argued (DD23).
 /// </summary>
 /// <remarks>
-/// The constitution in <c>docs/specs/DD23-agent-first-dockerdesk.md</c> argues its whole design from
+/// The constitution in <c>docs/specs/DD23-agent-first-freewilly.md</c> argues its whole design from
 /// an accounting table whose every figure is an estimate. This is the benchmark that replaces the read
 /// half of those figures with a number, and <c>agent-budget.json</c> is the ceiling it reads, so a
 /// build that made a response more expensive fails instead of mentioning it.

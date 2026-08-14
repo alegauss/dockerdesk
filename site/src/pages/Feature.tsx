@@ -16,7 +16,7 @@ function Figure({ kind }: { kind: FeatureRecord["figure"] }) {
             <i />
             <i />
             <i />
-            <span>dockerdesk-preflight</span>
+            <span>freewilly --preflight</span>
           </div>
           <pre
             // eslint-disable-next-line react/no-danger

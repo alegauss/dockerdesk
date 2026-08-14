@@ -1,10 +1,10 @@
-# DockerDesk
+# FreeWilly
 
 > A free Windows (10/11) desktop app for installing and driving Docker without Docker
 > Desktop. It installs upstream Moby (pinned by version and SHA-256) into a WSL2
 > distribution it owns, serves the Windows named pipe `\\.\pipe\docker_engine` that the
 > `docker` CLI, Compose and every other client already look for, and shows containers in
-> one window. Per-user install under `%LOCALAPPDATA%\DockerDesk` with no administrator
+> one window. Per-user install under `%LOCALAPPDATA%\FreeWilly` with no administrator
 > prompt, no Windows service, no telemetry and no account. Built in C# (.NET 10 — WinForms
 > tray, WPF window on the built-in Fluent theme, and an Engine API client with no NuGet
 > dependency).
@@ -38,13 +38,13 @@ their twins and their byte sizes is in
 
 The engine is free and always was — Moby and the `docker` CLI are Apache-2.0. What costs
 money, and what a managed corporate laptop often cannot install, is the desktop wrapper
-around them. DockerDesk is a different wrapper: same upstream engine, no licence to count
+around them. FreeWilly is a different wrapper: same upstream engine, no licence to count
 seats against, nothing resident, and an uninstall that cannot take anything of yours with
 it.
 
 ## Features
 
-- **Preflight (`dockerdesk-preflight`)**: four rows, each with the action that fixes it —
+- **Preflight (`freewilly --preflight`)**: four rows, each with the action that fixes it —
   Windows build (19041 or later), hardware virtualization, WSL2, and any rival container
   engine that owns the `docker` command or the `docker_engine` pipe. It changes nothing,
   prints a person-readable report or `--json` for an installer, and exits 1 while a
@@ -53,15 +53,15 @@ it.
   because Windows reports the firmware bit as false once a hypervisor has claimed it — the
   naive order tells a plainly virtualizing machine to go and enable virtualization in its
   BIOS.
-- **Unattended provisioning (`dockerdesk-engine --provision`)**: seven named steps, stopping
+- **Unattended provisioning (`freewilly --provision`)**: seven named steps, stopping
   at the first failure rather than reporting six consequences of one cause. Downloads and
   verifies Alpine's minirootfs, Docker's static Linux engine binaries and Docker's Windows
   CLI zip against digests recorded in this repository (not served by the same host as the
   file); reads the engine tarball's member list locally to check the required binaries are
-  present before WSL is touched; imports a WSL2 distribution named `dockerdesk` that this
+  present before WSL is touched; imports a WSL2 distribution named `freewilly` that this
   tool owns rather than the user's own distro; installs the binaries inside it with one
   non-interactive `sh` script under `set -e` (apk adds `iptables` and `socat`, `wsl.conf`
-  sets `systemd=false`); and places `docker.exe` in `%LOCALAPPDATA%\DockerDesk\bin` for an
+  sets `systemd=false`); and places `docker.exe` in `%LOCALAPPDATA%\FreeWilly\bin` for an
   installer to put on PATH. `--plan` prints every pinned version, digest and path and
   reaches nothing; `--acquire` downloads and verifies and stops before WSL2 is involved.
 - **Start, stop, and a state that is never ahead of the truth (`--run`, `--stop`,
@@ -70,7 +70,7 @@ it.
   provisioned, the daemon starts and dies, or the daemon runs and nothing on Windows serves
   the pipe — are named separately because they have three different remedies.
 - **The `docker_engine` named pipe**: a Linux `dockerd` cannot create a Windows named pipe,
-  so DockerDesk serves it and forwards each connection over `wsl.exe`'s stdio to `socat`
+  so FreeWilly serves it and forwards each connection over `wsl.exe`'s stdio to `socat`
   inside the distribution and on to `/var/run/docker.sock`. The pipe's ACL grants the
   current user account and nobody else — which is the reason it is a pipe and not a
   forwarded TCP port, since the Engine API is equivalent to root on the machine and any
@@ -121,19 +121,19 @@ it.
   data, and releases built by CI rather than on one developer's machine.
 - **From source** (needs the .NET 10 SDK and Windows 10 build 19041 or later):
   1. `git clone https://github.com/alegauss/dockerdesk && cd dockerdesk`
-  2. `dotnet run --project src/DockerDesk.Preflight` — reads the machine, changes nothing.
-  3. `dotnet run --project src/DockerDesk.Engine -- --provision` — or `-- --plan` first, which
+  2. `dotnet run --project src/FreeWilly.Preflight` — reads the machine, changes nothing.
+  3. `dotnet run --project src/FreeWilly.Engine -- --provision` — or `-- --plan` first, which
      downloads nothing at all.
-  4. `dotnet run --project src/DockerDesk.Tray` — then **Start engine** from the tray.
+  4. `dotnet run --project src/FreeWilly.Tray` — then **Start engine** from the tray.
 
 ## Layout
 
-- `src/DockerDesk.Core` — the preflight judgement, the engine lifecycle and provisioning, and
+- `src/FreeWilly.Core` — the preflight judgement, the engine lifecycle and provisioning, and
   the Engine API client. No UI.
-- `src/DockerDesk.Preflight` — `dockerdesk-preflight`, the standalone check.
-- `src/DockerDesk.Engine` — `dockerdesk-engine`, provisioning and the process that holds the
+- `src/FreeWilly.Preflight` — `freewilly --preflight`, the standalone check.
+- `src/FreeWilly.Engine` — `freewilly`, provisioning and the process that holds the
   engine and the pipe.
-- `src/DockerDesk.Tray` — the WinForms tray icon and the WPF window.
+- `src/FreeWilly.Tray` — the WinForms tray icon and the WPF window.
 - `site/` — the public site (Vite + React + Tailwind); its build emits this file, a Markdown
   twin per route and `manifest.json`.
 - `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `docs/IMPROVEMENTS.md` — governed by
@@ -143,7 +143,7 @@ it.
 
 - The only network traffic is downloading the three pinned artefacts from
   `dl-cdn.alpinelinux.org` and `download.docker.com`, during a provision the user asked for.
-- Everything installed lives under `%LOCALAPPDATA%\DockerDesk` (verified downloads, the
+- Everything installed lives under `%LOCALAPPDATA%\FreeWilly` (verified downloads, the
   distribution's disk, `bin\docker.exe`).
 - Nothing is uploaded, nothing is measured, and there is no account.
 

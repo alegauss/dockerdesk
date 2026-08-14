@@ -8,7 +8,7 @@ export function Nav() {
         <div className="nav-left">
           <a className="brand" href="/dockerdesk/">
             <img src="/dockerdesk/logo.svg" alt="" />
-            DockerDesk
+            FreeWilly
           </a>
           <a className="parent" href={parentUrl} title="alegauss — small developer tools">
             <span className="pre">part of</span>

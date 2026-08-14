@@ -339,28 +339,6 @@ The repository rename is not a write this project can make, so sequencing is the
 risk: the base path and the repository name have to change in the same window, or the
 published site returns 404 on every route it has.
 
-### §DD71 The public prose fell through the gap the rename set carved
-
-The rename set carved the tree up by ownership, and the public prose fell through the
-gap. DD60 covers the three files under `docs/` that the guard governs, DD59 covers the
-site's base path and waits on the GitHub rename, and DD58 covered the invocations inside
-`README.md` — which leaves the product's own name in the one file a visitor reads first.
-
-`README.md` opens with `# DockerDesk`, says the installer puts things in
-`%LOCALAPPDATA%\DockerDesk`, and lists the verbs as `DockerDesk.exe --preflight` and the
-rest. `site/src/lib/site-content.ts` carries the same name about fifty times, and
-`site/public/llms.txt` is the copy an agent reads.
-
-One line is not merely stale but wrong: "the engine lives in a WSL2 distribution called
-`dockerdesk`". After DD55 a fresh install creates `freewilly`, and `dockerdesk` is what
-an adopted install kept. A reader who runs `wsl --list` after installing sees a name the
-README says they should not have, and the uninstall paragraph names the same thing.
-
-So this is two different jobs wearing one heading. The product name is a sweep with no
-decisions in it. The distribution sentence needs rewriting rather than replacing,
-because the honest version has two names in it and has to say which one a reader will
-actually see — which is a paragraph somebody writes, not a string somebody swaps.
-
 ### §DD84 Generated from the route table, not committed
 
 Both files are build output and neither is committed to public. The reason is in the

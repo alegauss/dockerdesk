@@ -1,7 +1,7 @@
 # DD33 — MCP is a second head, and it is not free
 
 > Roadmap: [ROADMAP.md](../ROADMAP.md) Block **G** ·
-> Constitution: [DD23-agent-first-dockerdesk.md](DD23-agent-first-dockerdesk.md) §2.1 ·
+> Constitution: [DD23-agent-first-freewilly.md](DD23-agent-first-freewilly.md) §2.1 ·
 > Enforced by: [`agent-budget.json`](../../agent-budget.json) → `mcp`
 > Status: **decided, not built.** This document is the decision, and the condition
 > under which it is reopened.

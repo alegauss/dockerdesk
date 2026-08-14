@@ -5,7 +5,7 @@
 > Status: 📋 designed, not started · deps: none — DD40 is the floor the rest stand on
 > Scope: this document is the **constitution for the published surface** — who reads it,
 > the laws a page is judged by, the page map, the build, and the decomposition into
-> DD40–DD51. [DD23](DD23-agent-first-dockerdesk.md) is the constitution for the agent
+> DD40–DD51. [DD23](DD23-agent-first-freewilly.md) is the constitution for the agent
 > surface and [DD34](DD34-window-constitution.md) for the desktop one; this is the
 > constitution for the *third* surface, the one both audiences meet first.
 > Each task keeps its own rationale in `IMPROVEMENTS.md`; this is the premise under all

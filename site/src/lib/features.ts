@@ -31,13 +31,13 @@ export const features: FeatureRecord[] = [
     title: "Preflight — why Docker will not run here, in four rows",
     description:
       "The four common causes of a Docker failure on Windows, each with the command that fixes it, read-only and exit 1 while a blocking row is not green.",
-    ogTitle: "DockerDesk — the preflight",
+    ogTitle: "FreeWilly — the preflight",
     ogDescription: "Four checks, four remedies, and the hypervisor-before-firmware order.",
     eyebrow: "Before anything is installed",
     heading: "The preflight",
     lead: [
       "“It does not work on my machine” has four common causes on Windows, and four different remedies. ",
-      { code: "dockerdesk-preflight" },
+      { code: "freewilly --preflight" },
       " names the one you have, prints the command that fixes it, changes nothing, and exits ",
       { code: "1" },
       " so an installer can stop rather than fail halfway.",
@@ -68,7 +68,7 @@ export const features: FeatureRecord[] = [
     title: "The engine — upstream Moby into a distro it owns",
     description:
       "Seven unattended steps that stop at the first failure: acquire and verify by digest, inspect the archive, import an owned WSL2 distro, install inside it, and place docker.exe.",
-    ogTitle: "DockerDesk — the engine",
+    ogTitle: "FreeWilly — the engine",
     ogDescription: "Seven steps, pinned by digest, stopping at the one that broke.",
     eyebrow: "Provisioning",
     heading: "The engine",
@@ -81,9 +81,9 @@ export const features: FeatureRecord[] = [
         list: [
           ["Acquire and verify — the Alpine rootfs, the static Linux engine and the Windows CLI zip, each checked against a digest recorded in this repository, not one served by the same host as the file."],
           ["Inspect before touching WSL — the tarball's member list is read locally, so a bad archive is caught before a distribution exists."],
-          [{ code: "wsl --import dockerdesk … --version 2" }, " — a fixed name that is this tool's, so your own apt upgrade or unregister cannot take the engine with it."],
+          [{ code: "wsl --import freewilly … --version 2" }, " — a fixed name that is this tool's, so your own apt upgrade or unregister cannot take the engine with it."],
           ["Install inside it — one non-interactive sh script under set -e; iptables and socat from apk, the binaries into /usr/local/bin, systemd=false."],
-          ["Place the Windows CLI — docker.exe under %LOCALAPPDATA%\\DockerDesk\\bin, for the installer to add to PATH."],
+          ["Place the Windows CLI — docker.exe under %LOCALAPPDATA%\\FreeWilly\\bin, for the installer to add to PATH."],
         ],
       },
       {
@@ -101,8 +101,8 @@ export const features: FeatureRecord[] = [
     slug: "pipe",
     title: "The pipe — why a named pipe, not a port",
     description:
-      "A Linux dockerd cannot create a Windows named pipe, so DockerDesk serves docker_engine and forwards over wsl.exe stdio. The ACL grants your account and nobody else — which a forwarded port cannot express.",
-    ogTitle: "DockerDesk — the pipe",
+      "A Linux dockerd cannot create a Windows named pipe, so FreeWilly serves docker_engine and forwards over wsl.exe stdio. The ACL grants your account and nobody else — which a forwarded port cannot express.",
+    ogTitle: "FreeWilly — the pipe",
     ogDescription: "Why a named pipe and not a port, and the ACL that is the reason.",
     eyebrow: "The transport",
     heading: "The pipe",
@@ -111,7 +111,7 @@ export const features: FeatureRecord[] = [
       { code: "dockerd" },
       " cannot create a Windows named pipe — that is a Win32 object. So something on the Windows side has to, or every shell and script you already have needs a ",
       { code: "DOCKER_HOST" },
-      ". DockerDesk is that something.",
+      ". FreeWilly is that something.",
     ],
     figure: "pipe",
     sections: [
@@ -140,7 +140,7 @@ export const features: FeatureRecord[] = [
     title: "The window — the list, actions, logs, a shell, images and volumes",
     description:
       "One window that is the list of containers, with ports as links; acting on a container; logs and a shell for what the state does not say; and images and volumes made legible.",
-    ogTitle: "DockerDesk — the window",
+    ogTitle: "FreeWilly — the window",
     ogDescription: "The tray, the container list, the logs, the shell, images and volumes.",
     eyebrow: "The window",
     heading: "The window",
@@ -178,7 +178,7 @@ export const features: FeatureRecord[] = [
     title: "The agent surface — the context pack, read doctor, teaching errors",
     description:
       "One budgeted context pack answers a session's opening questions; read doctor is the diagnostic join; and every refusal carries the Windows fact that explains it. The designed agent surface, Block G.",
-    ogTitle: "DockerDesk — the agent surface",
+    ogTitle: "FreeWilly — the agent surface",
     ogDescription: "The context pack, read doctor, and teaching errors with the Windows join.",
     eyebrow: "For an agent",
     heading: "The agent surface",

@@ -9,7 +9,7 @@ export function Footer() {
         <div className="foot-grid">
           <a className="foot-brand" href="/dockerdesk/">
             <img src="/dockerdesk/logo.svg" alt="" />
-            DockerDesk
+            FreeWilly
           </a>
           <div className="foot-links">
             {footer.links.map((link) => (

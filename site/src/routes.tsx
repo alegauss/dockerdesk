@@ -38,10 +38,10 @@ export const ROUTE_META: RouteMeta[] = [
   },
   {
     path: "/status",
-    title: "DockerDesk — status, generated from the roadmap",
+    title: "FreeWilly — status, generated from the roadmap",
     description:
       "Every DD roadmap line, its marker and its block, generated from roadkeep export --json on every build — so a shipped task moves its own row.",
-    ogTitle: "DockerDesk — status",
+    ogTitle: "FreeWilly — status",
     ogDescription:
       "Every DD roadmap line and its marker, generated from roadkeep so the page is never stale about the project's own progress.",
   },

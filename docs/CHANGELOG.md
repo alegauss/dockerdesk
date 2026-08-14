@@ -69,6 +69,7 @@
 - ✅ **DD33** **A client with no shell cannot reach this surface at all, the CLI being the only head there is** — The CLI-first inversion is recorded as a decision with a price: a spec that survives shipping, a cap of six tools in the budget file, and a test that no head arrives uncapped.
 - ✅ **DD64 (the console race)** **The test that gates every cost claim can go red for a reason that is not cost** — The four classes that touch the process console are one xUnit collection, so a restore cannot land over another's capture: 8 of 8 full runs green against 2 of 5 red before.
 - ✅ **DD58** **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — The invocation is freewilly everywhere it is quoted, and a guard derives the allowlist pattern from the executable's own name so the two cannot drift into matching nothing.
+- ✅ **DD63** **No verb on this surface creates anything, so the session stamp has nothing to stamp** — do compose up is the first verb that creates: the services come from the CLI, a generated override outside the project stamps each one, and the answer names the undo.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

@@ -35,6 +35,7 @@ read logs
 read ports
 read ps
 read verify
+do compose
 do engine
 do reclaim
 ```

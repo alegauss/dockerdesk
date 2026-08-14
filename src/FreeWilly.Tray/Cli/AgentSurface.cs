@@ -86,6 +86,8 @@ public static class AgentSurface
             "every container as one line each: name, state, image, ports"),
         new(AgentNamespace.Read, "verify", "read verify",
             "<name> [--request [:port]/path] [--wait] [--timeout 30s] — proof that it answers"),
+        new(AgentNamespace.Do, "compose", "do compose up",
+            "up — bring the project here up, stamped so `do reclaim` can take it back"),
         new(AgentNamespace.Do, "engine", "do engine",
             "start | stop — bring the engine up or take it down"),
         new(AgentNamespace.Do, "reclaim", "do reclaim",
@@ -1240,10 +1242,165 @@ public static class AgentSurface
 
     private static int RunDo(AgentVerb verb, string[] rest) => verb.Name switch
     {
+        "compose" => DoComposeHere(rest),
         "engine" => DoEngine(rest),
         "reclaim" => DoReclaimHere(rest),
         _ => Refuse($"{verb} is registered and not implemented"),
     };
+
+    /// <summary>The compose up against this machine's engine and CLI.</summary>
+    private static int DoComposeHere(string[] rest)
+    {
+        using var api = new DockerApi();
+        return DoCompose(
+            api,
+            new BundledComposeCli(),
+            rest,
+            Directory.GetCurrentDirectory(),
+            SessionLabel.Resolve(),
+            Console.Out);
+    }
+
+    /// <summary>
+    /// Bring a compose project up with everything it creates stamped for this session (DD63).
+    /// </summary>
+    /// <remarks>
+    /// The first verb on this surface that creates, which is what makes DD29's label more than a
+    /// promise: before it, <c>read changes --session</c> answered about an empty set on every real
+    /// machine. Why the stamp needs a generated override file rather than a flag, and why the
+    /// reclaim must not read ownership off the compose project instead, are in
+    /// <see cref="ComposeUp"/>.
+    /// </remarks>
+    /// <param name="engine">The read side, for naming back what now carries the label.</param>
+    /// <param name="cli">The bundled <c>docker</c>, behind a seam.</param>
+    /// <param name="rest">Everything after the two words.</param>
+    /// <param name="directory">Where the caller is, which is where the project is.</param>
+    /// <param name="session">The session id to stamp.</param>
+    /// <param name="output">Where the answer goes.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int DoCompose(
+        IEngineReads engine,
+        IComposeCli cli,
+        string[] rest,
+        string directory,
+        string session,
+        TextWriter output)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(cli);
+        ArgumentNullException.ThrowIfNull(rest);
+        ArgumentNullException.ThrowIfNull(output);
+
+        if (rest.Length == 0 || !string.Equals(rest[0], "up", StringComparison.Ordinal))
+        {
+            return Refuse(
+                rest.Length == 0
+                    ? "do compose takes up"
+                    : $"do compose takes up, not {rest[0]}");
+        }
+
+        if (rest.Length > 1)
+        {
+            // Named rather than ignored, for the reason every refusal here is: an argument silently
+            // dropped costs a wrong outcome nobody notices, and this one creates containers.
+            return Refuse($"unexpected argument {rest[1]}: do compose up takes nothing else");
+        }
+
+        var composeFile = ComposeUp.FileIn(directory, File.Exists);
+        if (composeFile is null)
+        {
+            return Refuse(
+                $"no compose file in {directory} — looked for "
+                + string.Join(", ", ComposeUp.FileNames));
+        }
+
+        var listed = cli.Run(directory, ComposeUp.ServicesArguments(composeFile));
+        if (!listed.Succeeded)
+        {
+            return Refuse($"reading the services out of {Path.GetFileName(composeFile)} failed: "
+                + Said(listed));
+        }
+
+        var services = ComposeUp.Services(listed.Output);
+        if (services.Count == 0)
+        {
+            return Refuse($"{Path.GetFileName(composeFile)} declares no services");
+        }
+
+        // Outside the project on purpose: a generated file left in a working directory is the file
+        // that gets committed by accident.
+        var overridePath = Path.Combine(Path.GetTempPath(), ComposeUp.OverrideFileName);
+        try
+        {
+            File.WriteAllText(overridePath, ComposeUp.Override(services, session));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+            or NotSupportedException or ArgumentException)
+        {
+            return Refuse($"could not write the session stamp to {overridePath}: {exception.Message}");
+        }
+
+        var up = cli.Run(directory, ComposeUp.UpArguments(composeFile, overridePath));
+        if (!up.Succeeded)
+        {
+            // The CLI's own words, not a summary of them: compose failures are about the caller's
+            // file — a port taken, an image that will not build — and this surface has nothing to
+            // add to that except where it happened.
+            output.WriteLine($"compose  failed  {Path.GetFileName(composeFile)}");
+            output.WriteLine("  " + Said(up));
+            return Failed;
+        }
+
+        return ShowComposed(engine, composeFile, session, services.Count, output);
+    }
+
+    /// <summary>Name back what now carries the label, which is the proof the stamp landed.</summary>
+    private static int ShowComposed(
+        IEngineReads engine,
+        string composeFile,
+        string session,
+        int services,
+        TextWriter output)
+    {
+        List<ContainerSummary> mine;
+        try
+        {
+            mine = [.. engine.ContainersAsync().GetAwaiter().GetResult()
+                .Where(container => SessionLabel.Owns(container.Labels, session))];
+        }
+        catch (DockerApiException exception)
+        {
+            // The up succeeded; only the read back did not. Saying so beats reporting a failure
+            // about work that landed.
+            output.WriteLine($"compose  up  {Path.GetFileName(composeFile)}  {services} service(s)");
+            output.WriteLine($"  the engine stopped answering before this could list them: {exception.Message}");
+            return Ok;
+        }
+
+        output.WriteLine(
+            $"compose  up  {Path.GetFileName(composeFile)}  {services} service(s)");
+        foreach (var container in mine.OrderBy(c => c.DisplayName, StringComparer.Ordinal))
+        {
+            output.WriteLine($"  {container.DisplayName}  {container.State}");
+        }
+
+        output.WriteLine($"session  {session}  on {mine.Count} container(s)");
+        output.WriteLine(
+            $"undo     {CommandLine.ExecutableName[..^4].ToLowerInvariant()} do reclaim --session {session}");
+        return Ok;
+    }
+
+    private static string Said(ComposeResult result) =>
+        result.Failure ?? OneLine(result.Output, 200);
+
+    private static string OneLine(string? text, int limit)
+    {
+        var flat = string.Join(' ', (text ?? "")
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0));
+        return flat.Length <= limit ? flat : flat[..limit] + "...";
+    }
 
     /// <summary>The reclaim against this machine's engine.</summary>
     private static int DoReclaimHere(string[] rest)

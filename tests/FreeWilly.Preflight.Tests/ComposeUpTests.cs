@@ -1,0 +1,271 @@
+using FreeWilly.Core.Agent;
+using FreeWilly.Core.Api;
+using FreeWilly.Tray.Cli;
+using Xunit;
+
+namespace FreeWilly.Preflight.Tests;
+
+/// <summary>A compose CLI that answers from a script rather than running anything.</summary>
+internal sealed class FakeComposeCli(params ComposeResult[] answers) : IComposeCli
+{
+    private int _next;
+
+    internal List<string[]> Ran { get; } = [];
+
+    internal string? WorkingDirectory { get; private set; }
+
+    public ComposeResult Run(string workingDirectory, params string[] arguments)
+    {
+        WorkingDirectory = workingDirectory;
+        Ran.Add(arguments);
+        return _next < answers.Length
+            ? answers[_next++]
+            : new ComposeResult(0, "", null);
+    }
+}
+
+/// <summary>An engine that answers a container list and nothing else.</summary>
+/// <remarks>
+/// Only <c>ContainersAsync</c> is reached: the verb reads back what now carries the label, which is
+/// the proof the stamp landed. Everything else throwing is what makes "it asked for nothing more"
+/// an assertion rather than a hope.
+/// </remarks>
+internal sealed class ListingEngine(params ContainerSummary[] containers) : IEngineReads
+{
+    private static InvalidOperationException Unexpected() =>
+        new("the engine was asked for something this verb does not need");
+
+    public Task<bool> PingAsync(CancellationToken cancellation = default) => throw Unexpected();
+
+    public Task<EngineVersion> VersionAsync(CancellationToken cancellation = default) =>
+        throw Unexpected();
+
+    public Task<IReadOnlyList<ContainerSummary>> ContainersAsync(
+        bool all = true, CancellationToken cancellation = default) =>
+        Task.FromResult<IReadOnlyList<ContainerSummary>>(containers);
+
+    public Task<ContainerInspect> InspectAsync(string id, CancellationToken cancellation = default) =>
+        throw Unexpected();
+
+    public Task<IReadOnlyList<ImageSummary>> ImagesAsync(CancellationToken cancellation = default) =>
+        throw Unexpected();
+
+    public Task<IReadOnlyList<VolumeSummary>> VolumesAsync(CancellationToken cancellation = default) =>
+        throw Unexpected();
+
+    public Task<IReadOnlyList<DockerEvent>> EventsAsync(
+        DateTimeOffset since, DateTimeOffset until, CancellationToken cancellation = default) =>
+        throw Unexpected();
+
+    public Task<Stream> LogsAsync(
+        string id,
+        int tail = 2000,
+        bool follow = true,
+        bool timestamps = false,
+        DateTimeOffset? since = null,
+        CancellationToken cancellation = default) =>
+        throw Unexpected();
+}
+
+/// <summary>
+/// The first verb on this surface that creates, and the stamp that makes it undoable (DD63).
+/// </summary>
+public sealed class ComposeUpTests
+{
+    private static ComposeResult Ok(string output = "") => new(0, output, null);
+
+    /// <summary>An engine holding one container already stamped for the session under test.</summary>
+    private static ListingEngine Stamped() =>
+        new(new ContainerSummary
+        {
+            Id = "aaaa",
+            Names = ["/shop-api-1"],
+            State = "running",
+            Labels = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [SessionLabel.Key] = "repro-17",
+            },
+        });
+
+    // ---- finding the project ----------------------------------------------------------------------
+
+    [Fact]
+    public void The_compose_file_is_found_in_the_order_compose_itself_prefers()
+    {
+        // Not this project's taste. A directory holding both is one where the CLI has already
+        // decided, and picking differently here brings up a project the caller cannot see in the
+        // file they are looking at.
+        Assert.Equal(
+            ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"],
+            ComposeUp.FileNames);
+
+        var both = ComposeUp.FileIn(
+            @"C:\shop",
+            path => path is @"C:\shop\compose.yaml" or @"C:\shop\docker-compose.yml");
+
+        Assert.Equal(@"C:\shop\compose.yaml", both);
+        Assert.Null(ComposeUp.FileIn(@"C:\shop", _ => false));
+    }
+
+    // ---- the stamp ---------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_override_stamps_every_service_with_the_session_label()
+    {
+        var yaml = ComposeUp.Override(["api", "db"], "repro-17");
+
+        Assert.Contains("services:", yaml, StringComparison.Ordinal);
+        Assert.Contains("  api:", yaml, StringComparison.Ordinal);
+        Assert.Contains("  db:", yaml, StringComparison.Ordinal);
+        Assert.Equal(2, yaml.Split("    labels:").Length - 1);
+        Assert.Equal(2, yaml.Split($"      {SessionLabel.Key}: \"repro-17\"").Length - 1);
+    }
+
+    [Fact]
+    public void A_derived_session_is_quoted_because_a_colon_is_a_mapping_in_yaml()
+    {
+        // `dir:8f21a0` unquoted parses as a nested key, so the label a reclaim looks for would
+        // silently not be there — a create that forgot the stamp, which is the exact symptom DD29
+        // exists to remove.
+        var derived = SessionLabel.Resolve(null, @"D:\shop");
+        Assert.StartsWith("dir:", derived, StringComparison.Ordinal);
+
+        Assert.Contains(
+            $"{SessionLabel.Key}: \"{derived}\"",
+            ComposeUp.Override(["api"], derived),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_user_s_file_comes_first_so_it_stays_the_project()
+    {
+        // Compose takes its project directory from the FIRST -f, and every relative build context,
+        // bind mount and env_file in the user's file resolves against it. Put the generated stamp
+        // first and all of them resolve against TEMP.
+        var arguments = ComposeUp.UpArguments(@"C:\shop\compose.yaml", @"C:\temp\stamp.yml");
+
+        Assert.Equal(
+            ["compose", "-f", @"C:\shop\compose.yaml", "-f", @"C:\temp\stamp.yml", "up", "-d"],
+            arguments);
+    }
+
+    [Fact]
+    public void The_services_come_from_the_CLI_rather_than_from_a_parser_here()
+    {
+        // The CLI is already the authority on what the merged project contains, and a YAML parser
+        // of our own would be a second opinion about somebody's file.
+        Assert.Equal(
+            ["compose", "-f", @"C:\shop\compose.yaml", "config", "--services"],
+            ComposeUp.ServicesArguments(@"C:\shop\compose.yaml"));
+
+        Assert.Equal(["api", "db"], ComposeUp.Services("api\r\ndb\r\n"));
+        Assert.Empty(ComposeUp.Services(""));
+        Assert.Empty(ComposeUp.Services(null));
+    }
+
+    // ---- the verb ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_directory_with_no_compose_file_is_refused_before_anything_runs()
+    {
+        var cli = new FakeComposeCli();
+        var scratch = Directory.CreateTempSubdirectory("freewilly-compose-none");
+        try
+        {
+            var output = new StringWriter();
+            var code = AgentSurface.DoCompose(
+                Stamped(), cli, ["up"], scratch.FullName, "repro-17", output);
+
+            Assert.Equal(2, code);
+            Assert.Empty(cli.Ran);
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Anything_other_than_up_is_refused_and_named()
+    {
+        var cli = new FakeComposeCli();
+        var output = new StringWriter();
+
+        Assert.Equal(2, AgentSurface.DoCompose(
+            Stamped(), cli, [], @"C:\shop", "repro-17", output));
+        Assert.Equal(2, AgentSurface.DoCompose(
+            Stamped(), cli, ["down"], @"C:\shop", "repro-17", output));
+        Assert.Equal(2, AgentSurface.DoCompose(
+            Stamped(), cli, ["up", "--build"], @"C:\shop", "repro-17", output));
+
+        // Nothing reached the CLI: a verb that creates refuses before it acts, not after.
+        Assert.Empty(cli.Ran);
+    }
+
+    [Fact]
+    public void An_up_lists_the_services_then_brings_them_up_with_the_stamp()
+    {
+        var scratch = Directory.CreateTempSubdirectory("freewilly-compose-up");
+        try
+        {
+            var composeFile = Path.Combine(scratch.FullName, "compose.yaml");
+            File.WriteAllText(composeFile, "services:\n  api:\n    image: nginx\n");
+
+            var cli = new FakeComposeCli(Ok("api\n"), Ok());
+            var output = new StringWriter();
+
+            var code = AgentSurface.DoCompose(
+                Stamped(), cli, ["up"], scratch.FullName, "repro-17", output);
+
+            Assert.Equal(0, code);
+            Assert.Equal(2, cli.Ran.Count);
+            Assert.Equal("config", cli.Ran[0][3]);
+            Assert.Equal("up", cli.Ran[1][5]);
+
+            // Run where the caller is, because that is where the project is.
+            Assert.Equal(scratch.FullName, cli.WorkingDirectory);
+
+            // And the stamp was written outside the project: a generated file left in a working
+            // directory is the file that gets committed by accident.
+            var stamped = cli.Ran[1][4];
+            Assert.DoesNotContain(scratch.FullName, stamped, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(SessionLabel.Key, File.ReadAllText(stamped), StringComparison.Ordinal);
+
+            var said = output.ToString();
+            Assert.Contains("compose  up", said, StringComparison.Ordinal);
+            Assert.Contains("do reclaim --session repro-17", said, StringComparison.Ordinal);
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_failed_up_says_what_the_CLI_said_rather_than_a_summary_of_it()
+    {
+        var scratch = Directory.CreateTempSubdirectory("freewilly-compose-fail");
+        try
+        {
+            File.WriteAllText(Path.Combine(scratch.FullName, "compose.yaml"), "services:\n  api:\n");
+
+            var cli = new FakeComposeCli(
+                Ok("api\n"),
+                new ComposeResult(1, "Error response from daemon: port is already allocated", null));
+            var output = new StringWriter();
+
+            var code = AgentSurface.DoCompose(
+                Stamped(), cli, ["up"], scratch.FullName, "repro-17", output);
+
+            Assert.Equal(1, code);
+
+            // A compose failure is about the caller's own file — a port taken, an image that will
+            // not build — and this surface has nothing to add to it except where it happened.
+            Assert.Contains("port is already allocated", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
+    }
+}

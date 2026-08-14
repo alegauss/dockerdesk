@@ -8,11 +8,18 @@
 
 ## Block C — The window (claude-tray's elements)
 
+- 📋 **DD110** (deps: —) **The containers page builds every row twice on each refresh, once only to read the project label off it** — DD107's prune needs each container's project and reaches for ContainerRow.From to get it, three lines above the loop that builds those rows for real. → §DD110
+- 📋 **DD111** (deps: —) **One row type describes a container and a project header, and nothing says which members a header answers** — DD106 was right that the template is one with a trigger; the type behind it grew by accretion, so three guards were written one at a time as each was found wrong on a header. → §DD111
+
 ## Block D — Container operations (what a user came to do)
+
+- 📋 **DD108** (deps: —) **A project's row stops waiting when the last call was answered, not when its containers are down** — DD8's rule is that the event confirms an action, and the header has no event of its own — so the one row reporting on four containers is the row that reports early. → §DD108
 
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)
+
+- 📋 **DD109** (deps: —) **A plain dotnet build dies on a stale _wpftmp.csproj, naming a generated file rather than the interrupted build** — build.cmd deletes them and nothing else does, so the failure lands on whoever runs dotnet build directly — CI, an agent, a developer who did not use the script. → §DD109
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

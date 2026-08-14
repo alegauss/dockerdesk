@@ -2,6 +2,29 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+### §DD96 The translation has one door, and the failure has several
+
+DD75 respells a Windows bind source inside the override `do compose up` generates, and
+that is the only route it covers. Everything else reaches the daemon untranslated:
+`docker.exe run -v D:\shop\data:/data` typed at a Windows prompt, the same command from
+a WSL shell where `$(pwd)` is a Linux path the distribution does not have, a compose
+project the user brings up themselves, an IDE plugin, Testcontainers.
+
+Two failures, both measured against an upstream daemon (DD75). A drive-lettered source
+is refused with `invalid mode: /data`, which is loud and names neither the path nor
+Windows. A source that looks like a Linux path and is not there — `/home/you/project`
+from a WSL shell — is accepted, created on the daemon side, and the container gets an
+empty directory. The second costs an afternoon.
+
+Translating for them is not on the table: this project does not wrap the CLI, and a shim
+rewriting arguments would be the second Docker CLI the non-goals refuse.
+
+What is on the table is naming it. `read doctor` already reads a container's `Mounts`
+and renders a row per bind. A source the distribution cannot reach — no `/mnt/<drive>`
+prefix and not a path inside the distribution — is a fact that row can state, with the
+spelling that would have worked. That turns the silent case into a verdict and an
+action.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

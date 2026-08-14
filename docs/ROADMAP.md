@@ -4,6 +4,8 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+- 📋 **DD96** (deps: —) **A bind source only compose up can respell, so every other route to the daemon still mounts an empty directory** — read doctor already reads the mounts of a running container and reports them, and it is the one place that could name a source the distribution cannot reach. → §DD96
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

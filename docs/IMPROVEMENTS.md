@@ -6,31 +6,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD103 The suite cannot be run where the product is
-
-`SingleTrayTests` claims the real named objects, deliberately: the names are the
-product's, and parameterising them would test a different thing from the one that ships.
-That reasoning is right and it has a consequence nobody wrote down — the suite cannot be
-run on a machine where the product is running, which is every machine that uses it.
-
-Three tests fail, and none of them says why.
-`The_first_claim_wins_and_the_second_is_told_to_step _aside` reports that a claim
-succeeded when it should not have; the actual cause is a tray in the notification area.
-Hit while shipping DD97: a tray left over from a smoke test failed three tests that had
-nothing to do with the change, and the message pointed at none of it.
-
-What it should do is a decision rather than an obvious fix, and both options are
-defensible. **Say so and skip**: detect at the start that something else already holds
-`FreeWilly.tray`, and skip with "a tray is running on this session — quit it and
-re-run". Honest, and a skipped test is one nobody reads. **Say so and fail**: keep the
-failure but name the holder, so the message is the remedy. Neither hides that the
-assertion was not made.
-
-Worth knowing before starting. The mutex is unprefixed and therefore session-local, so
-this is not about other users. `SingleTray.TryClaim` already answers false in exactly
-this case, which is the detection — what is missing is a test-side reading of it before
-the assertions run, and xUnit's `Assert.Skip` is the door.
-
 ### §DD106 The project a row belongs to
 
 `ContainerSummary.Labels` is already on the list response and

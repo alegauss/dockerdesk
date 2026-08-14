@@ -15,6 +15,44 @@ namespace FreeWilly.Preflight.Tests;
 public sealed class SingleTrayTests
 {
     /// <summary>
+    /// Stand aside where the product itself is holding the object these tests claim (DD103).
+    /// </summary>
+    /// <remarks>
+    /// The consequence of claiming the real names, which is right and which nobody wrote down: the
+    /// suite cannot be run on a machine where the product is running, and that is every machine
+    /// that uses it. Three tests failed and none of them said so —
+    /// <see cref="The_first_claim_wins_and_the_second_is_told_to_step_aside"/> reported that a claim
+    /// succeeded when it should not have, and the cause was a tray in the notification area left
+    /// over from a smoke test.
+    ///
+    /// <para><b>It fails rather than skipping, and that was a decision.</b> The task offered both,
+    /// and skipping is the friendlier of the two on a developer's machine — but a skipped test is
+    /// one nobody reads, and xUnit v2 has no supported way to ask for one anyway: <c>Assert.Skip</c>
+    /// and <c>SkipException</c> are v3, and reaching for the dynamic-skip token by hand would be a
+    /// magic string that stops working silently. So the failure stays and the message becomes the
+    /// remedy, which is the half that was actually missing.</para>
+    ///
+    /// <para>The mutex is unprefixed and therefore session-local, so this is never about another
+    /// user's tray. <c>TryClaim</c> answering false is the whole detection; what was missing was
+    /// reading it before the assertions rather than through them.</para>
+    /// </remarks>
+    private static void RequireTheTraySlot()
+    {
+        if (SingleTray.TryClaim(out var probe))
+        {
+            probe!.Dispose();
+            return;
+        }
+
+        // Named as an unmade assertion rather than a wrong one. Reported as a failure this reads
+        // "FreeWilly is running", which is the sentence the three failures did not say.
+        Assert.Fail(
+            $"FreeWilly is running on this session and holds {SingleTray.Name}, which is the very "
+            + "object these tests claim — so nothing below was actually asserted. Quit it from the "
+            + "tray and re-run.");
+    }
+
+    /// <summary>
     /// Try to claim from somewhere that is not this thread, which is what a second launch is.
     /// </summary>
     /// <remarks>
@@ -40,8 +78,49 @@ public sealed class SingleTrayTests
     }
 
     [Fact]
+    public void A_running_tray_is_named_by_the_failure_rather_than_left_to_an_assertion()
+    {
+        // DD103 itself, asserted. Before this the reader of a red suite was told that a claim
+        // succeeded when it should not have, and the cause — a tray in the notification area, left
+        // over from a smoke test — appeared in no message. What is worth holding is not that it
+        // fails but what it says while failing, because that sentence is the remedy.
+        RequireTheTraySlot();
+
+        using var taken = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        // From another thread and held there: a mutex is owned by a thread and is reentrant, so a
+        // claim made on this one would let the probe straight through and test nothing.
+        var holder = new Thread(() =>
+        {
+            var mine = SingleTray.TryClaim(out var claim);
+            taken.Set();
+            release.Wait();
+            if (mine)
+            {
+                claim!.Dispose();
+            }
+        });
+
+        holder.Start();
+        Assert.True(taken.Wait(TimeSpan.FromSeconds(5)), "the stand-in tray never claimed the slot");
+
+        var failure = Record.Exception(RequireTheTraySlot);
+
+        release.Set();
+        holder.Join();
+
+        Assert.NotNull(failure);
+        Assert.Contains("FreeWilly is running", failure.Message, StringComparison.Ordinal);
+        Assert.Contains(SingleTray.Name, failure.Message, StringComparison.Ordinal);
+        Assert.Contains("Quit it from the tray", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_first_claim_wins_and_the_second_is_told_to_step_aside()
     {
+        RequireTheTraySlot();
+
         Assert.True(SingleTray.TryClaim(out var first));
         using (first)
         {
@@ -54,6 +133,8 @@ public sealed class SingleTrayTests
     [Fact]
     public void The_slot_is_free_again_once_the_tray_lets_it_go()
     {
+        RequireTheTraySlot();
+
         // Quitting the tray has to leave a machine able to start one, or the fix would be worse
         // than the defect.
         Assert.True(SingleTray.TryClaim(out var first));
@@ -65,6 +146,8 @@ public sealed class SingleTrayTests
     [Fact]
     public void A_second_launch_raises_the_live_one()
     {
+        RequireTheTraySlot();
+
         Assert.True(SingleTray.TryClaim(out var only));
         using (only)
         {
@@ -82,6 +165,12 @@ public sealed class SingleTrayTests
     [Fact]
     public void Raising_when_nothing_holds_the_tray_is_silent()
     {
+        // The fourth, and it did not fail — which is worse. Its premise is in its name, and with a
+        // tray running the premise is false: the call below reaches a live instance, asserts nothing
+        // about the silence it claims to test, and puts that instance's window on screen in the
+        // middle of a test run.
+        RequireTheTraySlot();
+
         // A launch that found nothing to signal has nothing useful left to do, and throwing at
         // somebody who double-clicked would be worse than the silence being fixed.
         var exception = Record.Exception(SingleTray.RaiseTheLiveOne);

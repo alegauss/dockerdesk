@@ -24,7 +24,12 @@ namespace FreeWilly.Tray.Cli;
 internal sealed class SingleTray : IDisposable
 {
     /// <summary>The name both halves agree on. Unprefixed, so it is this session's.</summary>
-    private const string Name = "FreeWilly.tray";
+    /// <remarks>
+    /// Internal rather than private since DD103: the suite claims this very object, so the message
+    /// it prints when a running tray already holds it has to name the object and not a second
+    /// spelling of it.
+    /// </remarks>
+    internal const string Name = "FreeWilly.tray";
 
     /// <summary>What a second launch sets to ask the live one to show itself.</summary>
     private const string RaiseName = "FreeWilly.tray.raise";

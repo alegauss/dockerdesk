@@ -11,11 +11,13 @@
 ## Block C — The window (claude-tray's elements)
 
 - ⏳ **DD99** (deps: —) **The tray icon is always drawn at 16 pixels, so the per-monitor-DPI manifest buys a shell-scaled icon anyway** — app.manifest opts in to PerMonitorV2 and names the blurry square it avoids, and every caller of StateIcon.Icon takes the 16 default, so above 100% the shell scales after all. → §DD99
-- 📋 **DD100** (deps: —) **The test named for verb coverage checks a hand-written list, so a verb added to the router is asserted by nothing** — Two were already missing from it and it stayed green: the routes are not enumerable the way EngineVerbs is, so the list is maintained by memory. → §DD100
+- 🛠 **DD100** (deps: —) **The test named for verb coverage checks a hand-written list, so a verb added to the router is asserted by nothing** — Two were already missing from it and it stayed green: the routes are not enumerable the way EngineVerbs is, so the list is maintained by memory. → §DD100
 - 📋 **DD103** (deps: —) **Three tests fail whenever a tray is running, and the failure names an assertion rather than the tray** — They claim the product's real named objects on purpose, so the suite cannot pass on a machine using the product, and the message points at none of that. → §DD103
+- 📋 **DD106** (deps: —) **Every container of a compose project is a peer row, so the project it belongs to is invisible** — The label that names the project is already on the list response, so the hierarchy costs no second call, and without it a four-service project is found by reading forty rows. → §DD106
 
 ## Block D — Container operations (what a user came to do)
 
+- 📋 **DD107** (deps: DD106) **A project is stopped one service at a time, so its row carries no verb and four clicks do what one should** — The parent row is only worth drawing if acting on it acts on the project, and fanning four verbs across children needs an order and somewhere for a partial failure to go. → §DD107
 
 ## Block E — Images, volumes and networks
 

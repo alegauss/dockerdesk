@@ -246,6 +246,12 @@ internal static class Program
             using (only)
             {
                 ApplicationConfiguration.Initialize();
+
+                // Without this, no WPF window this process opens receives a single key press: the
+                // pump below is WinForms' and WPF expects its own. See Ui/WpfInputBridge.cs — the
+                // filter box was where it showed, and every capture of this window missed it.
+                Ui.WpfInputBridge.Install();
+
                 var tray = new TrayApplication(openWindow: route.OpenWindow);
                 only!.OnRaise(tray.RaiseWindow);
                 Application.Run(tray);

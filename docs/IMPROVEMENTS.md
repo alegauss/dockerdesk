@@ -61,31 +61,6 @@ actually missing.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD109 The cleanup attached to the script and not to the build
-
-The WPF SDK writes a `<name>_<random>_wpftmp.csproj` beside the project while it
-compiles XAML, and normally deletes it. An interrupted build leaves one behind. The next
-build finds it, treats it as a project, and dies on a generated file it cannot locate:
-
-    CSC : error CS2001: source file '...\obj\...\Ui\Pages\VolumesPage.g.cs' cannot be found
-
-Nothing in that message names the stale file, the interrupted build or the fix. Hit
-twice in one session, and both times the repair was `rm
-src/FreeWilly.Tray/*_wpftmp.csproj` — which is knowledge that lives in one comment
-inside `build/build.cmd` and nowhere a reader of the error would look.
-
-`build.cmd` already deletes them, and that is the whole shape of the defect: the cleanup
-is attached to the script rather than to the build. Anybody running `dotnet build`
-directly — CI, an agent, a developer who did not use the script — gets the failure the
-script exists to prevent, and gets it in a form that reads as a corrupt working tree.
-
-Two ways in, and they are not equivalent. A `BeforeBuild` target in the `.csproj` puts
-the cleanup where every entry point reaches it, which is the whole point; it also runs
-inside the build the stale file already broke, so whether MSBuild has finished globbing
-by then is the thing to establish first. Failing that, the message can at least be made
-to name its own cure — but a build that explains a defect it could have removed is the
-weaker answer.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

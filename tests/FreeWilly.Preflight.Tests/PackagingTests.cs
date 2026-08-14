@@ -81,6 +81,72 @@ public sealed class PackagingTests
     private static string Workflow(string name) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
 
+    /// <summary>Every script and workflow that could invoke the build, found rather than listed.</summary>
+    private static IEnumerable<string> BuildScripts() =>
+        new[] { "build", ".github/workflows", "scripts" }
+            .Select(folder => Path.Combine(RepositoryRoot(), folder))
+            .Where(Directory.Exists)
+            .SelectMany(folder => Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+            .Where(file => Path.GetExtension(file) is ".cmd" or ".yml" or ".ps1");
+
+    [Fact]
+    public void No_build_command_names_the_folder_a_project_is_in()
+    {
+        // DD109. An interrupted WPF build leaves a <name>_<random>_wpftmp.csproj beside the project,
+        // and MSBuild answers a folder holding two projects with MSB1050 — before it has evaluated
+        // anything, so no target inside the project can prevent it. A command that has already
+        // chosen its project cannot raise it at all, which closes the class rather than the case.
+        //
+        // Derived and never listed: a fourth script added next year is under this rule with no edit
+        // here, which is the property the help-text guard was written for after two verbs went
+        // missing unnoticed.
+        var checkedAny = false;
+        foreach (var script in BuildScripts())
+        {
+            foreach (var line in File.ReadAllLines(script))
+            {
+                if (!line.Contains("dotnet publish", StringComparison.Ordinal)
+                    && !line.Contains("dotnet build", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // A bare `dotnet build` takes the solution, which names its projects and cannot be
+                // ambiguous. Only a line that points somewhere under src\ is making the choice.
+                if (!line.Contains("src", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                Assert.True(
+                    line.Contains(".csproj", StringComparison.Ordinal),
+                    $"{Path.GetFileName(script)} names a folder rather than a project file, so a "
+                    + $"leftover _wpftmp.csproj stops it with MSB1050:{Environment.NewLine}{line.Trim()}");
+                checkedAny = true;
+            }
+        }
+
+        Assert.True(checkedAny, "no build command was checked, so this guard proved nothing");
+    }
+
+    [Fact]
+    public void The_stale_artefact_is_cleared_before_the_publish_it_would_stop()
+    {
+        // The sharper half of DD109. build.cmd already deleted the artefact — afterwards, to tidy
+        // up — so the one script that owns the cleanup failed on exactly the run the cleanup exists
+        // for and worked the second time, which is what made it read as flaky rather than as a rule.
+        var script = File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "build.cmd"));
+
+        var cleared = script.IndexOf("_wpftmp.csproj", StringComparison.Ordinal);
+        var published = script.IndexOf("dotnet publish", StringComparison.Ordinal);
+
+        Assert.True(cleared >= 0, "build.cmd no longer clears the stale _wpftmp.csproj at all");
+        Assert.True(published >= 0, "build.cmd no longer publishes");
+        Assert.True(
+            cleared < published,
+            "build.cmd clears the stale _wpftmp.csproj only after the publish that it stops");
+    }
+
     [Fact]
     public void The_ordinary_path_compiles_the_installer_script_and_not_only_the_release()
     {

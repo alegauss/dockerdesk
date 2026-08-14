@@ -612,7 +612,11 @@ function Publish-ToGuest {
     if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
 
     Write-Host "publishing a self-contained $Project to $publish"
-    & dotnet publish (Join-Path $script:RepoRoot "src\$Project") `
+    # The project file and not the folder it is in (DD109). An interrupted WPF build leaves a
+    # <name>_<random>_wpftmp.csproj beside it, and MSBuild answers a folder holding two projects
+    # with MSB1050 before it has evaluated anything — so a command that has already chosen cannot
+    # raise it.
+    & dotnet publish (Join-Path $script:RepoRoot "src\$Project\$Project.csproj") `
         -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true -p:DebugType=none `
         -o $publish --nologo -v q

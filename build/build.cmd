@@ -24,12 +24,21 @@ echo.
 echo === Publishing FreeWilly (Release, win-x64, self-contained, one file) ===
 echo.
 
-dotnet publish src\FreeWilly.Tray -c Release --nologo
+REM The WPF SDK writes a "<name>_<random>_wpftmp.csproj" beside the project while it compiles the
+REM XAML and normally deletes it; an interrupted build leaves one behind. It is in .gitignore.
+REM
+REM BEFORE the publish, and that is DD109. This delete used to run after it, to tidy up - so the one
+REM script that owns the cleanup failed on exactly the run the cleanup exists for, and worked the
+REM second time, which is what made it read as flaky rather than as a rule.
+del /q "%~dp0..\src\FreeWilly.Tray\*_wpftmp.csproj" >nul 2>nul
+
+REM The project file and not the folder (DD109): MSBuild answers a folder holding two projects with
+REM MSB1050 before it has evaluated anything, so the delete above is the belt and this is the braces
+REM - a command that has already chosen its project cannot raise it at all.
+dotnet publish src\FreeWilly.Tray\FreeWilly.Tray.csproj -c Release --nologo
 set "PUBERR=%errorlevel%"
 
-REM The WPF SDK writes a "<name>_<random>_wpftmp.csproj" beside the project while it compiles the
-REM XAML and normally deletes it; an interrupted build leaves one behind. It is in .gitignore, but a
-REM stray copy also confuses the next build's globbing.
+REM And again after, so a build interrupted from here leaves nothing behind for the next one.
 del /q "%~dp0..\src\FreeWilly.Tray\*_wpftmp.csproj" >nul 2>nul
 
 if not "%PUBERR%"=="0" (

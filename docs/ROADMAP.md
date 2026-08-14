@@ -17,8 +17,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD109** (deps: —) **A plain dotnet build dies on a stale _wpftmp.csproj, naming a generated file rather than the interrupted build** — build.cmd deletes them and nothing else does, so the failure lands on whoever runs dotnet build directly — CI, an agent, a developer who did not use the script. → §DD109
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -47,8 +47,12 @@ jobs:
 
       # Release, because that is the configuration the single-file self-contained properties are
       # conditioned on — a Debug build proves nothing about the thing that gets shipped.
+      # The project file and not the folder (DD109): an interrupted WPF build leaves a
+      # <name>_<random>_wpftmp.csproj beside it, and MSBuild answers a folder holding two projects
+      # with MSB1050 before it evaluates anything. A runner is clean, so this is not for CI's sake —
+      # it is so the line a developer copies out of here is the one that cannot fail that way.
       - name: Publish the one .exe
-        run: dotnet publish src\FreeWilly.Tray -c Release --nologo
+        run: dotnet publish src\FreeWilly.Tray\FreeWilly.Tray.csproj -c Release --nologo
 
       - name: It is one file, and only one
         run: |

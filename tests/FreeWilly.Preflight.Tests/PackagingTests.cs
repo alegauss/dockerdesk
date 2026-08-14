@@ -81,6 +81,78 @@ public sealed class PackagingTests
     private static string Workflow(string name) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
 
+    /// <summary>The committed agent configuration, parsed.</summary>
+    private static System.Text.Json.JsonElement Settings() =>
+        System.Text.Json.JsonDocument
+            .Parse(File.ReadAllBytes(Path.Combine(RepositoryRoot(), ".claude", "settings.json")))
+            .RootElement;
+
+    [Fact]
+    public void The_committed_settings_still_grant_what_this_project_cannot_work_without()
+    {
+        // DD115. This file is committed on purpose — it grants this project's tools and wires the
+        // roadkeep guard, so a clone works rather than prompting on every call — and it is rewritten
+        // by whatever session happens to be open. Twice in one session fifteen entries vanished from
+        // `allow` with nothing said, and the second time the deletion rode into a commit about
+        // something else, because run-commit.cmd stages everything by design.
+        //
+        // A floor and not the whole list: pinning every entry would fail the build on a legitimate
+        // addition, which is how a guard gets deleted. These are the ones whose loss costs
+        // something — the tools this project's own loop is built on, and the two that let the
+        // vendored roadkeep be called at all.
+        var allowed = Settings()
+            .GetProperty("permissions").GetProperty("allow")
+            .EnumerateArray()
+            .Select(entry => entry.GetString())
+            .ToHashSet(StringComparer.Ordinal);
+
+        string[] floor =
+        [
+            "Bash", "PowerShell", "Read", "Edit", "Write", "Glob", "Grep", "Skill", "Task",
+            "mcp__roadkeep",
+            "Bash(python .roadkeep/scripts/roadkeep.py:*)",
+        ];
+
+        foreach (var entry in floor)
+        {
+            Assert.True(
+                allowed.Contains(entry),
+                $".claude/settings.json no longer grants {entry}: a clone starts asking permission "
+                + "for a tool this project had already granted, and nothing else would say so");
+        }
+    }
+
+    [Fact]
+    public void The_committed_settings_still_wire_the_guard_that_owns_the_governed_files()
+    {
+        // The consequential half of DD115, and the reason a floor over `allow` alone would not be
+        // enough. roadkeep denies a hand-edit of ROADMAP, CHANGELOG and IMPROVEMENTS through this
+        // hook; without it those files become ordinary text and the whole discipline this repository
+        // runs on stops being enforced — silently, because nothing fails when a guard is absent.
+        var hooks = Settings().GetProperty("hooks");
+
+        foreach (var stage in new[] { "SessionStart", "PreToolUse", "Stop" })
+        {
+            var wired = hooks.GetProperty(stage).EnumerateArray()
+                .SelectMany(group => group.GetProperty("hooks").EnumerateArray())
+                .Select(hook => hook.GetProperty("command").GetString() ?? "")
+                .ToList();
+
+            Assert.True(
+                wired.Exists(command => command.Contains("roadkeep-launch.py", StringComparison.Ordinal)
+                    && command.Contains("guard", StringComparison.Ordinal)),
+                $"no roadkeep guard is wired on {stage}, so a hand-edit of the governed files is "
+                + "no longer refused");
+        }
+
+        // And the engine that guard reaches is the vendored one, which is the whole point of
+        // carrying a copy: a checkout beside this repository is somebody else's working tree, and
+        // mid-refactor it does not import at all.
+        Assert.Equal(
+            "${CLAUDE_PROJECT_DIR}/.roadkeep",
+            Settings().GetProperty("env").GetProperty("ROADKEEP_HOME").GetString());
+    }
+
     /// <summary>Every script and workflow that could invoke the build, found rather than listed.</summary>
     private static IEnumerable<string> BuildScripts() =>
         new[] { "build", ".github/workflows", "scripts" }

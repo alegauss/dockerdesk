@@ -35,6 +35,9 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
+- 📋 **DD93** (deps: —) **A binding law says the site must carry no measured number, and the site has published measured numbers since DD23 landed** — Section 4 is future tense about a benchmark that shipped, so a reader following the constitution would delete the figures the friction section is built on. → §DD93
+- 📋 **DD94** (deps: —) **The site's own README lists eleven shipped tasks as work deliberately still to come** — It is the first thing a contributor reads about what exists, and it describes the workspace as it stood at DD40 with the prerender, the twins and the tests all ahead of it. → §DD94
+
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

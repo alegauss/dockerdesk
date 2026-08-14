@@ -337,3 +337,52 @@ shape is not obviously better than the caller spelling it, and deleting it says 
 thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
+
+### §DD93 A law waiting for something that arrived
+
+`docs/specs/DD40-site-constitution.md` §4 is the one law it declined to port from Shio,
+and it says why: Shio publishes generated token figures from the file its suite asserts
+against, and this project had no such file. **"DD23 is the benchmark, and it has not
+been written. Until it exists there is no measured number to generate, so the site must
+not carry one."**
+
+DD23 shipped, DD65 measured the shaped side against it, and `agent-budget.json` is the
+file §4 was waiting for. The friction section on `/claude-code` now prints a measured
+baseline, a per-shape cost and a ceiling per verb, every one generated from that file
+and asserted by `surface.test.mjs` — which is precisely the arrangement §4 describes as
+a follow-up that has not happened.
+
+So the section is not merely stale, it is a rule pointing the wrong way. A contributor
+reading the constitution to settle an argument finds a prohibition on the thing the page
+does, and the honest reading of that is to delete the figures.
+
+The rewrite is the one §4 predicted for itself: the budget file *is* this site's
+generated source, an unmeasured cost is still not a figure on the page, and the DD23
+§3.1 numbers that remain targets are still stated as targets rather than achievements —
+the hero session's costs are exactly that, and its own note says so. The paragraph also
+names the project by the name it had before the rename.
+
+### §DD94 A contributor's first read is the oldest one
+
+`site/README.md` closes with a section headed *What is DD40, and what is not*, listing
+DD41 through DD51 as "deliberately still to come": the prerender and the route table,
+the Markdown twins and `llms.txt`, the hero session, the ten laws, `/claude-code`,
+`/compare`, the five depth pages, the social card, the publish job and the site's own
+tests.
+
+Every one of them shipped. The file is describing the workspace on the day it was
+created, and it is the first thing a contributor opens to find out what is there — so
+the one document whose job is orientation is the one furthest out of date.
+
+DD91 amended its DD43 line, because that task was reversed and saying nothing would have
+been worse than saying it late. The rest was left, which is why this is a line rather
+than a leftover.
+
+The repair is not to tick eleven items off. A list of what does not exist yet dates
+itself by construction, and this is the second time it has needed hand-correction. What
+a contributor needs is where things live — which the table above it already gives — and
+what the workspace refuses, which the non-goals section below it already gives. The
+section between them can go, with whatever is genuinely still ahead moving to the
+roadmap where a tool keeps it honest.
+
+The same file still describes the build as reading roadkeep, which DD91 removed.

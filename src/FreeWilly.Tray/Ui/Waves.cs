@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Color = System.Windows.Media.Color;
+using Size = System.Windows.Size;
 using SolidColorBrush = System.Windows.Media.SolidColorBrush;
 
 namespace FreeWilly.Tray.Ui;
@@ -32,6 +33,14 @@ namespace FreeWilly.Tray.Ui;
 /// Every period divides 1440 for the same reason — a wave that does not close on 1440 shows a seam
 /// once per cycle, and once per cycle is every few seconds.</para>
 ///
+/// <para><b>Twice the band has to be arranged twice the band, not merely sized it</b> (DD104). A
+/// child whose render size exceeds the slot it was arranged in gets a layout clip, that clip lives
+/// in the child's own coordinates, and a <c>RenderTransform</c> moves the child <i>and its clip</i>
+/// together — so the second repeat was never drawn and the drift slid the first one out to the left,
+/// leaving the water to withdraw off the right edge and snap back. <see cref="ArrangeOverride"/>
+/// hands every layer a slot two bands wide, which is the only thing that removes the clip. Nothing
+/// about it shows in a still capture, which is why the review harness could not see it.</para>
+///
 /// <para><b>Still means phase zero.</b> Three things switch the motion off — a window that is not
 /// visible, <c>ClientAreaAnimation</c> off, and a render tier with no hardware behind it — and all
 /// three leave the transforms at their start rather than wherever they had reached. That is what
@@ -44,6 +53,16 @@ internal sealed class Waves : Grid
 
     /// <summary>The logical floor the water is filled down to.</summary>
     private const double Floor = 200;
+
+    /// <summary>
+    /// How far past the floor the fill runs, in the same logical units.
+    /// </summary>
+    /// <remarks>
+    /// Enough to cover <see cref="RiseBy"/> at any band height this is used at — forty units is six
+    /// pixels of a fifty-two pixel band and fifteen of a hundred-and-twenty-eight pixel one, both more
+    /// than the rise — and all of it is clipped away, so overshooting costs nothing.
+    /// </remarks>
+    private const double Undertow = 40;
 
     /// <summary>
     /// How tall the band is where nothing says otherwise.
@@ -68,27 +87,42 @@ internal sealed class Waves : Grid
     /// </remarks>
     private const byte WaterAlpha = 0x24;
 
-    /// <summary>One layer of water: where it sits, how far it swells, and how fast it travels.</summary>
+    /// <summary>One layer of water: where it sits, how far it swells, and how it travels.</summary>
     private readonly record struct Layer(
-        double Baseline, double Amplitude, double Period, Color Colour, double Drift, bool Foam);
+        double Baseline, double Amplitude, double Period, Color Colour, double Drift,
+        bool Rightward, double Rise, bool Foam);
 
     /// <summary>
     /// Back to front. Nearer water is drawn lower, shorter and shallower, which is what reads as
     /// depth, and travels faster, which is what reads as nearness.
     /// </summary>
+    /// <remarks>
+    /// <para>The far layer travels the other way, as it does on the site: three bands sliding one way
+    /// at three speeds resolve into one moving thing, and one opposed to the other two is what keeps
+    /// them reading as separate water.</para>
+    ///
+    /// <para>Every one of these numbers is the site's, the rise included — three layers rising and
+    /// falling on 11, 8.5 and 7 seconds against drifts of 43, 31 and 22 never repeat the same frame
+    /// twice in any span anybody watches, and one shared rise made the three read as one sheet of
+    /// painted water sliding under itself.</para>
+    /// </remarks>
     private static readonly Layer[] Layers =
     [
-        new(72, 26, 720, Palette.WaveBack, 43, Foam: false),
-        new(100, 16, 480, Palette.WaveMid, 31, Foam: false),
-        new(122, 11, 360, Palette.WaveFront, 22, Foam: true),
+        new(72, 26, 720, Palette.WaveBack, 43, Rightward: true, Rise: 11, Foam: false),
+        new(100, 16, 480, Palette.WaveMid, 31, Rightward: false, Rise: 8.5, Foam: false),
+        new(122, 11, 360, Palette.WaveFront, 22, Rightward: false, Rise: 7, Foam: true),
     ];
 
-    /// <summary>How long one rise and fall of the swell takes.</summary>
-    private static readonly Duration Swell = new(TimeSpan.FromSeconds(9));
+    /// <summary>How far the sea lifts at the top of its rise.</summary>
+    /// <remarks>
+    /// Three pixels against the site's seven, because this band is a third of the height of that one
+    /// and the rise is a proportion of the water, not a distance.
+    /// </remarks>
+    private const double RiseBy = 3;
 
     private readonly TranslateTransform[] _drifts = new TranslateTransform[Layers.Length];
+    private readonly TranslateTransform[] _swells = new TranslateTransform[Layers.Length];
     private readonly FrameworkElement[] _bands = new FrameworkElement[Layers.Length];
-    private readonly TranslateTransform _swell = new();
     private bool _running;
 
     /// <summary>Build the band.</summary>
@@ -97,7 +131,6 @@ internal sealed class Waves : Grid
         Height = BandHeight;
         ClipToBounds = true;
         IsHitTestVisible = false;
-        RenderTransform = _swell;
 
         // Translucent, so one set of bytes works on a light window and a dark one: the water darkens
         // against whatever is behind it rather than needing a second palette to keep in step. The
@@ -128,7 +161,8 @@ internal sealed class Waves : Grid
             };
 
             _drifts[i] = new TranslateTransform();
-            band.RenderTransform = _drifts[i];
+            _swells[i] = new TranslateTransform();
+            band.RenderTransform = Travel(i);
             _bands[i] = band;
             Children.Add(band);
 
@@ -156,7 +190,7 @@ internal sealed class Waves : Grid
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 VerticalAlignment = System.Windows.VerticalAlignment.Bottom,
                 Height = BandHeight,
-                RenderTransform = _drifts[i],
+                RenderTransform = Travel(i),
             };
             _bands = [.. _bands.Append(foamBand)];
             Children.Add(foamBand);
@@ -164,6 +198,40 @@ internal sealed class Waves : Grid
 
         SizeChanged += (_, _) => Resize();
         IsVisibleChanged += (_, _) => Apply();
+    }
+
+    /// <summary>One layer's sideways travel and its own rise, on one element.</summary>
+    /// <remarks>
+    /// Two animations on one property are one overwriting the other, which is why the site puts the
+    /// drift and the swell on two nested elements; two transforms in one group is the same arithmetic
+    /// with one element fewer. It matters that the rise is <i>inside</i> the band rather than on it:
+    /// this control carries the clip that makes it a band, and lifting that clip along with the water
+    /// opened a strip of bare window under the sea for half of every cycle.
+    /// </remarks>
+    /// <param name="layer">Which layer, back to front.</param>
+    /// <returns>The transform the layer renders through.</returns>
+    private Transform Travel(int layer) =>
+        new TransformGroup { Children = { _drifts[layer], _swells[layer] } };
+
+    /// <summary>
+    /// Give every layer a slot two bands wide — the size it is already drawn at.
+    /// </summary>
+    /// <remarks>
+    /// Not tidiness and not an optimisation: this is the whole of DD104. WPF clips a child whose
+    /// render size overruns the slot it was arranged in, the clip is expressed in that child's own
+    /// coordinates, and <c>RenderTransform</c> carries the child and the clip together — so a layer
+    /// arranged in one band while drawn at two lost its second repeat and then drifted the first one
+    /// off to the left, which read as the water withdrawing off the right edge and snapping back.
+    /// Arranging at the size the layer actually is leaves nothing to clip; the band's own
+    /// <c>ClipToBounds</c>, which is not moved by any of this, still crops it to the strip.
+    /// </remarks>
+    /// <param name="finalSize">The band.</param>
+    /// <returns>The band, unchanged: the doubling is what the children are arranged in, not what
+    /// this control occupies.</returns>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        base.ArrangeOverride(new Size(finalSize.Width * 2, finalSize.Height));
+        return finalSize;
     }
 
     /// <summary>Whether the engine is running, which is the only thing that moves this.</summary>
@@ -201,40 +269,46 @@ internal sealed class Waves : Grid
         {
             // Removed rather than paused, and at phase zero rather than wherever it had reached:
             // a capture of a still window has to be the same bytes every time.
-            foreach (var drift in _drifts)
+            for (var i = 0; i < _drifts.Length; i++)
             {
-                drift.BeginAnimation(TranslateTransform.XProperty, null);
-                drift.X = 0;
+                _drifts[i].BeginAnimation(TranslateTransform.XProperty, null);
+                _drifts[i].X = 0;
+                _swells[i].BeginAnimation(TranslateTransform.YProperty, null);
+                _swells[i].Y = 0;
             }
 
-            _swell.BeginAnimation(TranslateTransform.YProperty, null);
-            _swell.Y = 0;
             return;
         }
 
         for (var i = 0; i < _drifts.Length; i++)
         {
+            // One whole repeat, so the frame after the last is the first. A layer running the other
+            // way starts one repeat out and arrives at zero: two repeats of the same crest are drawn,
+            // so -ActualWidth and 0 are the same picture and the still band does not care which end
+            // of the cycle it is caught at.
             var travel = new DoubleAnimation
             {
-                From = 0,
-                To = -ActualWidth,
+                From = Layers[i].Rightward ? -ActualWidth : 0,
+                To = Layers[i].Rightward ? 0 : -ActualWidth,
                 Duration = new Duration(TimeSpan.FromSeconds(Layers[i].Drift)),
                 RepeatBehavior = RepeatBehavior.Forever,
             };
             _drifts[i].BeginAnimation(TranslateTransform.XProperty, travel);
-        }
 
-        _swell.BeginAnimation(
-            TranslateTransform.YProperty,
-            new DoubleAnimation
-            {
-                From = 0,
-                To = -3,
-                Duration = Swell,
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
-            });
+            // Each layer rises on its own clock, as the site's three do. Eased, because water
+            // decelerates at the top of a swell and a linear rise reads as a lift.
+            _swells[i].BeginAnimation(
+                TranslateTransform.YProperty,
+                new DoubleAnimation
+                {
+                    From = 0,
+                    To = -RiseBy,
+                    Duration = new Duration(TimeSpan.FromSeconds(Layers[i].Rise)),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever,
+                    EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
+                });
+        }
     }
 
     /// <summary>The site's own viewBox, so the proportions are its and not this window's.</summary>
@@ -270,9 +344,16 @@ internal sealed class Waves : Grid
         return d.ToString();
     }
 
-    /// <summary>The same crest, closed down to the floor: the water under the line.</summary>
+    /// <summary>The same crest, closed below the floor: the water under the line.</summary>
+    /// <remarks>
+    /// Below, not down to it. A layer that ends exactly on the floor ends exactly on the bottom edge
+    /// of the band, so the moment it rises it takes its own floor with it and leaves a sliver of bare
+    /// window under the sea. The site hides that behind a mask that fades the water into the page;
+    /// this band has a hard edge at the frame instead, so the fill runs past it and the band's
+    /// <c>ClipToBounds</c> ends the water rather than the geometry doing it.
+    /// </remarks>
     private static string Water(Layer layer) =>
-        Invariant($"{Crest(layer)} V{Floor} H0 Z");
+        Invariant($"{Crest(layer)} V{Floor + Undertow} H0 Z");
 
     /// <summary>Path data is a format, not prose: a comma decimal separator would not parse.</summary>
     private static string Invariant(FormattableString text) =>

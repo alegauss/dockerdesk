@@ -258,12 +258,6 @@ public static class ComposeUp
         return text.ToString();
     }
 
-    /// <summary>The arguments that list a project's services.</summary>
-    /// <param name="composeFile">The user's file.</param>
-    /// <returns>The argument list handed to the CLI.</returns>
-    public static string[] ServicesArguments(string composeFile) =>
-        ["compose", "-f", composeFile, "config", "--services"];
-
     /// <summary>The arguments that bring the project up, stamped.</summary>
     /// <param name="composeFile">The user's file, first so it stays the project.</param>
     /// <param name="overrideFile">The generated stamp.</param>
@@ -275,13 +269,4 @@ public static class ComposeUp
     /// </remarks>
     public static string[] UpArguments(string composeFile, string overrideFile) =>
         ["compose", "-f", composeFile, "-f", overrideFile, "up", "-d"];
-
-    /// <summary>The service names out of what <c>config --services</c> wrote.</summary>
-    /// <param name="output">The CLI's output.</param>
-    /// <returns>One name per line it printed, in order.</returns>
-    public static IReadOnlyList<string> Services(string? output) =>
-        [.. (output ?? "")
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0)];
 }

@@ -202,17 +202,81 @@ public sealed class ComposeUpTests
     }
 
     [Fact]
-    public void The_services_come_from_the_CLI_rather_than_from_a_parser_here()
+    public void The_project_comes_from_the_CLI_rather_than_from_a_parser_here()
     {
         // The CLI is already the authority on what the merged project contains, and a YAML parser
-        // of our own would be a second opinion about somebody's file.
+        // of our own would be a second opinion about somebody's file. JSON rather than the older
+        // `config --services`, because DD75 needs the resolved bind sources from the same read.
         Assert.Equal(
-            ["compose", "-f", @"C:\shop\compose.yaml", "config", "--services"],
-            ComposeUp.ServicesArguments(@"C:\shop\compose.yaml"));
+            ["compose", "-f", @"C:\shop\compose.yaml", "config", "--format", "json"],
+            ComposeUp.ConfigArguments(@"C:\shop\compose.yaml"));
 
-        Assert.Equal(["api", "db"], ComposeUp.Services("api\r\ndb\r\n"));
-        Assert.Empty(ComposeUp.Services(""));
-        Assert.Empty(ComposeUp.Services(null));
+        // The shape compose emits, taken from a real `config --format json` run.
+        const string Json = """
+            {"name":"shop","services":{
+              "api":{"image":"shop/api","volumes":[
+                {"type":"bind","source":"D:\\shop\\data","target":"/data","bind":{}},
+                {"type":"volume","source":"pgdata","target":"/var/lib/postgresql/data"}]},
+              "db":{"image":"postgres:16"}}}
+            """;
+
+        var project = ComposeUp.Project(Json);
+        Assert.Equal(["api", "db"], project.Select(s => s.Name));
+
+        // The named volume is not a bind and is left out: translating one would turn a managed
+        // volume into a path.
+        var bind = Assert.Single(project[0].Binds);
+        Assert.Equal(@"D:\shop\data", bind.Source);
+        Assert.Equal("/data", bind.Target);
+        Assert.False(bind.ReadOnly);
+        Assert.Empty(project[1].Binds);
+
+        Assert.Empty(ComposeUp.Project(""));
+        Assert.Empty(ComposeUp.Project(null));
+        Assert.Throws<FormatException>(() => ComposeUp.Project("not json at all"));
+    }
+
+    // ---- the bind sources a Linux daemon could not resolve (DD75) ----------------------------------
+
+    [Fact]
+    public void A_windows_bind_source_is_respelled_the_distribution_s_way()
+    {
+        // Measured against an upstream daemon: `D:\shop\data:/data` is refused with
+        // `invalid mode: /data`, because the daemon splits the spec on `:` and the drive letter's
+        // colon lands in the middle of it. `/mnt/d/shop/data` resolves, because WSL mounts the
+        // drives and this install writes no [automount] section turning that off.
+        var yaml = ComposeUp.Override(
+            [Service("api", new ComposeUp.ComposeBind(@"D:\shop\data", "/data", ReadOnly: false))],
+            "repro-17");
+
+        Assert.Contains("    volumes:", yaml, StringComparison.Ordinal);
+        Assert.Contains("      - \"/mnt/d/shop/data:/data\"", yaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_read_only_bind_keeps_its_mode()
+    {
+        var yaml = ComposeUp.Override(
+            [Service("api", new ComposeUp.ComposeBind(@"C:\src", "/src", ReadOnly: true))],
+            "repro-17");
+
+        Assert.Contains("      - \"/mnt/c/src:/src:ro\"", yaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_source_the_daemon_can_already_resolve_is_left_alone()
+    {
+        // Somebody who already spelled it the distribution's way, and a named volume: neither needs
+        // an entry, and writing one would be this tool rewriting a mount that was correct.
+        Assert.False(ComposeUp.NeedsTranslating("/mnt/d/shop/data"));
+        Assert.False(ComposeUp.NeedsTranslating("pgdata"));
+        Assert.True(ComposeUp.NeedsTranslating(@"D:\shop\data"));
+
+        var yaml = ComposeUp.Override(
+            [Service("api", new ComposeUp.ComposeBind("/mnt/d/shop/data", "/data", ReadOnly: false))],
+            "repro-17");
+
+        Assert.DoesNotContain("volumes:", yaml, StringComparison.Ordinal);
     }
 
     // ---- the verb ----------------------------------------------------------------------------------

@@ -8,8 +8,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD111** (deps: —) **One row type describes a container and a project header, and nothing says which members a header answers** — DD106 was right that the template is one with a trigger; the type behind it grew by accretion, so three guards were written one at a time as each was found wrong on a header. → §DD111
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

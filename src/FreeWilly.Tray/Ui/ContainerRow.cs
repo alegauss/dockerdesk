@@ -95,7 +95,7 @@ public sealed record ContainerRow(
     /// is the affordance and not decoration: a row that opens and one that does not must not look
     /// alike.
     /// </remarks>
-    public string Chevron => Collapsed ? "" : "";
+    public string Chevron => !IsProject ? "" : Collapsed ? "" : "";
 
     /// <summary>
     /// What the header says instead of a status: how much of the project is up.
@@ -342,6 +342,61 @@ public sealed record ContainerRow(
         return this with { ChipFill = style.Fill(Tone), ChipText = style.Text(Tone) };
     }
 
+
+    /// <summary>
+    /// Which of this type's members belong to which of the two rows it describes (DD111).
+    /// </summary>
+    /// <remarks>
+    /// DD106 chose one row type and one template with a trigger, and that was right — two templates
+    /// would mean two column layouts, and the guard pairing a header's columns with its rows exists
+    /// because those drift. What followed by accretion was the type: seven members that mean nothing
+    /// on a container sat beside a dozen that mean nothing on a header, with nothing saying which was
+    /// which, and three guards written one at a time as each member was found to be wrong.
+    ///
+    /// <para><b>This is the rule the next member is checked against</b>, which is the part that was
+    /// actually missing. Every public member has to be named in exactly one of these three sets, so
+    /// adding one without deciding what a header answers for it fails a test instead of being
+    /// discovered by looking at the window — which is how <see cref="AnyUp"/> was found.</para>
+    /// </remarks>
+    public static class Members
+    {
+        /// <summary>What only a container answers. A header returns each of these empty.</summary>
+        public static readonly IReadOnlySet<string> OfAContainer =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                nameof(Image), nameof(State), nameof(Status), nameof(Ports), nameof(Service),
+                nameof(DependsOn), nameof(ExitCode), nameof(StateEvidence), nameof(IsRunning),
+                nameof(IsLive), nameof(ChipFill), nameof(ChipText),
+            };
+
+        /// <summary>What only a header answers. A container returns each of these empty.</summary>
+        public static readonly IReadOnlySet<string> OfAProject =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                nameof(Running), nameof(Total), nameof(Collapsed), nameof(Chevron),
+                nameof(ProjectCount),
+            };
+
+        /// <summary>
+        /// What both answer, each in its own terms.
+        /// </summary>
+        /// <remarks>
+        /// The interesting set, and the one worth reading before adding a member: these are where a
+        /// header is not a container with the fields blanked out but a row with an answer of its own.
+        /// <see cref="AnyUp"/> is the shape — a container reads its state and a header counts its
+        /// children — and <see cref="ShellReason"/>, <see cref="PrimaryVerb"/> and
+        /// <see cref="Indent"/> each differ the same way.
+        /// </remarks>
+        public static readonly IReadOnlySet<string> OfBoth =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                nameof(Name), nameof(Id), nameof(Project), nameof(IsProject), nameof(IsContainer),
+                nameof(Indent), nameof(Pending), nameof(Failure), nameof(IsPending),
+                nameof(HasFailure), nameof(AnyUp), nameof(CanStart), nameof(CanStop),
+                nameof(CanRestart), nameof(CanRemove), nameof(CanShell), nameof(ShellReason),
+                nameof(Tone), nameof(PrimaryVerb), nameof(HasPrimary), nameof(LogsVisibility),
+            };
+    }
 
     /// <summary>The headings this list sorts on, spelled once so markup and code cannot disagree.</summary>
     public static class Columns

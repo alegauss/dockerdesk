@@ -57,6 +57,7 @@
 - ✅ **DD103** **Three tests fail whenever a tray is running, and the failure names an assertion rather than the tray** — Every test that claims the tray slot reads it first, so a suite run while FreeWilly is up says the tray is holding the object rather than reporting an assertion nobody could have made.
 - ✅ **DD106** **Every container of a compose project is a peer row, so the project it belongs to is invisible** — A compose project is one header carrying its own chevron and a running-of-total count, its containers indented under it, sorted and filtered as one thing.
 - ✅ **DD110** **The containers page builds every row twice on each refresh, once only to read the project label off it** — The containers page projects each container once and prunes from the rows it just made, and a guard over the source fails a second call to the same projection.
+- ✅ **DD111** **One row type describes a container and a project header, and nothing says which members a header answers** — `ContainerRow.Members` names what a container answers, what a project answers and what both do, and a test fails a member in no set or answered by the wrong row.
 
 ## Block D — Container operations (what a user came to do)
 

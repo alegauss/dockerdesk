@@ -468,6 +468,89 @@ public sealed class ContainerGroupTests
         Assert.Equal(["compose:aa", "compose:bb", "b-1-id"], shown.Select(row => row.Id));
     }
 
+    // ---- two rows behind one type (DD111) --------------------------------------------------------
+
+    private static IReadOnlyList<System.Reflection.PropertyInfo> Members() =>
+        [.. typeof(ContainerRow).GetProperties(
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)];
+
+    /// <summary>Whether a member answered with nothing — the answer a row owing none must give.</summary>
+    private static bool IsEmpty(object? answered) => answered switch
+    {
+        null => true,
+        string text => text.Length == 0,
+        bool flag => !flag,
+        int number => number == 0,
+        System.Collections.IEnumerable items => !items.GetEnumerator().MoveNext(),
+        _ => Equals(answered, Activator.CreateInstance(answered.GetType())),
+    };
+
+    [Fact]
+    public void Every_member_says_which_of_the_two_rows_it_belongs_to()
+    {
+        // The rule the next member is checked against, which is the part DD111 says was missing.
+        // Before this, "does a header answer this?" was asked again per property and answered from
+        // memory — `AnyUp` exists because `IsLive` read `State` and a header has none, and that was
+        // found by looking at the window rather than by anything failing.
+        var classified = new HashSet<string>(StringComparer.Ordinal);
+        classified.UnionWith(ContainerRow.Members.OfAContainer);
+        classified.UnionWith(ContainerRow.Members.OfAProject);
+        classified.UnionWith(ContainerRow.Members.OfBoth);
+
+        foreach (var member in Members())
+        {
+            Assert.True(
+                classified.Contains(member.Name),
+                $"ContainerRow.{member.Name} is in none of ContainerRow.Members' three sets, so "
+                + "nothing says what a project header answers for it");
+        }
+
+        // And the other direction: a set naming a member that no longer exists is a rule about
+        // nothing, which reads as coverage while covering it.
+        var live = Members().Select(member => member.Name).ToHashSet(StringComparer.Ordinal);
+        Assert.All(classified, name => Assert.Contains(name, live));
+
+        // Exactly one set each, or "which does a header answer" has two answers.
+        Assert.Empty(ContainerRow.Members.OfAContainer.Intersect(ContainerRow.Members.OfAProject));
+        Assert.Empty(ContainerRow.Members.OfAContainer.Intersect(ContainerRow.Members.OfBoth));
+        Assert.Empty(ContainerRow.Members.OfAProject.Intersect(ContainerRow.Members.OfBoth));
+    }
+
+    [Fact]
+    public void A_header_answers_a_containers_own_members_with_nothing()
+    {
+        // The template is one with a trigger, so every one of these is bound for a container and
+        // must render as blank on a header rather than as a container with no image.
+        var header = Grouped(Rows(Summary("shop-api-1", project: "shop")))[0];
+
+        foreach (var member in Members()
+            .Where(member => ContainerRow.Members.OfAContainer.Contains(member.Name)))
+        {
+            Assert.True(
+                IsEmpty(member.GetValue(header)),
+                $"a project header answered {member.Name} with "
+                + $"'{member.GetValue(header)}', which is a container's answer");
+        }
+    }
+
+    [Fact]
+    public void A_container_answers_a_projects_own_members_with_nothing()
+    {
+        // The same rule pointed the other way, and it is the one that caught something: `Chevron`
+        // read `Collapsed` alone, so every container answered it with an open-chevron glyph. Never
+        // drawn, because the trigger hides it — which is exactly why it survived being written.
+        var row = ContainerRow.From(Summary("lonely"));
+
+        foreach (var member in Members()
+            .Where(member => ContainerRow.Members.OfAProject.Contains(member.Name)))
+        {
+            Assert.True(
+                IsEmpty(member.GetValue(row)),
+                $"a container answered {member.Name} with "
+                + $"'{member.GetValue(row)}', which is a project's answer");
+        }
+    }
+
     // ---- and the flat list is unchanged ------------------------------------------------------------
 
     [Fact]

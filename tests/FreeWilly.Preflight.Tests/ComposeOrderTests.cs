@@ -119,6 +119,43 @@ public sealed class ComposeOrderTests
         Assert.Equal(["api", "db"], Services(ComposeOrder.ToStart(children)));
     }
 
+    // ---- which side of the split a verb is on (DD114) ---------------------------------------------
+
+    [Theory]
+    [InlineData(ContainerVerb.Start, true)]
+    [InlineData(ContainerVerb.Restart, true)]
+    [InlineData(ContainerVerb.Stop, false)]
+    [InlineData(ContainerVerb.Remove, false)]
+    public void The_split_is_about_where_the_project_lands_and_not_about_up_against_down(
+        ContainerVerb verb, bool dependencyFirst) =>
+        // DD107 split this on Start against everything else, which reads as deliberate and put a
+        // restart on the wrong side: a restart is not a stop, it is a stop and a start per
+        // container, and what matters is the state the project is left in.
+        Assert.Equal(dependencyFirst, ComposeOrder.DependedOnFirst(verb));
+
+    [Fact]
+    public void A_restart_brings_the_database_back_before_what_depends_on_it()
+    {
+        // The defect, stated as the sequence the daemon is actually asked for. Walked the other way,
+        // api restarts while db is still up and then db restarts under it — so the project settles
+        // with every dependent pointing at a database that restarted after they did.
+        var children = new[] { Row("api", "db:service_started:false"), Row("db") };
+
+        Assert.Equal(["db", "api"], Services(ComposeOrder.For(ContainerVerb.Restart, children)));
+    }
+
+    [Theory]
+    [InlineData(ContainerVerb.Stop)]
+    [InlineData(ContainerVerb.Remove)]
+    public void A_departure_still_reaches_the_database_last(ContainerVerb verb)
+    {
+        // The half that must not have moved. Removing a database before the services holding
+        // connections to it is the same defect DD114 fixes, pointed the other way.
+        var children = new[] { Row("api", "db:service_started:false"), Row("db") };
+
+        Assert.Equal(["api", "db"], Services(ComposeOrder.For(verb, children)));
+    }
+
     // ---- and where it gives up --------------------------------------------------------------------
 
     [Fact]

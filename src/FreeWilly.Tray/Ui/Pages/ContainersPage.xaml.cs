@@ -455,10 +455,11 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// stop</c> wants the project's files and this window holds a container list, not a working
     /// directory. Every child id is already in hand.
     ///
-    /// <para><b>In order</b>, which is the difference between this and a loop: compose starts what is
-    /// depended on first and stops it last, and <see cref="ComposeOrder"/> reads that off the label
-    /// the containers already carry. Sequential for the same reason — a fan-out that issued all four
-    /// calls at once would have computed an order and then not used it.</para>
+    /// <para><b>In order</b>, which is the difference between this and a loop: what is depended on
+    /// goes first on the way up and on a restart, and last on the way down, and
+    /// <see cref="ComposeOrder"/> reads that off the label the containers already carry. Sequential
+    /// for the same reason — a fan-out that issued all four calls at once would have computed an
+    /// order and then not used it.</para>
     ///
     /// <para><b>The parent's wait ends when the calls do</b>, not when the containers are down. Each
     /// child keeps DD8's own rule and stays pending until its event confirms it; the header has no
@@ -471,9 +472,10 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             .Where(row => string.Equals(row.Project, header.Project, StringComparison.Ordinal))
             .ToList();
 
-        var ordered = verb is ContainerVerb.Start
-            ? ComposeOrder.ToStart(children)
-            : ComposeOrder.ToStop(children);
+        // Which end wants the dependency first is the verb's question, and it is asked where the
+        // ordering lives (DD114) — the condition used to be here and split on Start against
+        // everything else, which put a restart on the wrong side.
+        var ordered = ComposeOrder.For(verb, children);
 
         // The header's own last refusal count goes, because pressing the button is how somebody
         // says they have read it — but nothing marks the header pending here. Its wait is the

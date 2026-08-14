@@ -131,4 +131,36 @@ public static class ComposeOrder
     /// <returns>The same containers, reordered.</returns>
     public static IReadOnlyList<ContainerRow> ToStop(IReadOnlyList<ContainerRow> children) =>
         [.. ToStart(children).Reverse()];
+
+    /// <summary>
+    /// Whether this verb should reach what is depended on before what depends on it (DD114).
+    /// </summary>
+    /// <param name="verb">The verb being fanned across a project.</param>
+    /// <returns><see langword="true"/> where the dependency goes first.</returns>
+    /// <remarks>
+    /// <b>The distinction is not up against down.</b> DD107 split this on <c>Start</c> against
+    /// everything else, which reads as deliberate and is wrong for one of them: a restart is not a
+    /// stop, it is a stop and a start per container, and what matters is the state the project is
+    /// left in rather than the direction it travelled.
+    ///
+    /// <para>Walked the wrong way, <c>api</c> restarts while <c>db</c> is still up and then
+    /// <c>db</c> restarts under it — so the project settles with every dependent pointing at a
+    /// database that restarted <i>after</i> they did: a pool full of dead sockets, and a row saying
+    /// <c>running</c> about a service that is not working. Compose restarts in dependency order for
+    /// this reason.</para>
+    ///
+    /// <para><c>Shell</c> is never fanned across a project — a header answers <c>CanShell</c> with
+    /// false and a reason — so it takes the same side as the departures and the answer is never
+    /// asked for.</para>
+    /// </remarks>
+    public static bool DependedOnFirst(ContainerVerb verb) =>
+        verb is ContainerVerb.Start or ContainerVerb.Restart;
+
+    /// <summary>The order one verb reaches a project's containers in (DD114).</summary>
+    /// <param name="verb">The verb being fanned.</param>
+    /// <param name="children">The project's containers, as the window is showing them.</param>
+    /// <returns>The same containers, reordered.</returns>
+    public static IReadOnlyList<ContainerRow> For(
+        ContainerVerb verb, IReadOnlyList<ContainerRow> children) =>
+        DependedOnFirst(verb) ? ToStart(children) : ToStop(children);
 }

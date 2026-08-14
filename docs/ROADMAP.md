@@ -4,6 +4,8 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+- 📋 **DD101** (deps: —) **A bind source that looks like a distribution path and is not there stays unchecked, and it is the expensive failure** — DD96 answered the two cases a string can settle; this one needs asking the distribution, and a source that is legitimately empty must not be called a defect. → §DD101
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

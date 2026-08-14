@@ -27,12 +27,25 @@ public sealed class EngineProvisioningTests : IDisposable
     // ---- the manifest ------------------------------------------------------------------------
 
     [Fact]
-    public void The_manifest_is_embedded_and_pins_three_artefacts()
+    public void The_manifest_is_embedded_and_pins_four_artefacts()
     {
         var manifest = EngineManifest.Current;
 
-        Assert.Equal(3, manifest.Artefacts.Count);
-        Assert.Equal(["rootfs", "engine", "cli"], manifest.Artefacts.Select(a => a.Id));
+        Assert.Equal(4, manifest.Artefacts.Count);
+        Assert.Equal(
+            ["rootfs", "engine", "cli", "compose"], manifest.Artefacts.Select(a => a.Id));
+    }
+
+    [Fact]
+    public void Compose_is_pinned_to_its_own_version_and_not_the_engine_s()
+    {
+        // The one artefact whose version is deliberately free of the others (DD73): Compose is a
+        // separate upstream release with its own cadence, so tying it to the engine's number would
+        // be a rule with no upstream behind it — unlike the CLI, which ships from the same release.
+        var manifest = EngineManifest.Current;
+
+        Assert.NotEqual(manifest.Engine.Version, manifest.Compose.Version);
+        Assert.EndsWith(".exe", manifest.Compose.Url, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -266,11 +279,35 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.Equal(
             [ProvisioningStep.AcquireRootfs, ProvisioningStep.AcquireEngine,
              ProvisioningStep.InspectEngine, ProvisioningStep.AcquireCli,
-             ProvisioningStep.ImportDistribution, ProvisioningStep.InstallEngine,
-             ProvisioningStep.PlaceCli],
+             ProvisioningStep.AcquireCompose, ProvisioningStep.ImportDistribution,
+             ProvisioningStep.InstallEngine, ProvisioningStep.PlaceCli,
+             ProvisioningStep.PlaceCompose],
             outcome.Steps.Select(step => step.Step));
         Assert.NotNull(wsl.WithVerb("--import"));
         Assert.True(File.Exists(paths.DockerCli));
+    }
+
+    [Fact]
+    public async Task The_compose_plugin_lands_where_the_cli_looks_for_one()
+    {
+        // DD73. `docker compose` is not a subcommand unless a plugin named for it is under a
+        // config directory the CLI was pointed at — so the name and the directory are both the
+        // contract, and neither is this project's to choose.
+        var wsl = new FakeWsl();
+        wsl.Answer(0, "Ubuntu\n");
+        var provisioner = Provisioner(wsl, out var paths, WithRealArtefacts());
+
+        var outcome = await provisioner.ProvisionAsync();
+
+        Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
+        Assert.True(File.Exists(paths.ComposePlugin), $"{paths.ComposePlugin} is not there");
+        Assert.Equal("docker-compose.exe", System.IO.Path.GetFileName(paths.ComposePlugin));
+        Assert.Equal(
+            System.IO.Path.Combine(paths.ConfigDirectory, "cli-plugins"), paths.PluginsDirectory);
+
+        // Not the user's own %USERPROFILE%\.docker, which is the directory this project has
+        // refused to write since DD32.
+        Assert.StartsWith(paths.Root, paths.ComposePlugin, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -346,10 +383,12 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
         Assert.Equal(
             [ProvisioningStep.AcquireRootfs, ProvisioningStep.AcquireEngine,
-             ProvisioningStep.InspectEngine, ProvisioningStep.AcquireCli],
+             ProvisioningStep.InspectEngine, ProvisioningStep.AcquireCli,
+             ProvisioningStep.AcquireCompose],
             outcome.Steps.Select(step => step.Step));
         Assert.Empty(wsl.Invocations);
         Assert.False(File.Exists(paths.DockerCli));
+        Assert.False(File.Exists(paths.ComposePlugin));
     }
 
     [Fact]
@@ -381,6 +420,10 @@ public sealed class EngineProvisioningTests : IDisposable
         var engine = TarballBytes(engineDropping);
         var cli = ZipBytes(cliHasDockerExe ? "docker/docker.exe" : "docker/dockerd.exe");
 
+        // A bare executable, because that is how upstream publishes the plugin: no archive to open,
+        // so what the place step does is a copy and a rename (DD73).
+        var compose = Encoding.UTF8.GetBytes("pretend compose plugin");
+
         _manifest = new EngineManifest
         {
             Rootfs = new Artefact("rootfs", "3.24.1",
@@ -389,6 +432,8 @@ public sealed class EngineProvisioningTests : IDisposable
                 "https://example.invalid/docker.tgz", "docker.tgz", Digest(engine)),
             Cli = new Artefact("cli", "29.7.2",
                 "https://example.invalid/docker.zip", "docker.zip", Digest(cli)),
+            Compose = new Artefact("compose", "5.4.0",
+                "https://example.invalid/compose.exe", "compose.exe", Digest(compose)),
         };
 
         return url => url switch
@@ -396,6 +441,7 @@ public sealed class EngineProvisioningTests : IDisposable
             var u when u.EndsWith("rootfs.tar.gz", StringComparison.Ordinal) => rootfs,
             var u when u.EndsWith("docker.tgz", StringComparison.Ordinal) => engine,
             var u when u.EndsWith("docker.zip", StringComparison.Ordinal) => cli,
+            var u when u.EndsWith("compose.exe", StringComparison.Ordinal) => compose,
             _ => null,
         };
     }

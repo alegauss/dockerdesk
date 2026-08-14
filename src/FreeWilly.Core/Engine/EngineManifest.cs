@@ -49,11 +49,24 @@ public sealed record EngineManifest
     [JsonPropertyName("cli")]
     public required Artefact Cli { get; init; }
 
+    /// <summary>
+    /// The Compose CLI plugin, which the CLI archive does not carry (DD73).
+    /// </summary>
+    /// <remarks>
+    /// A fourth pinned artefact and nothing more: Compose is a separate upstream release with its
+    /// own version and its own digest, and the Windows static zip has only <c>docker.exe</c> in it.
+    /// Without this, <c>docker compose</c> is not a command on a machine that never had Docker
+    /// Desktop — so every compose file a user already has, and this project's own <c>do compose
+    /// up</c>, fail on a subcommand that does not exist.
+    /// </remarks>
+    [JsonPropertyName("compose")]
+    public required Artefact Compose { get; init; }
+
     /// <summary>The manifest compiled into this assembly.</summary>
     public static EngineManifest Current => Embedded.Value;
 
     /// <summary>Every artefact, in the order they are acquired.</summary>
-    public IReadOnlyList<Artefact> Artefacts => [Rootfs, Engine, Cli];
+    public IReadOnlyList<Artefact> Artefacts => [Rootfs, Engine, Cli, Compose];
 
     private static EngineManifest Load()
     {

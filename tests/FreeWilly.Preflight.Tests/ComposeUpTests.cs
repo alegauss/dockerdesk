@@ -1,5 +1,6 @@
 using FreeWilly.Core.Agent;
 using FreeWilly.Core.Api;
+using FreeWilly.Core.Engine;
 using FreeWilly.Tray.Cli;
 using Xunit;
 
@@ -86,6 +87,49 @@ public sealed class ComposeUpTests
                 [SessionLabel.Key] = "repro-17",
             },
         });
+
+    // ---- the CLI that is actually run (DD73) ------------------------------------------------------
+
+    [Fact]
+    public void The_bundled_cli_points_docker_at_this_installs_own_config_directory()
+    {
+        // `compose` is a subcommand only where the CLI finds a plugin, and the CLI looks in
+        // $DOCKER_CONFIG/cli-plugins. Driven through cmd.exe rather than through docker.exe, which
+        // is not on this machine: what is being asserted is that the child inherits the variable,
+        // and the child does not have to be docker to answer that.
+        var scratch = Directory.CreateTempSubdirectory("freewilly-compose-env");
+        try
+        {
+            var paths = new EnginePaths(scratch.FullName);
+            var cmd = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");
+            var cli = new BundledComposeCli(cmd, paths.ConfigDirectory);
+
+            var result = cli.Run(
+                scratch.FullName, "/c", $"echo %{BundledComposeCli.ConfigVariable}%");
+
+            Assert.Null(result.Failure);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Contains(paths.ConfigDirectory, result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            scratch.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void The_config_directory_is_this_installs_own_and_never_the_users()
+    {
+        // DD32's rule, held as an assertion: the user's %USERPROFILE%\.docker is where a rival
+        // writes, and a context found there would bring the project up on somebody else's engine
+        // with a session stamp whose reclaim then finds nothing (DD20).
+        var paths = new EnginePaths(@"D:\somewhere\FreeWilly");
+
+        Assert.Equal(paths.Root, paths.ConfigDirectory);
+        Assert.Equal(Path.Combine(paths.Root, "cli-plugins"), paths.PluginsDirectory);
+        Assert.DoesNotContain(".docker", paths.PluginsDirectory, StringComparison.Ordinal);
+    }
 
     // ---- finding the project ----------------------------------------------------------------------
 

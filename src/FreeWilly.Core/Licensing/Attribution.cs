@@ -92,6 +92,17 @@ public static class Attribution
                 "Apache-2.0",
                 manifest.Cli.Url,
                 "The docker command this project installs and puts on PATH."),
+
+            new BundledComponent(
+                manifest.Compose.Id,
+                "Docker Compose CLI plugin for Windows",
+                manifest.Compose.Version,
+                "Apache-2.0",
+                manifest.Compose.Url,
+                "A separate upstream release with its own version, because the Windows CLI archive "
+                + "does not carry it. Installed as a CLI plugin under this install's own config "
+                + "directory rather than the user's, which is what makes docker compose a command "
+                + "on a machine that never had Docker Desktop."),
         ];
     }
 

@@ -27,20 +27,43 @@ public sealed class BundledComposeCli : IComposeCli
     /// <summary>How long an up may take before this gives up on it.</summary>
     public static readonly TimeSpan Deadline = TimeSpan.FromMinutes(10);
 
+    /// <summary>The variable that tells the CLI which config directory to read.</summary>
+    /// <remarks>
+    /// Set on the child and nowhere else (DD73). It is what makes <c>compose</c> a subcommand at
+    /// all: the plugin this install placed sits under its own config directory, and the CLI finds a
+    /// plugin in <c>$DOCKER_CONFIG/cli-plugins</c> and in no other place this project may write.
+    /// Setting it in the user's environment is not this tool's to do, so a plain shell still has no
+    /// <c>docker compose</c> — which is a sentence the install prints rather than a thing it fixes.
+    /// </remarks>
+    public const string ConfigVariable = "DOCKER_CONFIG";
+
     private readonly string _docker;
+    private readonly string _config;
 
     /// <summary>Construct against this install's own CLI.</summary>
     public BundledComposeCli()
-        : this(new EnginePaths().DockerCli)
+        : this(new EnginePaths())
     {
     }
 
-    /// <summary>Construct against an explicit executable.</summary>
+    /// <summary>Construct against a layout, which is what says where both halves are.</summary>
+    /// <param name="paths">The install this runs out of.</param>
+    public BundledComposeCli(EnginePaths paths)
+        : this(
+            (paths ?? throw new ArgumentNullException(nameof(paths))).DockerCli,
+            paths.ConfigDirectory)
+    {
+    }
+
+    /// <summary>Construct against an explicit executable and config directory.</summary>
     /// <param name="dockerCli">The <c>docker.exe</c> to run.</param>
-    public BundledComposeCli(string dockerCli)
+    /// <param name="configDirectory">What <c>DOCKER_CONFIG</c> is set to for the child.</param>
+    public BundledComposeCli(string dockerCli, string configDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dockerCli);
+        ArgumentException.ThrowIfNullOrWhiteSpace(configDirectory);
         _docker = dockerCli;
+        _config = configDirectory;
     }
 
     /// <inheritdoc/>
@@ -64,6 +87,12 @@ public sealed class BundledComposeCli : IComposeCli
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+
+        // On the child alone, and assigned rather than appended: whatever the caller's own
+        // DOCKER_CONFIG says, this call has to read the config directory holding the plugin this
+        // install placed, or `compose` is not a subcommand of the docker.exe being run (DD73).
+        startInfo.Environment[ConfigVariable] = _config;
+
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);

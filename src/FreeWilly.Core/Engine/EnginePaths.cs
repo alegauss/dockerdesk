@@ -187,6 +187,36 @@ public sealed class EnginePaths
     public string DockerCli => Path.Combine(CliDirectory, "docker.exe");
 
     /// <summary>
+    /// The directory the CLI is pointed at with <c>DOCKER_CONFIG</c>, so it finds this install's
+    /// plugins (DD73).
+    /// </summary>
+    /// <remarks>
+    /// The root itself, because <c>DOCKER_CONFIG</c> names a <i>config directory</i> and the CLI
+    /// looks for <c>cli-plugins</c> inside it. It is deliberately not the user's own
+    /// <c>%USERPROFILE%\.docker</c>: writing there is the thing this project has refused to do since
+    /// DD32, and reading it would inherit whatever context a rival installed — which is the whole of
+    /// DD20, since a project brought up on somebody else's engine carries a session stamp whose
+    /// reclaim then finds nothing.
+    /// </remarks>
+    public string ConfigDirectory => Root;
+
+    /// <summary>Where a CLI plugin has to sit for <c>docker</c> to find it.</summary>
+    /// <remarks>
+    /// The name is the CLI's, not this project's: <c>$DOCKER_CONFIG/cli-plugins</c> is where the
+    /// Docker CLI looks, so this directory is spelled that way or the plugin is invisible.
+    /// </remarks>
+    public string PluginsDirectory => Path.Combine(ConfigDirectory, "cli-plugins");
+
+    /// <summary>
+    /// The Compose plugin, named the way the CLI derives a subcommand from a filename.
+    /// </summary>
+    /// <remarks>
+    /// <c>docker-compose.exe</c> is what makes the subcommand <c>compose</c>: the CLI takes the
+    /// name after <c>docker-</c> and before the extension. Renaming this file renames the verb.
+    /// </remarks>
+    public string ComposePlugin => Path.Combine(PluginsDirectory, "docker-compose.exe");
+
+    /// <summary>
     /// The handful of values the window remembers between runs — where it was, and what was being
     /// read (DD39).
     /// </summary>
@@ -202,5 +232,6 @@ public sealed class EnginePaths
         Directory.CreateDirectory(Downloads);
         Directory.CreateDirectory(Distribution);
         Directory.CreateDirectory(CliDirectory);
+        Directory.CreateDirectory(PluginsDirectory);
     }
 }

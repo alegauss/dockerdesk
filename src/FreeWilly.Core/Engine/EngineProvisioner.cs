@@ -23,6 +23,9 @@ public enum ProvisioningStep
     /// <summary>Download and verify the archive holding the Windows CLI.</summary>
     AcquireCli,
 
+    /// <summary>Download and verify the Compose CLI plugin.</summary>
+    AcquireCompose,
+
     /// <summary>Import the owned WSL2 distribution from the root filesystem.</summary>
     ImportDistribution,
 
@@ -31,6 +34,9 @@ public enum ProvisioningStep
 
     /// <summary>Put <c>docker.exe</c> where an installer can add it to PATH.</summary>
     PlaceCli,
+
+    /// <summary>Put the Compose plugin where the CLI looks for one.</summary>
+    PlaceCompose,
 }
 
 /// <summary>What one step did.</summary>
@@ -127,7 +133,15 @@ public sealed class EngineProvisioner
 
         var cli = await Acquire(steps, ProvisioningStep.AcquireCli, _manifest.Cli, cancellation)
             .ConfigureAwait(false);
-        if (cli is null || !installing)
+        if (cli is null)
+        {
+            return new ProvisioningOutcome(steps);
+        }
+
+        var compose = await Acquire(
+            steps, ProvisioningStep.AcquireCompose, _manifest.Compose, cancellation)
+            .ConfigureAwait(false);
+        if (compose is null || !installing)
         {
             return new ProvisioningOutcome(steps);
         }
@@ -142,7 +156,12 @@ public sealed class EngineProvisioner
             return new ProvisioningOutcome(steps);
         }
 
-        Record(steps, PlaceCli(cli));
+        if (!Record(steps, PlaceCli(cli)))
+        {
+            return new ProvisioningOutcome(steps);
+        }
+
+        Record(steps, PlaceCompose(compose));
         return new ProvisioningOutcome(steps);
     }
 
@@ -309,6 +328,37 @@ public sealed class EngineProvisioner
         {
             return new StepResult(ProvisioningStep.PlaceCli, false,
                 $"placing the Windows CLI failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Copy the Compose plugin under this install's own config directory (DD73).
+    /// </summary>
+    /// <remarks>
+    /// A copy and not an extraction: upstream publishes the plugin as a bare executable, so there is
+    /// no archive to open and the only thing this does that <see cref="PlaceCli"/> does not is
+    /// rename it. The name is the contract — the CLI derives the subcommand from it.
+    ///
+    /// <para>Here rather than in <c>%USERPROFILE%\.docker\cli-plugins</c>, which is the user's own
+    /// directory and the one this project has refused to write since DD32. The cost is stated rather
+    /// than hidden: a plain <c>docker compose</c> in a shell still finds nothing, and what closes
+    /// that is a <c>DOCKER_CONFIG</c> the user sets themselves.</para>
+    /// </remarks>
+    private StepResult PlaceCompose(string composePath)
+    {
+        try
+        {
+            Directory.CreateDirectory(_paths.PluginsDirectory);
+            File.Copy(composePath, _paths.ComposePlugin, overwrite: true);
+
+            return new StepResult(ProvisioningStep.PlaceCompose, true,
+                $"compose {_manifest.Compose.Version} at {_paths.ComposePlugin}");
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException or NotSupportedException)
+        {
+            return new StepResult(ProvisioningStep.PlaceCompose, false,
+                $"placing the Compose plugin failed: {exception.Message}");
         }
     }
 

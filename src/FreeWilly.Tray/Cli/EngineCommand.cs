@@ -275,8 +275,19 @@ internal static class EngineCommand
             $"  imported to    {paths.Distribution}{(paths.RootIsLegacy ? Adopted : "")}");
         Console.WriteLine($"  downloads      {paths.Downloads}");
         Console.WriteLine($"  docker.exe     {paths.DockerCli}");
+        Console.WriteLine($"  cli-plugins    {paths.PluginsDirectory}");
         Console.WriteLine();
         Console.WriteLine("  PATH is the installer's to change; this places the binary only.");
+
+        // The plugin is placed under this install's own config directory, so `do compose up` finds
+        // it and a plain shell does not (DD73). The variable that closes that gap is the user's
+        // own environment, which is theirs to set — so the command is printed and never run.
+        Console.WriteLine();
+        Console.WriteLine("  `docker compose` in your own shell needs the config directory too:");
+        Console.WriteLine(
+            $"    setx {Core.Agent.BundledComposeCli.ConfigVariable} \"{paths.ConfigDirectory}\"");
+        Console.WriteLine("  Not set for you: it is your environment, and it changes every docker");
+        Console.WriteLine("  command in it. `freewilly do compose up` needs none of this.");
         return Ok;
     }
 

@@ -33,5 +33,14 @@ Docker CLI for Windows
   source   https://download.docker.com/win/static/stable/x86_64/docker-29.7.2.zip
   The docker command this project installs and puts on PATH.
 
+Docker Compose CLI plugin for Windows
+  version  5.4.0
+  licence  Apache-2.0
+  source   https://github.com/docker/compose/releases/download/v5.4.0/docker-compose-windows-x86_64.exe
+  A separate upstream release with its own version, because the Windows CLI archive does
+  not carry it. Installed as a CLI plugin under this install's own config directory
+  rather than the user's, which is what makes docker compose a command on a machine that
+  never had Docker Desktop.
+
 This file is generated from the same manifest the installer downloads from.
 Adding an artefact without an attribution entry fails a test.

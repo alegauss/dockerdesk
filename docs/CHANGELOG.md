@@ -14,6 +14,7 @@
 - ✅ **DD55** **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — An install made before the rename is adopted where it stands: both names resolve from what is on disk and registered, and nothing moves - distro is the BasePath WSL holds.
 - ✅ **DD56** **The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not** — Both names this project has owned are skipped by name before the rival table is consulted, so an adopted install is never told to uninstall the engine it is running.
 - ✅ **DD68** **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — The remedy's wrap width is the renderer's only length rule and is named as a constant, and a second test states out loud that an evidence line may exceed it.
+- ✅ **DD73** **docker compose is not a command on a clean install, and the do compose verb shells into exactly that** — Compose is a fourth pinned artefact placed under this install's own cli-plugins, and the bundled call sets DOCKER_CONFIG so docker compose is a subcommand.
 
 ## Block B — The daemon client (talk to the engine)
 

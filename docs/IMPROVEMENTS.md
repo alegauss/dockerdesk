@@ -2,26 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD73 Compose is a plugin nobody placed
-
-The manifest pins three artefacts and the Windows zip carries one binary: docker.exe.
-Compose v2 is a separate upstream release with its own digest, so placing it is a fourth
-pinned artefact and nothing more — the same download, verify, place shape PlaceCli
-already has.
-
-Where it lands is the decision. The CLI finds a plugin under the Docker config
-directory, which is the user's own and is the one place this project has refused to
-write ever since DD32 left the agent files beside the install and printed the two
-commands instead. Three candidates, in order of how much they touch: a plugins directory
-inside this install with DOCKER_CONFIG naming it, which fixes the bundled call and
-leaves a plain shell without compose; the same directory offered to the user as one
-command the after-install page prints; or writing the user's config directory outright,
-which is what a rival does.
-
-DD63 raises the cost of getting this wrong: the verb ships, shells into docker compose,
-and on a machine that never had Docker Desktop the refusal it returns is about a
-subcommand that does not exist rather than about the project it was asked to bring up.
-
 ### §DD74 Build without BuildKit is build without most Dockerfiles
 
 BuildKit is not an option a modern Dockerfile takes: a cache mount, a heredoc, a secret
@@ -216,6 +196,34 @@ The repair is to build the image and the text first and set visibility last, so 
 carries both. The state ring and its wording are unchanged; only the order of two
 statements moves.
 
+### §DD83 The shape borrowed, and the mark that is not
+
+The reference screenshot is Docker Desktop's about dialog, and only its information
+architecture is borrowed: a mark band across the top, the product version and build
+stated once and large, a two column grid of component versions under it, and a footer of
+links over a copyright line.
+
+None of the artwork comes with it. The wordmark, the blue isometric drawing and the
+whale are Docker trademarks and this is a competing product, so the band carries this
+project's own mark over the water DD69 introduces. That is why this waits on DD69:
+building the band before that task decides how the ocean reads would mean drawing it
+twice.
+
+A destination and not a dialog, per L2. A UserControl beside the three lists, built on
+first navigation and kept collapsed, reached from the shell rather than from the tray
+menu, which stays short by intent.
+
+It draws with no daemon, per L6, so the engine rows read as unavailable rather than
+blocking, and it takes a capture flag so the empty and the connected states are both
+reviewable.
+
+Every value is read and never typed: the build from BuildVersion, and the engine
+version, the API version and the host architecture from VersionAsync, which already
+returns them. Rows for components this install does not place yet are absent rather than
+blank, so the grid grows as they land.
+
+There is no Kubernetes row.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
@@ -340,3 +348,31 @@ So this is two different jobs wearing one heading. The product name is a sweep w
 decisions in it. The distribution sentence needs rewriting rather than replacing,
 because the honest version has two names in it and has to say which one a reader will
 actually see — which is a paragraph somebody writes, not a string somebody swaps.
+
+### §DD84 Generated from the route table, not committed
+
+Both files are build output and neither is committed to public. The reason is in the
+vite config, whose BASE comment already anticipated a sitemap entry carrying that
+prefix, and DD59 moves the prefix when the repository is renamed. A sitemap committed as
+a static file would survive that rename silently and keep publishing addresses nothing
+serves.
+
+The old one demonstrates the failure. It listed a single URL, correct for a site that
+was one scroll, and it stayed at one entry after DD48 split the page into routes.
+
+So the generator reads the route table, the same one the prerender loops over and the
+one already asserted against the component map, and emits both files into dist beside
+the social card. A route that exists appears and a deleted one disappears, with no
+second list to keep current.
+
+The robots file allows everything and names the sitemap absolutely, which is what makes
+it discoverable without a submission.
+
+The site test suite is where this is held. It already asserts the route pair and the
+social card, so it gains the matching claim: every route in the table appears exactly
+once, every URL carries the base prefix, and robots points at a sitemap that was
+actually written.
+
+The modified date comes from the commit that last touched each route rather than from
+build time, so a rebuild that changed nothing does not tell a crawler that everything
+did.

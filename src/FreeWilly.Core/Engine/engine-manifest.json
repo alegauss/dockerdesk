@@ -7,7 +7,10 @@
     "from it. Bumping a version means replacing the digest in the same commit.",
     "Every URL names a version in its directory too. Alpine's latest-stable/ path serves the",
     "same bytes today and stops serving this file the day 3.25 becomes stable, which turns a",
-    "pinned download into a 404 with no code change — so the versioned v3.24/ path is used."
+    "pinned download into a 404 with no code change — so the versioned v3.24/ path is used.",
+    "Compose publishes a .sha256 sibling on its release. The value below was not taken from it:",
+    "the file was downloaded, hashed here, and the published sibling agreed — so what is recorded",
+    "is a digest this project measured and upstream corroborated, which is the stronger of the two."
   ],
   "rootfs": {
     "id": "rootfs",
@@ -29,5 +32,12 @@
     "url": "https://download.docker.com/win/static/stable/x86_64/docker-29.7.2.zip",
     "fileName": "docker-29.7.2.zip",
     "sha256": "ed9222f478a5d143ac90e8e2fd3209b5076382cdb4b210321f97aa4b68bc6811"
+  },
+  "compose": {
+    "id": "compose",
+    "version": "5.4.0",
+    "url": "https://github.com/docker/compose/releases/download/v5.4.0/docker-compose-windows-x86_64.exe",
+    "fileName": "docker-compose-windows-x86_64-5.4.0.exe",
+    "sha256": "d51bc731b3ff6f062a26e8fdfd391ae98aeab516432f097c66d39c1c9d06680e"
   }
 }

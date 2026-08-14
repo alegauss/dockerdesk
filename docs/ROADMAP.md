@@ -4,8 +4,7 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD73** (deps: DD63 ✅) **docker compose is not a command on a clean install, and the do compose verb shells into exactly that** — PlaceCli extracts only docker.exe and nothing lands in a plugins directory, so DD63 and every compose file a user already has fail on a machine that never had Docker Desktop. → §DD73
-- 📋 **DD74** (deps: DD73) **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Without the plugin docker build falls back to the classic builder at best, and BuildKit syntax a modern Dockerfile assumes fails on a line the error blames on the file. → §DD74
+- 📋 **DD74** (deps: DD73 ✅) **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Without the plugin docker build falls back to the classic builder at best, and BuildKit syntax a modern Dockerfile assumes fails on a line the error blames on the file. → §DD74
 - 📋 **DD75** (deps: —) **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose. → §DD75
 - 💭 **DD76** (deps: —) **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all. → §DD76
 
@@ -19,6 +18,7 @@
 - 📋 **DD80** (deps: —) **Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb** — CommandLine reads a bare argv as tray-only, so Explorer, the Start menu and the desktop icon all land in silence, and a user with no feedback clicks again. → §DD80
 - 📋 **DD81** (deps: DD80) **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — Nothing holds a mutex, so each extra click is another process polling the daemon; raising the first window and exiting is the answer, not an error a click cannot show. → §DD81
 - 📋 **DD82** (deps: —) **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The add carries no icon flag and no text, and the overflow flyout is exactly where that empty tooltip is read, so the place the icon lands names nothing. → §DD82
+- 📋 **DD83** (deps: DD69) **Nothing in the window names the build, the engine version behind it, or the API version the client speaks** — A version is the first thing a bug report asks for and the only way to tell a stale install from a fresh one, and the console verb answers where a window user never looks. → §DD83
 
 ## Block D — Container operations (what a user came to do)
 
@@ -36,6 +36,7 @@
 
 - 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59
 - 📋 **DD71** (deps: —) **README and the site still name the product and the distribution as they were before the rename** — One line is not merely stale but wrong: it says the distribution is called dockerdesk, which after DD55 is only true of an install that was adopted. → §DD71
+- 📋 **DD84** (deps: —) **The published site serves no robots.txt and no sitemap.xml, and both answer 404 where the old folder had them** — Nothing tells a crawler which routes exist, so discovery rests on whatever links inward, and the sitemap the old folder published is gone rather than replaced. → §DD84
 
 ## Non-goals
 

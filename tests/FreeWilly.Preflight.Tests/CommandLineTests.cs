@@ -1,3 +1,4 @@
+using FreeWilly.Core.Engine;
 using FreeWilly.Tray.Cli;
 using Xunit;
 
@@ -158,9 +159,63 @@ public sealed class CommandLineTests
 
         Assert.Contains(CommandLine.PreflightVerb, help, StringComparison.Ordinal);
         Assert.Contains(CommandLine.WindowVerb, help, StringComparison.Ordinal);
+        Assert.Contains(CommandLine.TrayOnlyVerb, help, StringComparison.Ordinal);
+        Assert.Contains(CommandLine.CaptureWindowVerb, help, StringComparison.Ordinal);
+        Assert.Contains(CommandLine.ShowMenuVerb, help, StringComparison.Ordinal);
         Assert.Contains("--version", help, StringComparison.Ordinal);
         Assert.Contains("--help", help, StringComparison.Ordinal);
         Assert.Contains(CommandLine.ExecutableName, help, StringComparison.Ordinal);
+    }
+
+    // ---- the verb that opens a popup so something can photograph it (DD67) --------------------
+
+    [Fact]
+    public void The_show_menu_verb_routes_to_its_own_surface_without_its_own_name()
+    {
+        // Dropped like --capture-window's and --preflight's: what follows belongs to the surface,
+        // and MenuPreview would refuse its own verb as an argument it does not have.
+        var route = CommandLine.Of(["--show-menu", "running", "--seconds", "5"]);
+
+        Assert.Equal(Surface.ShowMenu, route.Surface);
+        Assert.False(route.OpenWindow);
+        Assert.Equal(["running", "--seconds", "5"], route.Arguments);
+    }
+
+    [Fact]
+    public void A_bare_show_menu_is_a_stopped_engine_and_a_deadline()
+    {
+        // The default has to need no engine: a machine with nothing installed is the state a
+        // reviewer most needs a picture of, and the one a capture runs on.
+        Assert.True(MenuPreview.TryRead([], out var state, out var seconds, out var refusal));
+
+        Assert.Null(refusal);
+        Assert.Equal(EngineState.Stopped, state);
+        Assert.Equal(MenuPreview.DefaultSeconds, seconds);
+    }
+
+    [Theory]
+    [InlineData("running", EngineState.Running)]
+    [InlineData("STARTING", EngineState.Starting)]
+    [InlineData("stopped", EngineState.Stopped)]
+    public void The_state_named_is_the_state_the_menu_reflects(string argument, EngineState expected)
+    {
+        Assert.True(MenuPreview.TryRead([argument], out var state, out _, out _));
+        Assert.Equal(expected, state);
+    }
+
+    [Theory]
+    [InlineData("--seconds")]
+    [InlineData("--seconds", "0")]
+    [InlineData("--seconds", "601")]
+    [InlineData("--seconds", "-5")]
+    [InlineData("--seconds", "soon")]
+    [InlineData("paused")]
+    public void An_argument_this_verb_does_not_have_is_refused_and_named(params string[] arguments)
+    {
+        // It holds a menu open on somebody's desktop, so a misread argument that fell back to a
+        // default would be a run that looks like it worked and photographed the wrong thing.
+        Assert.False(MenuPreview.TryRead(arguments, out _, out _, out var refusal));
+        Assert.NotNull(refusal);
     }
 
     [Fact]

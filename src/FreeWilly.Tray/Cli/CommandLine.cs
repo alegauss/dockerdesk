@@ -24,6 +24,9 @@ public enum Surface
     /// <summary>A PNG of the window, rendered rather than photographed.</summary>
     CaptureWindow,
 
+    /// <summary>The tray's context menu, held open so a screen copy can reach it (DD67).</summary>
+    ShowMenu,
+
     /// <summary>A verb this executable does not have.</summary>
     Unknown,
 }
@@ -71,6 +74,18 @@ public static class CommandLine
 
     /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
     public const string CaptureWindowVerb = "--capture-window";
+
+    /// <summary>
+    /// The verb that holds the tray's context menu open (DD67).
+    /// </summary>
+    /// <remarks>
+    /// It shows rather than captures, and the asymmetry with <see cref="CaptureWindowVerb"/> is the
+    /// point: a window can be rendered off-screen, and a popup is its own top-level window that has
+    /// to actually exist before anything can copy it. So the product opens it and
+    /// <c>scripts\Capture-Window.ps1</c> — which already refuses to photograph anything unsafe —
+    /// takes the picture.
+    /// </remarks>
+    public const string ShowMenuVerb = "--show-menu";
 
     /// <summary>
     /// The engine's modes, exactly as <see cref="EngineCommand"/> reads them.
@@ -138,6 +153,12 @@ public static class CommandLine
             return new Route(Surface.CaptureWindow, OpenWindow: false, arguments[1..]);
         }
 
+        if (string.Equals(first, ShowMenuVerb, StringComparison.Ordinal))
+        {
+            // The verb is dropped: what follows is the engine state and --seconds.
+            return new Route(Surface.ShowMenu, OpenWindow: false, arguments[1..]);
+        }
+
         if (string.Equals(first, PreflightVerb, StringComparison.Ordinal))
         {
             // The verb itself is dropped: what follows is the preflight's own argument list, and it
@@ -183,6 +204,8 @@ public static class CommandLine
           {WindowVerb}         accepted, and what a bare launch already does
           {CaptureWindowVerb} <out.png> [tab]
                            render the window to a PNG off-screen, photographing nothing else
+          {ShowMenuVerb} [state] [--seconds n]
+                           hold the tray's context menu open, for scripts\Capture-Window.ps1
 
           {PreflightVerb}      what this machine can host; add --json for an installer
           --plan           the pinned versions, digests and paths; reaches nothing

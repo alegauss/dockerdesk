@@ -29,30 +29,6 @@ action.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD67 Nothing drives a popup open, so the path that captures one is unreachable
-
-DD61 settled what each capture path is for: `--capture-window` renders the window's own
-visual tree, and `scripts\Capture-Window.ps1` is the screen copy for a popup, because a
-popup is its own top-level window and is not in that tree. The refusal DD61 added makes
-that division real rather than advisory — the script now declines the Fluent shell
-outright.
-
-What it does not do is reach a popup. A menu exists only while it is open, and nothing
-opens one: the script launches the executable with `--window` and copies whatever it
-finds, and the only thing it finds is the window it has just been taught to refuse. The
-search was widened for `#32768`, `tooltips_class32` and the WinForms popup class, so an
-open menu would be found first — Z order puts it above the shell — but the default run
-refuses and writes nothing.
-
-So the tray's context menu, the balloon tip DD21 measured, and every other popup this
-product draws have never been photographed by anything.
-
-Two shapes worth weighing. The script could open the menu itself, which means a Win32
-click against the notification area — reaching into another process's UI, and the
-overflow makes finding the icon its own problem. Or the product could show its own popup
-behind a verb, the way `--capture-window` already renders on request, which keeps the
-driving inside the process that owns the menu and costs one more surface.
-
 ### §DD85 Amending L8, and what stays testable
 
 This amends a law rather than fixing a defect, and L8 exists so that cannot happen

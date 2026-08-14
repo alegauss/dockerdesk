@@ -10,9 +10,7 @@ namespace FreeWilly.Tray;
 internal sealed class TrayApplication : ApplicationContext
 {
     private readonly NotifyIcon _icon = new();
-    private readonly ToolStripMenuItem _start = new("&Start engine");
-    private readonly ToolStripMenuItem _stop = new("Sto&p engine");
-    private readonly ToolStripMenuItem _window = new("&Open window");
+    private readonly TrayMenu _menu;
     private readonly EngineHolder _holder;
     private readonly DockerApi _api = new();
     private readonly EngineEvents _events;
@@ -31,20 +29,10 @@ internal sealed class TrayApplication : ApplicationContext
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _holder = new EngineHolder(EngineHolder.ThisProcess(), new DetachedLauncher());
 
-        // Short on purpose. A context menu that grows into a second UI is how a tray app stops
-        // being glanceable; everything else belongs in the window.
-        var menu = new ContextMenuStrip();
-        _start.Click += (_, _) => StartEngine();
-        _stop.Click += (_, _) => StopEngine();
-        _window.Click += (_, _) => OpenWindow();
-        menu.Items.Add(_start);
-        menu.Items.Add(_stop);
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_window);
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("&Quit", null, (_, _) => Quit()));
-
-        _icon.ContextMenuStrip = menu;
+        // Built by TrayMenu rather than here, so the menu `--show-menu` photographs is this one and
+        // not a second one built for the camera (DD67).
+        _menu = new TrayMenu(StartEngine, StopEngine, OpenWindow, Quit);
+        _icon.ContextMenuStrip = _menu.Strip;
 
         // The image and the tooltip BEFORE visibility, and the order is the whole of DD82. Setting
         // Visible is what emits the shell's notify-add, and Windows persists what that call carried:
@@ -183,8 +171,7 @@ internal sealed class TrayApplication : ApplicationContext
         _worn = next;
 
         _icon.Text = StateIcon.TooltipFor(state);
-        _start.Enabled = state is not EngineState.Running;
-        _stop.Enabled = state is not EngineState.Stopped;
+        _menu.Reflect(state);
 
         // The window shows the engine state too, and its empty state depends on it.
         if (changed)
@@ -277,6 +264,8 @@ internal static class Program
                 return Cli.AgentSurface.Run(route.Arguments);
             case Cli.Surface.CaptureWindow:
                 return Cli.WindowCapture.Run(route.Arguments);
+            case Cli.Surface.ShowMenu:
+                return Cli.MenuPreview.Run(route.Arguments);
             case Cli.Surface.Preflight:
                 return Cli.PreflightCommand.Run(route.Arguments);
             case Cli.Surface.Engine:

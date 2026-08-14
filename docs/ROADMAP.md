@@ -10,7 +10,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 💭 **DD67** (deps: —) **No popup this product draws has ever been photographed, and the one path that could is not reachable** — DD61 made the screen copy refuse the shell, which is right, and left the script with nothing it can find: a menu exists only while open, and nothing opens one. → §DD67
 - 📋 **DD85** (deps: —) **The tray icon is three abstract rings, so the one surface always on screen carries none of the product mark** — The mark is the only thing a user recognises at a glance, and a ring says nothing about which product is running while three of them sit in one overflow. → §DD85
 
 ## Block D — Container operations (what a user came to do)

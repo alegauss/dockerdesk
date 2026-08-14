@@ -46,6 +46,7 @@
 - ✅ **DD81** **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — A second launch signals the tray that is already running, which restores and activates its window, then exits zero without printing at anybody who double-clicked.
 - ✅ **DD82** **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The image and the tooltip are set before visibility, so the shell's notify-add carries both and the overflow flyout names the entry.
 - ✅ **DD83** **Nothing in the window names the build, the engine version behind it, or the API version the client speaks** — An About destination names the build, the engine, the API level and every pinned artefact, read from the manifest and the daemon and never typed.
+- ✅ **DD67** **No popup this product draws has ever been photographed, and the one path that could is not reachable** — `--show-menu` holds the tray's own context menu open with no icon and no window, so the screen copy photographs a popup at last: 237x168, and byte-identical across two runs.
 
 ## Block D — Container operations (what a user came to do)
 

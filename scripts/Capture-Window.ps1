@@ -13,6 +13,15 @@
   own top-level window and is not in the main window's visual tree, so a RenderTargetBitmap over that
   tree cannot see it.
 
+  A popup also exists only while it is open, and until DD67 nothing opened one: this script launched
+  the exe with --window and copied whatever it found, and the only thing it found was the window
+  DD61 had just taught it to refuse. So no popup this product draws had ever been photographed. The
+  exe opens its own now, behind `--show-menu`, which is why that is the default below - the driving
+  stays inside the process that owns the menu, and no Win32 click reaches into another process's UI.
+
+  Measured 2026-08-14, first run: 237x168, and two independent runs byte-identical. Every pixel on
+  every edge is the menu's own #808080 border, so nothing behind it is in the file.
+
   Because it is a screen copy, it verifies what it captured. Shipping DD7, a copy like this twice
   photographed something else: an editor holding the guest's credentials, and a messaging app holding
   a medical appointment. Both reached a transcript, which deleting the file afterwards does not undo.
@@ -72,7 +81,9 @@
   The executable to launch. Defaults to the Release publish output.
 
 .PARAMETER AppArgs
-  Arguments passed to the exe. Defaults to --window, which opens the tray with the window showing.
+  Arguments passed to the exe. Defaults to --show-menu, which holds the tray's context menu open with
+  no icon and no window behind it - the one thing this script can photograph (DD67). Pass
+  @('--show-menu', 'running') for the menu a running engine offers.
 
 .PARAMETER Out
   Output PNG path.
@@ -95,7 +106,7 @@
 [CmdletBinding()]
 param(
     [string] $Exe,
-    [string[]] $AppArgs = @('--window'),
+    [string[]] $AppArgs = @('--show-menu'),
     [string] $Out,
     [int] $WaitMs = 8000,
     [switch] $IgnoreOtherInstances,
@@ -109,7 +120,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 if (-not $Exe) {
     $Exe = Join-Path $repo 'src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe'
 }
-if (-not $Out) { $Out = Join-Path $repo 'docs\_preview\window.png' }
+if (-not $Out) { $Out = Join-Path $repo 'docs\_preview\menu.png' }
 
 if (-not (Test-Path -LiteralPath $Exe)) {
     Write-Host "not found: $Exe"
@@ -274,6 +285,7 @@ if ($target.Backdrop -ge 2) {
     Write-Host "Use: FreeWilly.exe --capture-window <out.png> [tab] - it renders the window's own"
     Write-Host 'visual tree off-screen, where nothing else can be in the frame.'
     Write-Host 'This script is for a popup, which a render cannot reach and which has no backdrop.'
+    Write-Host 'Open one: this script''s own default, -AppArgs @(''--show-menu'').'
     Stop-Launched
     exit 1
 }

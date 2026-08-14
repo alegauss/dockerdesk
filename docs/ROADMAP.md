@@ -4,6 +4,8 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+- 📋 **DD122** (deps: —) **A provision fails on the step that unpacks the engine, on a machine where nothing is wrong but a slow first boot** — Every wsl.exe call shares the 15s budget written for preflight probes, and that step cold-boots a just-imported distribution and untars 85 MB inside it. → §DD122
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

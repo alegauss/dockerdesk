@@ -204,8 +204,7 @@ public static class ComposeUp
     /// alone — that one resolves, because the distribution this engine runs in writes no
     /// <c>[automount]</c> section and WSL mounts the drives by default.
     /// </remarks>
-    public static bool NeedsTranslating(string source) =>
-        source.Length >= 3 && source[1] == ':' && char.IsAsciiLetter(source[0]);
+    public static bool NeedsTranslating(string source) => Engine.Wsl.HasDriveLetter(source);
 
     /// <summary>The override that stamps every service with the session label.</summary>
     /// <param name="services">The service names, as the CLI listed them.</param>

@@ -82,7 +82,7 @@
     "measured": {
       "calls": 4,
       "requests": 16,
-      "tokens": 771
+      "tokens": 814
     },
     "ratio": {
       "about": [
@@ -90,7 +90,7 @@
         "against the two `measured` blocks so no one of the three can move on its own."
       ],
       "calls": 1.5,
-      "tokens": 15.2
+      "tokens": 14.4
     },
     "caveat": [
       "Task-for-task, not payload-for-payload, and the difference is not a rounding error. `read doctor`",
@@ -109,6 +109,10 @@
       "response that grew by 100 tokens landed inside it silently. Both arrive through a seam now,",
       "defaulted to this machine and overridden only by the measurement, so the whole task is",
       "determined by this file. 774 becoming 771 is that first machine leaving the figure.",
+      "",
+      "771 became 814 when DD96 widened the doctor's mounts row. The gate caught it on the commit",
+      "that did it, which is the whole of DD78: the same 43 tokens would have sat inside the old",
+      "15% band without a word.",
       "",
       "The band on the baseline stays. It is there for a different reason - a fixture somebody shrinks",
       "- and is honest about being one."
@@ -140,9 +144,17 @@
         "which every row fails - state, memory, restarts, health, ports and two mounts - renders at 273.",
         "The first attempt was 397, and the remedies were explaining themselves rather than naming an",
         "action; tightening them to one sentence each got it to 273. The remaining 273 is seven",
-        "conclusions and six actions, against five commands and roughly 20k tokens of fields."
+        "conclusions and six actions, against five commands and roughly 20k tokens of fields.",
+        "",
+        "Raised again from 280 to 305 while DD96 shipped. What the tokens bought: the mounts row now",
+        "states, for a bind source it cannot reach, how that folder would be spelled on this engine -",
+        "and says that such a source is CREATED empty rather than refused. That is the failure DD96 is",
+        "about and it is otherwise silent: `do compose up` respells a Windows source and no other",
+        "route does, so a bind typed at a prompt reaches the daemon as written and the container gets",
+        "an empty directory that reads as missing code. The row has two remedies now and they are",
+        "mutually exclusive, so the worst case is measured twice; the longer is 296."
       ],
-      "read doctor": 280,
+      "read doctor": 305,
       "read logs": 400,
       "$read changes": [
         "DD29. Four containers and two volumes made by one session render at 100 measured, against a",

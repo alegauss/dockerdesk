@@ -362,7 +362,15 @@ public static class ContainerDoctor
             var windows = Wsl.ToWindowsPath(mount.Source);
             if (windows is null)
             {
-                text.Add($"{mount.Destination} ← {mount.Source} (not a mapped drive, unchecked)");
+                // Not a mapped drive, so this tool cannot look. Where the source names a Windows
+                // folder by a spelling this engine does not resolve — a drive letter, or another
+                // engine's host mount — the row says how it would be spelled here (DD96). Still
+                // unchecked, and deliberately: the default pipe is one Docker Desktop also serves,
+                // so a container carrying its spelling may be a container of its own.
+                var here = Wsl.WindowsFolderSpelledElsewhere(mount.Source);
+                text.Add(here is null
+                    ? $"{mount.Destination} ← {mount.Source} (not a mapped drive, unchecked)"
+                    : $"{mount.Destination} ← {mount.Source} (unchecked; here {here})");
                 unchecked_++;
                 continue;
             }
@@ -384,7 +392,18 @@ public static class ContainerDoctor
             Remedy = broken > 0
                 ? "A missing bind source gives the container an empty directory rather than an "
                     + "error, so this reads as missing code."
-                : null,
+                : unchecked_ > 0 && mounts.Any(m =>
+                    string.Equals(m.Type, "bind", StringComparison.Ordinal)
+                    && Wsl.ToWindowsPath(m.Source) is null)
+                    // DD96: the same empty directory, arrived at from the other side. `do compose up`
+                    // respells a Windows source into the override it generates, and nothing else
+                    // does — so a bind typed at a prompt, brought up by the user's own compose, or
+                    // set by an IDE reaches the daemon as written. A source the daemon cannot
+                    // resolve is not refused; it is created, and the container gets an empty
+                    // directory. Said here because this row is the one place that sees the source.
+                    ? "An unreachable bind source is created empty, not refused. Here a Windows "
+                        + "folder is /mnt/<drive>/..., written for you only by `do compose up`."
+                    : null,
             Blocking = broken > 0,
         };
     }

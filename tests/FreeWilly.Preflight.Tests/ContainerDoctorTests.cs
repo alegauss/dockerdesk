@@ -371,6 +371,103 @@ public sealed class ContainerDoctorTests
         Assert.DoesNotContain("MISSING", row.Detail, StringComparison.Ordinal);
     }
 
+    // ---- the source only `do compose up` respells (DD96) -----------------------------------------
+
+    [Fact]
+    public void A_source_spelled_for_another_engine_is_told_how_it_would_be_spelled_here()
+    {
+        // The verdict stays Unknown and that is deliberate: the default pipe is one Docker Desktop
+        // also serves, so a container carrying its host mapping may be a container of its own and
+        // calling it broken would be the false diagnosis DD26 puts above everything. What can be
+        // said without judging is the spelling, and that is what turns the row into an action.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind",
+                Source = "/run/desktop/mnt/host/c/Users/dev/shop",
+                Destination = "/app",
+            }])));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Unknown, row.Verdict);
+        Assert.Contains("/mnt/c/Users/dev/shop", row.Detail, StringComparison.Ordinal);
+        Assert.False(row.Blocking, "a spelling is not a finding");
+    }
+
+    [Fact]
+    public void A_windows_path_that_reached_the_daemon_is_shown_the_spelling_it_needed()
+    {
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind", Source = @"D:\shop\data", Destination = "/data",
+            }])));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Contains("/mnt/d/shop/data", row.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_unreachable_bind_says_the_daemon_creates_it_rather_than_refusing()
+    {
+        // The whole of DD96 in one sentence. `do compose up` respells a Windows source into the
+        // override it generates and nothing else does, so every other route — a prompt, an IDE,
+        // the user's own compose — reaches the daemon as written. The daemon does not refuse it: it
+        // creates the directory, and the container gets an empty one that reads as missing code.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind", Source = "/home/you/project", Destination = "/app",
+            }])));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.NotNull(row.Remedy);
+        Assert.Contains("created empty", row.Remedy, StringComparison.Ordinal);
+        Assert.Contains("compose up", row.Remedy, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_volume_alone_is_not_told_about_bind_sources()
+    {
+        // The remedy is about binds, so a container with none must not carry it. Otherwise every
+        // `read doctor` of a container using named volumes pays for advice that cannot apply.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts:
+                [new ContainerMount { Type = "volume", Name = "shop_data", Destination = "/data" }])));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Null(row.Remedy);
+    }
+
+    [Fact]
+    public void A_bind_that_resolves_is_told_nothing_about_spellings()
+    {
+        // The remedy fires on unchecked binds only. A container whose sources all resolve has
+        // nothing to fix, and a paragraph explaining a failure it does not have is the payload
+        // bloat agent-budget.json exists to refuse.
+        var report = ContainerDoctor.Diagnose(Facts(
+            Summary(),
+            Inspect(mounts: [new ContainerMount
+            {
+                Type = "bind",
+                Source = Wsl.ToDistributionPath(AppContext.BaseDirectory),
+                Destination = "/app",
+            }])));
+
+        var row = Row(report, ContainerDoctor.Rows.Mounts);
+        Assert.NotNull(row);
+        Assert.Equal(Verdict.Pass, row.Verdict);
+        Assert.Null(row.Remedy);
+    }
+
     // ---- the reverse path mapping ---------------------------------------------------------------
 
     [Theory]
@@ -396,6 +493,34 @@ public sealed class ContainerDoctorTests
         var windows = @"D:\Git\alegauss\dockerdesk";
         Assert.Equal(windows, Wsl.ToWindowsPath(Wsl.ToDistributionPath(windows)));
     }
+
+    // ---- the same folder, spelled three ways (DD96) ----------------------------------------------
+
+    [Theory]
+    [InlineData(@"D:\shop\data", "/mnt/d/shop/data")]
+    [InlineData(@"C:\Users\dev\shop", "/mnt/c/Users/dev/shop")]
+    [InlineData("D:/shop/data", "/mnt/d/shop/data")]
+    [InlineData("/run/desktop/mnt/host/c/Users/dev/shop", "/mnt/c/Users/dev/shop")]
+    [InlineData("/host_mnt/c/Users/dev/shop", "/mnt/c/Users/dev/shop")]
+    public void A_windows_folder_named_another_way_is_given_this_engines_spelling(
+        string source, string here) =>
+        Assert.Equal(here, Wsl.WindowsFolderSpelledElsewhere(source));
+
+    [Theory]
+    [InlineData("/mnt/c/Users/dev/shop")]        // already this engine's spelling
+    [InlineData("/var/lib/docker/volumes/shop_data/_data")]
+    [InlineData("/home/you/project")]            // may be inside the distribution
+    [InlineData("/host_mnt/certificates")]       // a directory, not drive C with a long name
+    [InlineData("/run/desktop/mnt/host/")]
+    [InlineData("shop_data")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Everything_else_answers_nothing_rather_than_inventing_a_path(string? source) =>
+        // The rule the whole diagnosis rests on: this states a spelling only where the source
+        // certainly names a Windows folder. `/home/you/project` is the silent failure DD96 is
+        // about and it is STILL not answered here — it could equally be a path inside the
+        // distribution, and a confident wrong answer costs more than no answer (DD26).
+        Assert.Null(Wsl.WindowsFolderSpelledElsewhere(source));
 
     // ---- stderr rather than the whole log -------------------------------------------------------
 
@@ -427,31 +552,46 @@ public sealed class ContainerDoctorTests
         // Found by reading a capture rather than by a test: the first rendering of a container with
         // every row failing came to 397 estimated tokens against the 260 recorded for `read doctor`,
         // because the remedies were explaining themselves. The ceiling is what the payload is for.
-        var worst = ReportText.Render(
-            ContainerDoctor.Diagnose(Facts(
-                Summary(),
-                Inspect(
-                    oom: true, memory: 512L * 1024 * 1024, restarts: 3, startedAt: Now.AddMinutes(-2),
-                    health: "unhealthy", failingStreak: 3, ports: Published("8080/tcp", "8080"),
-                    mounts:
-                    [
-                        new ContainerMount { Type = "bind", Source = "/mnt/c/gone/api", Destination = "/app" },
-                        new ContainerMount { Type = "volume", Name = "shop_data", Destination = "/data" },
-                    ]),
-                listening: [],
-                stderr:
-                [
-                    "ERROR shop.api.Bootstrap - failed to bind :8080",
-                    "java.net.BindException: Address already in use",
-                ])),
-            heading: "freewilly read doctor shop-api-1",
-            summary: "6 finding(s). The remedy on each row is the action.");
+        //
+        // Two worst cases and not one, since DD96: the mounts row has two remedies and they are
+        // mutually exclusive, so a worst case carrying a missing bind never renders the other. The
+        // longer of the two is what the ceiling has to hold.
+        var missing = new ContainerMount { Type = "bind", Source = "/mnt/c/gone/api", Destination = "/app" };
+        var elsewhere = new ContainerMount
+        {
+            Type = "bind",
+            Source = "/run/desktop/mnt/host/c/Users/dev/shop/api",
+            Destination = "/app",
+        };
 
-        Assert.True(
-            TokenEstimate.Of(worst) <= DoctorCeiling,
-            $"a diagnosis with every row failing is {TokenEstimate.Of(worst)} estimated tokens against "
-            + $"the {DoctorCeiling} recorded in agent-budget.json. Tighten the remedies or raise the ceiling and say "
-            + "in the commit what the tokens bought.");
+        foreach (var (mount, what) in new[] { (missing, "a missing bind"), (elsewhere, "an unreachable bind") })
+        {
+            var worst = ReportText.Render(
+                ContainerDoctor.Diagnose(Facts(
+                    Summary(),
+                    Inspect(
+                        oom: true, memory: 512L * 1024 * 1024, restarts: 3, startedAt: Now.AddMinutes(-2),
+                        health: "unhealthy", failingStreak: 3, ports: Published("8080/tcp", "8080"),
+                        mounts:
+                        [
+                            mount,
+                            new ContainerMount { Type = "volume", Name = "shop_data", Destination = "/data" },
+                        ]),
+                    listening: [],
+                    stderr:
+                    [
+                        "ERROR shop.api.Bootstrap - failed to bind :8080",
+                        "java.net.BindException: Address already in use",
+                    ])),
+                heading: "freewilly read doctor shop-api-1",
+                summary: "6 finding(s). The remedy on each row is the action.");
+
+            Assert.True(
+                TokenEstimate.Of(worst) <= DoctorCeiling,
+                $"a diagnosis with every row failing and {what} is {TokenEstimate.Of(worst)} estimated "
+                + $"tokens against the {DoctorCeiling} recorded in agent-budget.json. Tighten the "
+                + "remedies or raise the ceiling and say in the commit what the tokens bought.");
+        }
     }
 
     [Fact]

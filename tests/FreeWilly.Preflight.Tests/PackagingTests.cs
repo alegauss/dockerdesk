@@ -77,6 +77,36 @@ public sealed class PackagingTests
     private static string InstallerScript() =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "installer.iss"));
 
+    /// <summary>
+    /// The installer script as Inno reads it: one string per directive, with the backslash
+    /// continuations joined.
+    /// </summary>
+    /// <remarks>
+    /// A directive here is wrapped across lines for width, so a test matching physical lines asserts
+    /// on half a directive and passes or fails on where somebody put a line break. Joining first is
+    /// what lets a single assertion say "this entry names this value AND is gated on this task".
+    /// </remarks>
+    private static IEnumerable<string> InstallerDirectives()
+    {
+        var joined = new List<string>();
+        var pending = new System.Text.StringBuilder();
+
+        foreach (var raw in InstallerScript().Split('\n'))
+        {
+            var line = raw.TrimEnd('\r');
+            if (line.TrimEnd().EndsWith('\\'))
+            {
+                pending.Append(line.TrimEnd().TrimEnd('\\')).Append(' ');
+                continue;
+            }
+
+            joined.Add(pending.Append(line.Trim()).ToString());
+            pending.Clear();
+        }
+
+        return joined;
+    }
+
     /// <summary>A workflow, read as text.</summary>
     private static string Workflow(string name) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
@@ -397,6 +427,38 @@ public sealed class PackagingTests
 
         Assert.Contains("ValueType: none", engineValue, StringComparison.Ordinal);
         Assert.DoesNotContain("ValueData:", engineValue, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_installer_points_DOCKER_CONFIG_at_the_plugins_it_placed()
+    {
+        // DD124. DD73 and DD74 place Compose and Buildx under {app}\cli-plugins, and the CLI finds a
+        // plugin in $DOCKER_CONFIG\cli-plugins and nowhere else — so the placement without this
+        // variable is two executables nothing looks at. Measured before the fix: `ant` driving the
+        // docker on PATH answered `unknown flag: --build`, because with no plugin found `compose`
+        // is not a subcommand and the flag is parsed at the CLI's root.
+        //
+        // The variable name comes from the code rather than being retyped, so a rename cannot leave
+        // the installer writing one name and DockerConfigEntry reading another.
+        var entry = Assert.Single(
+            InstallerDirectives(),
+            line => line.Contains(
+                $"ValueName: \"{Core.Engine.DockerConfigEntry.Variable}\"", StringComparison.Ordinal));
+
+        // {app} is the root, which is what EnginePaths.ConfigDirectory resolves to — the CLI wants
+        // the directory holding cli-plugins, not cli-plugins itself.
+        Assert.Contains("ValueData: \"{app}\"", entry, StringComparison.Ordinal);
+
+        // Gated on the same checkbox as the PATH entry, and that is the rule and not a convenience:
+        // DOCKER_CONFIG is read by every docker.exe a shell runs and carries config.json, the
+        // contexts and the login credentials with it, so it is only this install's to point when
+        // this install owns the docker command. DockerConfigEntry.OwnsTheDockerCommand is the same
+        // rule at tray startup, and these two must not disagree.
+        Assert.Contains("Tasks: pathentry", entry, StringComparison.Ordinal);
+
+        // A value naming a directory the uninstaller deleted is worse than no value: the next
+        // docker.exe on that machine would read a config directory that is not there.
+        Assert.Contains("uninsdeletevalue", entry, StringComparison.Ordinal);
     }
 
     [Fact]

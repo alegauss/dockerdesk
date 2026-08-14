@@ -24,6 +24,7 @@
 - ✅ **DD101** **A bind source that looks like a distribution path and is not there stays unchecked, and it is the expensive failure** — `read doctor` asks the engine's distribution whether a bind source it cannot settle from the string is there, and warns without claiming which of empty and unreachable it is.
 - ✅ **DD120** **A start that cannot work leaves the tray breathing Starting until it is quit, and never says what went wrong** — The tray refuses a start with no distribution and names the verb that fixes it, and gives up on one that outlasts the engine's own budget.
 - ✅ **DD122** **A provision fails on the step that unpacks the engine, on a machine where nothing is wrong but a slow first boot** — The caller names which kind of call it is: the reads keep the preflight's fifteen seconds, the import and the unpack get five minutes, and the failure says which budget was exceeded.
+- ✅ **DD124** **A plain shell has no docker compose, because DOCKER_CONFIG is left for the user to set by hand** — DOCKER_CONFIG is written by the installer beside the PATH entry and repaired by the tray at startup, both gated on this install owning the docker command, so a plain shell has docker compose.
 
 ## Block B — The daemon client (talk to the engine)
 

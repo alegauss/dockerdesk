@@ -29,13 +29,18 @@ public sealed class BundledComposeCli : IComposeCli
 
     /// <summary>The variable that tells the CLI which config directory to read.</summary>
     /// <remarks>
-    /// Set on the child and nowhere else (DD73). It is what makes <c>compose</c> a subcommand at
-    /// all: the plugin this install placed sits under its own config directory, and the CLI finds a
-    /// plugin in <c>$DOCKER_CONFIG/cli-plugins</c> and in no other place this project may write.
-    /// Setting it in the user's environment is not this tool's to do, so a plain shell still has no
-    /// <c>docker compose</c> — which is a sentence the install prints rather than a thing it fixes.
+    /// Set on the child regardless (DD73). It is what makes <c>compose</c> a subcommand at all: the
+    /// plugin this install placed sits under its own config directory, and the CLI finds a plugin in
+    /// <c>$DOCKER_CONFIG/cli-plugins</c> and in no other place this project may write.
+    ///
+    /// <para>DD124 made <see cref="DockerConfigEntry"/> set the same variable in the user's own
+    /// environment, so a shell has <c>docker compose</c> too. This still assigns it on the child, and
+    /// deliberately: that one is a user-owned value they may point anywhere, and this call has to
+    /// read the directory holding the plugin <i>this</i> install placed. One spelling of the name,
+    /// though — the constant is <see cref="DockerConfigEntry.Variable"/>, so the two writers cannot
+    /// drift onto different variables.</para>
     /// </remarks>
-    public const string ConfigVariable = "DOCKER_CONFIG";
+    public const string ConfigVariable = DockerConfigEntry.Variable;
 
     private readonly string _docker;
     private readonly string _config;

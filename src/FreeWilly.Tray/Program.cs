@@ -344,6 +344,13 @@ internal static class Program
 
             using (only)
             {
+                // The user's DOCKER_CONFIG, repaired before anything is drawn (DD124). The installer
+                // writes it beside the PATH entry, so a fresh install arrives correct; this is what
+                // reaches an install made before DD124, and what puts the value back if something
+                // else cleared it. It writes nothing unless this install is on the user's PATH, and
+                // nothing when the value is already right — so the common case is one registry read.
+                _ = new DockerConfigEntry().Ensure();
+
                 ApplicationConfiguration.Initialize();
 
                 // Without this, no WPF window this process opens receives a single key press: the

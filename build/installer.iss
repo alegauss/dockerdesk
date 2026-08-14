@@ -166,6 +166,23 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
 Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
     ValueData: "{olddata};{app}\bin"; Tasks: pathentry; Check: PathEntryMissing
 
+; DOCKER_CONFIG, which is what makes `docker compose` a subcommand in the user's own shell (DD124).
+; The plugins DD73 and DD74 place sit in {app}\cli-plugins, and the CLI looks for a plugin in
+; $DOCKER_CONFIG\cli-plugins and nowhere else — so without this, an `ant` or a `make` driving the
+; docker on PATH gets `unknown flag: --build` and every `docker build` is the legacy builder.
+;
+; Same Tasks: pathentry as the entry above, and that is the rule rather than a convenience: this
+; variable is read by every docker.exe a shell runs and carries config.json, the contexts and the
+; docker login credentials with it. Pointing it here is honest exactly when this install owns the
+; docker command, which is what the PATH entry means. A user who declined that checkbox is left
+; alone. DockerConfigEntry.Ensure applies the same rule at tray startup, for an install made before
+; DD124 — this half is what makes a fresh install correct before the tray has ever run.
+;
+; uninsdeletevalue, because a value naming a directory the uninstaller deleted is worse than none:
+; the next docker.exe on that machine would read a config directory that is not there.
+Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "DOCKER_CONFIG"; \
+    ValueData: "{app}"; Tasks: pathentry; Flags: uninsdeletevalue
+
 [Run]
 ; postinstall and checked by default: what the user just installed is an icon, and not starting it
 ; leaves them looking at nothing. skipifsilent, because an unattended install pushed to a machine

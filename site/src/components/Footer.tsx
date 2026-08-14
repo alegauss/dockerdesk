@@ -7,8 +7,8 @@ export function Footer() {
       <Waves className="waves--footer" />
       <div className="wrap">
         <div className="foot-grid">
-          <a className="foot-brand" href="/dockerdesk/">
-            <img src="/dockerdesk/logo.svg" alt="" />
+          <a className="foot-brand" href="/freewilly/">
+            <img src="/freewilly/logo.svg" alt="" />
             FreeWilly
           </a>
           <div className="foot-links">

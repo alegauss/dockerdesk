@@ -315,30 +315,6 @@ thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD59 The published surface is a path, not just prose
-
-The site does not merely name the product, it is served from a path that contains it.
-Every route in `site-content.ts` is `/dockerdesk/…`, the canonical URL is
-`https://alegauss.github.io/dockerdesk/`, `repoUrl` is
-`https://github.com/alegauss/dockerdesk`, and the base path is what GitHub Pages derives
-from the repository name. Renaming the repository moves every published URL at once, and
-nothing serves the old ones: GitHub's redirect covers the repository, not a Pages path a
-reader or an `llms.txt` consumer already recorded.
-
-Inside the site, the title, the hero, the compare page and the terminal transcripts all
-say DockerDesk, and `logo.svg`, `og.svg` and `llms.txt` exist in three copies each
-(`site/public`, `site/dist`, `site/dist-server`) of which only `public` is authored.
-`package.json` names the workspace `dockerdesk-site`, and `vite.config.ts` and
-`prerender.mjs` carry the base path that the prerender's own route-pair assertion
-checks. `README.md`, `CONTRIBUTING.md` and `NOTICE` name the product to a reader
-arriving from the repository, and `docs/` still holds the previously published
-`index.html`, `sitemap.xml` and `robots.txt` that Pages served before DD50 moved the
-build.
-
-The repository rename is not a write this project can make, so sequencing is the whole
-risk: the base path and the repository name have to change in the same window, or the
-published site returns 404 on every route it has.
-
 ### §DD84 Generated from the route table, not committed
 
 Both files are build output and neither is committed to public. The reason is in the

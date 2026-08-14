@@ -13,7 +13,7 @@ export function FeatureIndex() {
         </div>
         <div className="feature-index reveal">
           {features.map((f) => (
-            <a className="feature-card" href={`/dockerdesk/features/${f.slug}/`} key={f.slug}>
+            <a className="feature-card" href={`/freewilly/features/${f.slug}/`} key={f.slug}>
               <h3>{f.heading}</h3>
               <p>{f.description}</p>
               <span className="feature-card-go">Read the page →</span>

@@ -39,7 +39,7 @@ export function FeaturePage({ record }: { record: FeatureRecord }) {
       <Nav />
       <header className="hero page-hero" id="top">
         <div className="wrap">
-          <a className="feature-back" href="/dockerdesk/#pipe">
+          <a className="feature-back" href="/freewilly/#pipe">
             ← Features
           </a>
           <div className="eyebrow">{record.eyebrow}</div>
@@ -76,7 +76,7 @@ export function FeaturePage({ record }: { record: FeatureRecord }) {
                 )}
                 {record.slug === "agent-surface" && s.heading === "Configure it" && (
                   <p>
-                    <a className="feature-link" href="/dockerdesk/claude-code/">
+                    <a className="feature-link" href="/freewilly/claude-code/">
                       The /claude-code page →
                     </a>
                   </p>
@@ -87,14 +87,14 @@ export function FeaturePage({ record }: { record: FeatureRecord }) {
 
           <div className="feature-nav reveal">
             {prev ? (
-              <a className="feature-nav-link" href={`/dockerdesk/features/${prev.slug}/`}>
+              <a className="feature-nav-link" href={`/freewilly/features/${prev.slug}/`}>
                 ← {prev.heading}
               </a>
             ) : (
               <span />
             )}
             {next ? (
-              <a className="feature-nav-link next" href={`/dockerdesk/features/${next.slug}/`}>
+              <a className="feature-nav-link next" href={`/freewilly/features/${next.slug}/`}>
                 {next.heading} →
               </a>
             ) : (

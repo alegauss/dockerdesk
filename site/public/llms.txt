@@ -15,8 +15,8 @@ engine (preflight, provisioning, start/stop, the pipe, the API client, the event
 the tray icon) and the container window are shipped end to end; what does not exist yet is
 a packaged per-user install and a release built by CI. The line-by-line picture, with the
 reason each exists, is in
-[`docs/ROADMAP.md`](https://github.com/alegauss/dockerdesk/blob/main/docs/ROADMAP.md) and
-[`docs/CHANGELOG.md`](https://github.com/alegauss/dockerdesk/blob/main/docs/CHANGELOG.md).
+[`docs/ROADMAP.md`](https://github.com/alegauss/freewilly/blob/main/docs/ROADMAP.md) and
+[`docs/CHANGELOG.md`](https://github.com/alegauss/freewilly/blob/main/docs/CHANGELOG.md).
 
 This is an unofficial, open-source community project. It is not affiliated with, endorsed
 by, or sponsored by Docker, Inc. "Docker" and "Docker Desktop" are trademarks of Docker,
@@ -30,9 +30,9 @@ This site answers a coding agent in files it can grep, not only in hydrated mark
 route has a Markdown twin beside it — the same page, converted from the same render, with
 the navigation, the footer and the call to action dropped. Read `<route>/index.md` instead
 of the HTML: the landing page is
-[`/index.md`](https://alegauss.github.io/dockerdesk/index.md). The full list of routes,
+[`/index.md`](https://alegauss.github.io/freewilly/index.md). The full list of routes,
 their twins and their byte sizes is in
-[`manifest.json`](https://alegauss.github.io/dockerdesk/manifest.json).
+[`manifest.json`](https://alegauss.github.io/freewilly/manifest.json).
 
 ## Why it exists
 
@@ -120,7 +120,7 @@ it.
   into `%LOCALAPPDATA%` with no administrator prompt, an uninstall that respects the user's
   data, and releases built by CI rather than on one developer's machine.
 - **From source** (needs the .NET 10 SDK and Windows 10 build 19041 or later):
-  1. `git clone https://github.com/alegauss/dockerdesk && cd dockerdesk`
+  1. `git clone https://github.com/alegauss/freewilly && cd dockerdesk`
   2. `dotnet run --project src/FreeWilly.Preflight` — reads the machine, changes nothing.
   3. `dotnet run --project src/FreeWilly.Engine -- --provision` — or `-- --plan` first, which
      downloads nothing at all.
@@ -149,9 +149,9 @@ it.
 
 ## Links
 
-- [Website](https://alegauss.github.io/dockerdesk/): project page
-- [Manifest](https://alegauss.github.io/dockerdesk/manifest.json): the routes and their Markdown twins
-- [GitHub repository](https://github.com/alegauss/dockerdesk): source code
-- [Roadmap](https://github.com/alegauss/dockerdesk/blob/main/docs/ROADMAP.md): what is open, and why each line exists
-- [Changelog](https://github.com/alegauss/dockerdesk/blob/main/docs/CHANGELOG.md): what has shipped
-- [Contributing](https://github.com/alegauss/dockerdesk/blob/main/CONTRIBUTING.md): how the governed docs work
+- [Website](https://alegauss.github.io/freewilly/): project page
+- [Manifest](https://alegauss.github.io/freewilly/manifest.json): the routes and their Markdown twins
+- [GitHub repository](https://github.com/alegauss/freewilly): source code
+- [Roadmap](https://github.com/alegauss/freewilly/blob/main/docs/ROADMAP.md): what is open, and why each line exists
+- [Changelog](https://github.com/alegauss/freewilly/blob/main/docs/CHANGELOG.md): what has shipped
+- [Contributing](https://github.com/alegauss/freewilly/blob/main/CONTRIBUTING.md): how the governed docs work

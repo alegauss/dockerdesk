@@ -2,9 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// The URL does not change: the site stays at https://alegauss.github.io/dockerdesk/,
-// so every canonical, asset path and (later) sitemap entry carries this prefix. (§6)
-export const BASE = "/dockerdesk/";
+// GitHub Pages derives this from the repository name, so it is not a preference — the site
+// is served at https://alegauss.github.io/freewilly/ and every canonical, asset path and
+// sitemap entry carries the prefix. (§6, DD59)
+export const BASE = "/freewilly/";
 
 export default defineConfig({
   base: BASE,

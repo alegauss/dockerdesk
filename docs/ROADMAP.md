@@ -34,7 +34,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59
 - 📋 **DD84** (deps: —) **The published site serves no robots.txt and no sitemap.xml, and both answer 404 where the old folder had them** — Nothing tells a crawler which routes exist, so discovery rests on whatever links inward, and the sitemap the old folder published is gone rather than replaced. → §DD84
 
 ## Non-goals

@@ -7,10 +7,10 @@ import { FeaturePage } from "./pages/Feature";
 import { claudeCode, compare, meta } from "./lib/site-content";
 import { features } from "./lib/features";
 
-// The URL does not change (§6): the site stays at https://alegauss.github.io/dockerdesk/,
+// The URL does not change (§6): the site stays at https://alegauss.github.io/freewilly/,
 // so canonical, og:url and every output path carry this base.
 export const SITE_ORIGIN = "https://alegauss.github.io";
-export const BASE = "/dockerdesk/";
+export const BASE = "/freewilly/";
 
 // The social card (§DD49), rasterised to dist/og.png. Absolute, because a platform
 // fetching the card is not on this origin.

@@ -26,11 +26,11 @@ export const meta = {
     title: "FreeWilly",
     description:
       "Upstream Moby in a WSL2 distro it owns, the docker_engine pipe your tools already look for, and one window of containers. No licence fee, nothing resident.",
-    url: "https://alegauss.github.io/dockerdesk/",
+    url: "https://alegauss.github.io/freewilly/",
   },
 } as const;
 
-export const repoUrl = "https://github.com/alegauss/dockerdesk";
+export const repoUrl = "https://github.com/alegauss/freewilly";
 export const parentUrl = "https://alegauss.github.io/";
 
 // Section anchors (#x) act on the landing page; the page links are base-absolute so they
@@ -39,16 +39,16 @@ export const navLinks = [
   { href: "#operator", label: "Agent" },
   { href: "#pipe", label: "The pipe" },
   { href: "#window", label: "Window" },
-  { href: "/dockerdesk/claude-code/", label: "Claude Code" },
-  { href: "/dockerdesk/compare/", label: "Compare" },
-  { href: "/dockerdesk/status/", label: "Status" },
+  { href: "/freewilly/claude-code/", label: "Claude Code" },
+  { href: "/freewilly/compare/", label: "Compare" },
+  { href: "/freewilly/status/", label: "Status" },
 ] as const;
 
 export const footer = {
   links: [
-    { href: "/dockerdesk/claude-code/", label: "Claude Code" },
-    { href: "/dockerdesk/compare/", label: "Compare" },
-    { href: "/dockerdesk/status/", label: "Status" },
+    { href: "/freewilly/claude-code/", label: "Claude Code" },
+    { href: "/freewilly/compare/", label: "Compare" },
+    { href: "/freewilly/status/", label: "Status" },
     { href: repoUrl, label: "GitHub" },
     { href: `${repoUrl}/blob/main/docs/ROADMAP.md`, label: "Roadmap" },
     { href: `${repoUrl}/blob/main/CONTRIBUTING.md`, label: "Contributing" },
@@ -1043,7 +1043,7 @@ export const build = {
     },
   ],
   commands: [
-    { id: "clone", label: "Copy the clone command", text: "git clone https://github.com/alegauss/dockerdesk && cd dockerdesk" },
+    { id: "clone", label: "Copy the clone command", text: "git clone https://github.com/alegauss/freewilly && cd dockerdesk" },
     { id: "preflight", label: "Copy the preflight command", text: "dotnet run --project src/FreeWilly.Preflight" },
     { id: "provision", label: "Copy the provision command", text: "dotnet run --project src/FreeWilly.Engine -- --provision" },
     { id: "tray", label: "Copy the tray command", text: "dotnet run --project src/FreeWilly.Tray" },

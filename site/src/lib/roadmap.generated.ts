@@ -8,8 +8,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "A",
       "title": "A — The Windows engine (Docker without Docker Desktop)",
-      "open": 3,
-      "shipped": 8,
+      "open": 2,
+      "shipped": 14,
       "retired": 0
     },
     {
@@ -22,8 +22,8 @@ export const roadmap: RoadmapData = {
     {
       "label": "C",
       "title": "C — The window (claude-tray's elements)",
-      "open": 7,
-      "shipped": 4,
+      "open": 8,
+      "shipped": 12,
       "retired": 0
     },
     {
@@ -43,213 +43,144 @@ export const roadmap: RoadmapData = {
     {
       "label": "F",
       "title": "F — Installer and distribution (free, Apache 2.0)",
-      "open": 4,
-      "shipped": 3,
+      "open": 0,
+      "shipped": 7,
       "retired": 0
     },
     {
       "label": "G",
       "title": "G — The agent surface (an agent operates this, and pays in tokens)",
-      "open": 5,
-      "shipped": 6,
+      "open": 3,
+      "shipped": 15,
       "retired": 0
     },
     {
       "label": "H",
       "title": "H — The public surface (the site a reader and an agent both read)",
       "open": 2,
-      "shipped": 13,
+      "shipped": 15,
       "retired": 0
     }
   ],
   "totals": {
-    "open": 21,
-    "shipped": 41,
+    "open": 15,
+    "shipped": 70,
     "retired": 0
   },
   "open": [
     {
-      "id": "DD52",
+      "id": "DD75",
+      "status": "📋",
+      "block": "A",
+      "symptom": "A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths",
+      "why": "Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose.",
+      "deps": []
+    },
+    {
+      "id": "DD76",
       "status": "💭",
       "block": "A",
-      "symptom": "The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path",
-      "why": "Evidence exists so a user can check it against `where docker`, and a path broken across lines cannot be copied or grepped.",
+      "symptom": "docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration",
+      "why": "The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all.",
       "deps": []
     },
     {
-      "id": "DD55",
-      "status": "📋",
-      "block": "A",
-      "symptom": "The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them",
-      "why": "Those two names are state on a user machine rather than text in a build: renamed with no migration, every image and volume the old distribution holds becomes unreachable.",
-      "deps": [
-        "DD54"
-      ]
-    },
-    {
-      "id": "DD56",
-      "status": "📋",
-      "block": "A",
-      "symptom": "The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not",
-      "why": "The rule and its tests go dead the day the distribution is renamed, and a leftover dockerdesk distribution from an older install starts reading as a rival engine.",
-      "deps": [
-        "DD55"
-      ]
-    },
-    {
-      "id": "DD34",
-      "status": "📋",
-      "block": "C",
-      "symptom": "The two windows redeclare their chrome and one red is spelled four times, so a meaning has four definitions",
-      "why": "A style that lives in whichever window needed it first drifts silently, and claude-tray declares the colours whose value is not a free choice once, converting at each edge.",
-      "deps": []
-    },
-    {
-      "id": "DD35",
-      "status": "📋",
-      "block": "C",
-      "symptom": "Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files",
-      "why": "claude-tray's shell owns only the chrome and each destination its own header and footer; here every list repeats the header, empty-state and refresh stanza in full.",
-      "deps": [
-        "DD34"
-      ]
-    },
-    {
-      "id": "DD36",
-      "status": "📋",
-      "block": "C",
-      "symptom": "A row says its state in plain text and carries six always-visible captions, so a list of forty reads as a form",
-      "why": "State is the one column scanned down, and the actions are pressed once a session; a tinted chip and a hover-revealed action set are what claude-tray's rows already do.",
-      "deps": [
-        "DD34"
-      ]
-    },
-    {
-      "id": "DD37",
-      "status": "📋",
-      "block": "C",
-      "symptom": "No heading sorts and no list filters, so finding one container among forty is done with the scrollbar",
-      "why": "The window is opened with one container in mind; a heading that reorders on click and a box that narrows are what turn a long list into an answer rather than a scroll.",
-      "deps": [
-        "DD35"
-      ]
-    },
-    {
-      "id": "DD38",
-      "status": "📋",
-      "block": "C",
-      "symptom": "No window can be drawn without a running daemon holding the containers the picture is meant to show",
-      "why": "claude-tray renders every page from a fixture behind a flag, which is what makes a screenshot reviewable and deterministic, and what gives DD22's capture something to photograph.",
-      "deps": []
-    },
-    {
-      "id": "DD39",
-      "status": "📋",
-      "block": "C",
-      "symptom": "The window opens at one fixed size on the primary screen every time and forgets which list was being read",
-      "why": "A tool opened several times a day on a two-monitor desk is placed by hand every time, and the tab is the one piece of state the user set on purpose.",
-      "deps": []
-    },
-    {
-      "id": "DD61",
-      "status": "📋",
-      "block": "C",
-      "symptom": "A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it",
-      "why": "The overlap check cannot answer for this: the intruder is not in front of the window, it is showing through it, so the copy leaks with every assertion satisfied.",
-      "deps": []
-    },
-    {
-      "id": "DD32",
-      "status": "📋",
-      "block": "F",
-      "symptom": "An agent meeting this machine has no way to know the surface exists, so it reaches for docker",
-      "why": "A capability nobody discovers is one nobody uses, and the allowlist entry that makes the read split pay is a settings file the install never touches.",
-      "deps": [
-        "DD24 ✅",
-        "DD14 ✅"
-      ]
-    },
-    {
-      "id": "DD53",
-      "status": "📋",
-      "block": "F",
-      "symptom": "The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts",
-      "why": "A row measured on a bare Windows is unverifiable the moment that guest has WSL, and reverting is the one thing the harness documents and does not do.",
-      "deps": []
-    },
-    {
-      "id": "DD54",
-      "status": "📋",
-      "block": "F",
-      "symptom": "Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file",
-      "why": "A namespace is the spelling every file in the tree repeats, so renaming it after the machine-facing names leaves two products inside one build for as long as that takes.",
-      "deps": []
-    },
-    {
-      "id": "DD57",
-      "status": "📋",
-      "block": "F",
-      "symptom": "The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one",
-      "why": "Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed.",
-      "deps": [
-        "DD54",
-        "DD55"
-      ]
-    },
-    {
-      "id": "DD29",
-      "status": "📋",
-      "block": "G",
-      "symptom": "What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing",
-      "why": "Prune is scoped to the whole machine and is the one command nobody delegates, so leftovers stay rather than risk a volume the session did not create.",
-      "deps": [
-        "DD24 ✅"
-      ]
-    },
-    {
-      "id": "DD30",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Nothing proves a service is reachable: a running container with a bound port can answer nothing",
-      "why": "An agent cannot see, so the gap between the daemon reporting running and the port answering from Windows is closed by you looking, which is the costliest cycle.",
-      "deps": [
-        "DD26 ✅"
-      ]
-    },
-    {
-      "id": "DD31",
-      "status": "📋",
-      "block": "G",
-      "symptom": "Every session re-derives the whole machine, because nothing states what moved since the last one",
-      "why": "The tray already holds the event stream open, so a delta is a cursor over a running stream and the only mechanism that makes a second session cheaper than the first.",
-      "deps": [
-        "DD25 ✅",
-        "DD7 ✅"
-      ]
-    },
-    {
-      "id": "DD33",
+      "id": "DD67",
       "status": "💭",
-      "block": "G",
-      "symptom": "A client with no shell cannot reach this surface at all, the CLI being the only head there is",
-      "why": "A tool schema is re-sent every turn of every session, so a second head is worth its fixed cost only if a shell-less caller exists, which no evidence yet says it does.",
+      "block": "C",
+      "symptom": "No popup this product draws has ever been photographed, and the one path that could is not reachable",
+      "why": "DD61 made the screen copy refuse the shell, which is right, and left the script with nothing it can find: a menu exists only while open, and nothing opens one.",
+      "deps": []
+    },
+    {
+      "id": "DD69",
+      "status": "📋",
+      "block": "C",
+      "symptom": "The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame",
+      "why": "The site closes its hero into water and opens its footer out of it, so a window with no trace of that reads as a different product from the one the mark introduces.",
+      "deps": []
+    },
+    {
+      "id": "DD70",
+      "status": "📋",
+      "block": "C",
+      "symptom": "A list that changed under a refresh and an engine that is still starting both arrive with no transition",
+      "why": "Motion is what tells a reader that a thing changed rather than that they misread it, and this window redraws rows and holds a pending engine with none at all.",
       "deps": [
-        "DD24 ✅"
+        "DD69"
       ]
     },
     {
-      "id": "DD58",
+      "id": "DD80",
+      "status": "📋",
+      "block": "C",
+      "symptom": "Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb",
+      "why": "CommandLine reads a bare argv as tray-only, so Explorer, the Start menu and the desktop icon all land in silence, and a user with no feedback clicks again.",
+      "deps": []
+    },
+    {
+      "id": "DD81",
+      "status": "📋",
+      "block": "C",
+      "symptom": "A second launch starts a second tray rather than raising the first, so two icons and two event streams run",
+      "why": "Nothing holds a mutex, so each extra click is another process polling the daemon; raising the first window and exiting is the answer, not an error a click cannot show.",
+      "deps": [
+        "DD80"
+      ]
+    },
+    {
+      "id": "DD82",
+      "status": "📋",
+      "block": "C",
+      "symptom": "Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry",
+      "why": "The add carries no icon flag and no text, and the overflow flyout is exactly where that empty tooltip is read, so the place the icon lands names nothing.",
+      "deps": []
+    },
+    {
+      "id": "DD83",
+      "status": "📋",
+      "block": "C",
+      "symptom": "Nothing in the window names the build, the engine version behind it, or the API version the client speaks",
+      "why": "A version is the first thing a bug report asks for and the only way to tell a stale install from a fresh one, and the console verb answers where a window user never looks.",
+      "deps": [
+        "DD69"
+      ]
+    },
+    {
+      "id": "DD85",
+      "status": "📋",
+      "block": "C",
+      "symptom": "The tray icon is three abstract rings, so the one surface always on screen carries none of the product mark",
+      "why": "The mark is the only thing a user recognises at a glance, and a ring says nothing about which product is running while three of them sit in one overflow.",
+      "deps": []
+    },
+    {
+      "id": "DD77",
       "status": "📋",
       "block": "G",
-      "symptom": "The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally",
-      "why": "An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one.",
-      "deps": [
-        "DD54"
-      ]
+      "symptom": "Nothing says a machine still carries objects labelled the way the build before the rename wrote them",
+      "why": "So the dual read has no end: the legacy key cannot be dropped without evidence nobody can gather, and every read pays for a generation that may already be gone.",
+      "deps": []
+    },
+    {
+      "id": "DD78",
+      "status": "📋",
+      "block": "G",
+      "symptom": "The shaped token figure is banded because two of its inputs are read from the machine and not a fixture",
+      "why": "A 15% band is wide enough to hide a regression a build could ship, and the request count recorded beside it is exact for want of the same seam.",
+      "deps": []
+    },
+    {
+      "id": "DD79",
+      "status": "📋",
+      "block": "G",
+      "symptom": "SessionLabel.For reads as the one place a label is stamped and nothing in the product stamps through it",
+      "why": "ComposeUp writes the key straight into YAML, so the helper is reached only by a test and the next change to a label has two places to find rather than one.",
+      "deps": []
     },
     {
       "id": "DD59",
-      "status": "📋",
+      "status": "🛠",
       "block": "H",
       "symptom": "The site is served from a base path containing the old name, so every published route moves at once",
       "why": "GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones.",
@@ -258,11 +189,11 @@ export const roadmap: RoadmapData = {
       ]
     },
     {
-      "id": "DD60",
+      "id": "DD84",
       "status": "📋",
       "block": "H",
-      "symptom": "Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them",
-      "why": "The guard denies the edit, so each one moves through the verb that owns it, and a ledger naming a product nobody can find is where a stale name actively misleads.",
+      "symptom": "The published site serves no robots.txt and no sitemap.xml, and both answer 404 where the old folder had them",
+      "why": "Nothing tells a crawler which routes exist, so discovery rests on whatever links inward, and the sitemap the old folder published is gone rather than replaced.",
       "deps": []
     }
   ],
@@ -272,7 +203,7 @@ export const roadmap: RoadmapData = {
       "status": "✅",
       "block": "A",
       "symptom": "A Windows user cannot tell why Docker will not run here: WSL2 missing, virtualization off, or a rival engine",
-      "why": "`dockerdesk-preflight` reports the Windows build, virtualization, the WSL2 kernel and any rival engine one row each with the action that fixes it, and exits 1 while a blocking row is not green.",
+      "why": "`freewilly --preflight` reports the Windows build, virtualization, the WSL2 kernel and any rival engine one row each with the action that fixes it, and exits 1 while a blocker is not green.",
       "deps": []
     },
     {
@@ -280,7 +211,7 @@ export const roadmap: RoadmapData = {
       "status": "✅",
       "block": "A",
       "symptom": "There is no unattended way to put a container engine on Windows without installing Docker Desktop",
-      "why": "`dockerdesk-engine --provision` puts upstream Moby 29.7.2 in an owned WSL2 distro and docker.exe where an installer can add it to PATH.",
+      "why": "`freewilly --provision` puts upstream Moby 29.7.2 in an owned WSL2 distro and docker.exe where an installer can add it to PATH.",
       "deps": []
     },
     {
@@ -296,7 +227,7 @@ export const roadmap: RoadmapData = {
       "status": "✅",
       "block": "A",
       "symptom": "Nothing starts or stops the engine, and a UI that reports running before the socket answers is lying",
-      "why": "`dockerdesk-engine --run` starts the distro and daemon, serves \\.\\pipe\\docker_engine, and reports Running only once the engine answers.",
+      "why": "`freewilly --run` starts the distro and daemon, serves \\\\.\\pipe\\docker_engine, and reports Running only once the engine answers.",
       "deps": []
     },
     {
@@ -329,6 +260,54 @@ export const roadmap: RoadmapData = {
       "block": "A",
       "symptom": "A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering",
       "why": "A preflight row reads the active context and names both endpoints, so a CLI pointing elsewhere is visible, and it changes no setting of the user's.",
+      "deps": []
+    },
+    {
+      "id": "DD52",
+      "status": "✅",
+      "block": "A",
+      "symptom": "The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path",
+      "why": "The rival row names the products and puts each path, pipe and distribution on its own line, whole - so the evidence can be copied into a shell or grepped, and the JSON report carries it as a list.",
+      "deps": []
+    },
+    {
+      "id": "DD55",
+      "status": "✅",
+      "block": "A",
+      "symptom": "The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them",
+      "why": "An install made before the rename is adopted where it stands: both names resolve from what is on disk and registered, and nothing moves - distro is the BasePath WSL holds.",
+      "deps": []
+    },
+    {
+      "id": "DD56",
+      "status": "✅",
+      "block": "A",
+      "symptom": "The rival probe carries a rule that exists only because dockerdesk contains docker, and freewilly does not",
+      "why": "Both names this project has owned are skipped by name before the rival table is consulted, so an adopted install is never told to uninstall the engine it is running.",
+      "deps": []
+    },
+    {
+      "id": "DD68",
+      "status": "✅",
+      "block": "A",
+      "symptom": "The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap",
+      "why": "The remedy's wrap width is the renderer's only length rule and is named as a constant, and a second test states out loud that an evidence line may exceed it.",
+      "deps": []
+    },
+    {
+      "id": "DD73",
+      "status": "✅",
+      "block": "A",
+      "symptom": "docker compose is not a command on a clean install, and the do compose verb shells into exactly that",
+      "why": "Compose is a fourth pinned artefact placed under this install's own cli-plugins, and the bundled call sets DOCKER_CONFIG so docker compose is a subcommand.",
+      "deps": []
+    },
+    {
+      "id": "DD74",
+      "status": "✅",
+      "block": "A",
+      "symptom": "No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install",
+      "why": "Buildx is a fifth pinned artefact placed beside Compose, so docker build is BuildKit and a cache mount stops failing on the mount option.",
       "deps": []
     },
     {
@@ -377,6 +356,70 @@ export const roadmap: RoadmapData = {
       "block": "C",
       "symptom": "Verifying a window copies the screen, so a capture twice photographed private content that was in front of it",
       "why": "A --capture-window verb renders the window off-screen so nothing else can be in the frame, and the screen copy kept for popups refuses when anything overlaps it.",
+      "deps": []
+    },
+    {
+      "id": "DD34",
+      "status": "✅",
+      "block": "C",
+      "symptom": "The two windows redeclare their chrome and one red is spelled four times, so a meaning has four definitions",
+      "why": "The danger red, the engine's three colours and the font stack live in one Palette of bytes, and markup reaches them with x:Static as claude-tray's Brand does.",
+      "deps": []
+    },
+    {
+      "id": "DD35",
+      "status": "✅",
+      "block": "C",
+      "symptom": "Three lists, the engine, the logs and the shell share one window class, so a fourth list grows the same two files",
+      "why": "The shell keeps the engine line, the terms and a nav strip; each list is a page built on first visit and kept alive, so a fourth adds a file rather than growing two.",
+      "deps": []
+    },
+    {
+      "id": "DD66",
+      "status": "✅",
+      "block": "C",
+      "symptom": "Every container row threw while being measured, so the list has drawn nothing since the pages were split",
+      "why": "The two styles a row template is BasedOn moved into the page that uses them, where a StaticResource is legal, and a check refuses a DynamicResource on BasedOn.",
+      "deps": []
+    },
+    {
+      "id": "DD38",
+      "status": "✅",
+      "block": "C",
+      "symptom": "No window can be drawn without a running daemon holding the containers the picture is meant to show",
+      "why": "The window takes a seam rather than the client, and a SampleMachine stands in at it, so --fixture draws every page from a machine that is the same everywhere.",
+      "deps": []
+    },
+    {
+      "id": "DD36",
+      "status": "✅",
+      "block": "C",
+      "symptom": "A row says its state in plain text and carries six always-visible captions, so a list of forty reads as a form",
+      "why": "State is a tinted chip that tells a clean exit from a kill and carries its own evidence, and the six captions per row are Logs, one verb and an overflow that is always drawn.",
+      "deps": []
+    },
+    {
+      "id": "DD37",
+      "status": "✅",
+      "block": "C",
+      "symptom": "No heading sorts and no list filters, so finding one container among forty is done with the scrollbar",
+      "why": "Every heading is a button that sorts and carries a glyph, and one box per list narrows over the rows in hand; both are held by the page so a refresh cannot drop them.",
+      "deps": []
+    },
+    {
+      "id": "DD39",
+      "status": "✅",
+      "block": "C",
+      "symptom": "The window opens at one fixed size on the primary screen every time and forgets which list was being read",
+      "why": "The window opens where it was left, at the size it was left, on the tab that was being read - and a rectangle that no longer lands on a monitor is refused rather than opened off-screen.",
+      "deps": []
+    },
+    {
+      "id": "DD61",
+      "status": "✅",
+      "block": "C",
+      "symptom": "A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it",
+      "why": "Capture-Window.ps1 asks DWM for the window's system backdrop and refuses to copy one that has it, with no flag to waive it - so the leak is a refusal rather than a printed warning.",
       "deps": []
     },
     {
@@ -432,7 +475,7 @@ export const roadmap: RoadmapData = {
       "status": "✅",
       "block": "F",
       "symptom": "There is nothing to hand a user: no executable, no installer, and no uninstall that respects their data",
-      "why": "One DockerDesk.exe with every verb behind an argument, an Inno Setup installer that is per-user with no administrator prompt, and an uninstall that asks before deleting the distribution.",
+      "why": "One FreeWilly.exe with every verb behind an argument, an Inno Setup installer that is per-user with no administrator prompt, and an uninstall that asks before deleting the distribution.",
       "deps": []
     },
     {
@@ -441,6 +484,38 @@ export const roadmap: RoadmapData = {
       "block": "F",
       "symptom": "Every release is built on one developer's machine, so the first download finds what that machine hid",
       "why": "Two Windows workflows: a check that builds, tests and starts the published .exe on every push, and a tag that drafts a release carrying SHA-256 sums for a person to publish.",
+      "deps": []
+    },
+    {
+      "id": "DD32",
+      "status": "✅",
+      "block": "F",
+      "symptom": "An agent meeting this machine has no way to know the surface exists, so it reaches for docker",
+      "why": "A skill naming the verbs, an allowlist line and a generated brief ship with the install, which proposes all three and writes none of them into your configuration.",
+      "deps": []
+    },
+    {
+      "id": "DD53",
+      "status": "✅",
+      "block": "F",
+      "symptom": "The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts",
+      "why": "vm.ps1 gained a revert action that names the snapshot and what reverting discards, and refuses without -Yes rather than prompting - so a state a row was measured on is reachable again.",
+      "deps": []
+    },
+    {
+      "id": "DD54",
+      "status": "✅",
+      "block": "F",
+      "symptom": "Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file",
+      "why": "The build spells FreeWilly throughout - projects, namespaces, assembly, icon and the harness - while the app root and the WSL distribution stay behind for DD55 to migrate.",
+      "deps": []
+    },
+    {
+      "id": "DD57",
+      "status": "✅",
+      "block": "F",
+      "symptom": "The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one",
+      "why": "An old install is upgraded in place: the AppId never changes, the labels around it do, and the Run value the old name owned is deleted rather than left starting a missing exe.",
       "deps": []
     },
     {
@@ -489,6 +564,78 @@ export const roadmap: RoadmapData = {
       "block": "G",
       "symptom": "Port is already allocated does not say what holds the port, and the answer is not in Docker at all",
       "why": "A refusal carries the Windows fact that explains it: read ports names the pid holding a port, and cannot connect became three causes with three remedies.",
+      "deps": []
+    },
+    {
+      "id": "DD29",
+      "status": "✅",
+      "block": "G",
+      "symptom": "What an agent created is indistinguishable from what the user created, so cleanup is prune or nothing",
+      "why": "A confirm token computed over the printed list scopes cleanup to one session's label, so a stale plan refuses instead of deleting what arrived in between.",
+      "deps": []
+    },
+    {
+      "id": "DD30",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Nothing proves a service is reachable: a running container with a bound port can answer nothing",
+      "why": "A connect from Windows, an optional GET and the health check's own output turn running into answering, and --wait makes the same call the readiness primitive.",
+      "deps": []
+    },
+    {
+      "id": "DD31",
+      "status": "✅",
+      "block": "G",
+      "symptom": "Every session re-derives the whole machine, because nothing states what moved since the last one",
+      "why": "read changes --since is a delta over the daemon's own bounded history, collapsed per object, and it refuses rather than skipping when the cursor reaches past it.",
+      "deps": []
+    },
+    {
+      "id": "DD33",
+      "status": "✅",
+      "block": "G",
+      "symptom": "A client with no shell cannot reach this surface at all, the CLI being the only head there is",
+      "why": "The CLI-first inversion is recorded as a decision with a price: a spec that survives shipping, a cap of six tools in the budget file, and a test that no head arrives uncapped.",
+      "deps": []
+    },
+    {
+      "id": "DD64",
+      "status": "✅",
+      "block": "G",
+      "symptom": "The test that gates every cost claim can go red for a reason that is not cost",
+      "why": "The fake speaks HTTP/1.1, so the close .NET's retry was racing is gone (design §DD64 superseded: it said the fake could not tell a counted body from an EOF-delimited one, and the response says which).",
+      "deps": []
+    },
+    {
+      "id": "DD58",
+      "status": "✅",
+      "block": "G",
+      "symptom": "The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally",
+      "why": "The invocation is freewilly everywhere it is quoted, and a guard derives the allowlist pattern from the executable's own name so the two cannot drift into matching nothing.",
+      "deps": []
+    },
+    {
+      "id": "DD63",
+      "status": "✅",
+      "block": "G",
+      "symptom": "No verb on this surface creates anything, so the session stamp has nothing to stamp",
+      "why": "do compose up is the first verb that creates: the services come from the CLI, a generated override outside the project stamps each one, and the answer names the undo.",
+      "deps": []
+    },
+    {
+      "id": "DD65",
+      "status": "✅",
+      "block": "G",
+      "symptom": "The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded",
+      "why": "The same task through read context, doctor, logs and verify is 4 calls and 774 tokens against the baseline's 6 and 11711, recorded as task-for-task rather than payload-for-payload.",
+      "deps": []
+    },
+    {
+      "id": "DD72",
+      "status": "✅",
+      "block": "G",
+      "symptom": "The session label key is the last name in the rename set that is state on a machine rather than spelling in a build",
+      "why": "The key written is freewilly.session and both spellings are read, so a machine mid-migration keeps every session a previous build labelled.",
       "deps": []
     },
     {
@@ -544,7 +691,7 @@ export const roadmap: RoadmapData = {
       "status": "✅",
       "block": "H",
       "symptom": "Nobody configuring an agent can find the read and do split, or the one allowlist line that pays for it",
-      "why": "A page for the agent's operator: the read/do split, the one allowlist line Bash(dockerdesk read:*), the DD32 plugin, and the refusals, marked as the designed Block-G surface.",
+      "why": "A page for the agent's operator: the read/do split, the one allowlist line Bash(freewilly read:*), the DD32 plugin, and the refusals, marked as the designed Block-G surface.",
       "deps": []
     },
     {
@@ -594,7 +741,23 @@ export const roadmap: RoadmapData = {
       "symptom": "The page for the agent's operator names only the interruption, so the surface reads as a saving in keystrokes",
       "why": "Eight rows pair what plain docker costs an agent with the verb that replaces it, and every cost, ceiling and shipped badge is generated from agent-budget.json and the verb registry.",
       "deps": []
+    },
+    {
+      "id": "DD60",
+      "status": "✅",
+      "block": "H",
+      "symptom": "Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them",
+      "why": "The non-goal, five ledger entries and the skill directory moved through the verb that owns each; what still reads dockerdesk in the prose files is quoting a surface DD59 and DD71 have yet to change.",
+      "deps": []
+    },
+    {
+      "id": "DD71",
+      "status": "✅",
+      "block": "H",
+      "symptom": "README and the site still name the product and the distribution as they were before the rename",
+      "why": "README, the site copy, llms.txt and the DD23 spec filename name FreeWilly, and the distribution is freewilly with no second name anywhere.",
+      "deps": []
     }
   ],
-  "next": "DD29"
+  "next": "DD67"
 };

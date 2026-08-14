@@ -10,14 +10,15 @@ constitution under Block H).
 
 ```
 npm install       # once
-npm run dev        # dev server at /dockerdesk/
+npm run dev        # dev server at /freewilly/
 npm run build      # tsc -b && vite build  →  dist/
 npm run preview    # serve the built dist/
 npm run typecheck  # tsc -b, no emit
 ```
 
-The URL does not change, so Vite's `base` is `/dockerdesk/` and every asset path carries
-that prefix.
+GitHub Pages derives the base path from the repository name, so Vite's `base` is
+`/freewilly/` and every asset path carries that prefix. Renaming the repository moves every
+published URL at once — the prefix is written once, in [vite.config.ts](vite.config.ts).
 
 ## Where things live (DD40)
 

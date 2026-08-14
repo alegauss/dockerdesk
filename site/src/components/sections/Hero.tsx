@@ -7,7 +7,7 @@ export function Hero() {
   return (
     <header className="hero" id="top">
       <div className="wrap">
-        <img className="hero-icon" src="/dockerdesk/logo.svg" alt="FreeWilly logo" />
+        <img className="hero-icon" src="/freewilly/logo.svg" alt="FreeWilly logo" />
         <div className="badge">
           <span className="dot" /> {hero.badge}
         </div>

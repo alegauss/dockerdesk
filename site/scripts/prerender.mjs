@@ -121,8 +121,8 @@ for (const meta of ROUTE_META) {
 // DD25's context pack teaches is the one this site is found by (S5). No build timestamp —
 // the same input builds byte-identical output.
 const manifest = {
-  name: "DockerDesk",
-  base: "/dockerdesk/",
+  name: "FreeWilly",
+  base: "/freewilly/",
   llms: "llms.txt",
   routes: manifestRoutes,
 };

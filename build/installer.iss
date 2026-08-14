@@ -15,7 +15,7 @@
 
 ; Still the old repository. Renaming it moves every published URL at once and is not this file's to
 ; do — DD59 waits on the GitHub rename itself.
-#define MyAppUrl "https://github.com/alegauss/dockerdesk"
+#define MyAppUrl "https://github.com/alegauss/freewilly"
 
 ; The Run value an install made before the rename left behind. Deleted on install rather than
 ; adopted: unlike the distribution and the app root, a Run value holds nothing — it is a label on a

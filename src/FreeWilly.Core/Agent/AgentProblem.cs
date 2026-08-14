@@ -30,7 +30,7 @@ public sealed record AgentProblem(
     IReadOnlyDictionary<string, string>? Facts = null)
 {
     /// <summary>Where a type identifier lives, so it reads as a stable name rather than a URL to fetch.</summary>
-    public const string TypeBase = "https://github.com/alegauss/dockerdesk/errors/";
+    public const string TypeBase = "https://github.com/alegauss/freewilly/errors/";
 
     /// <summary>
     /// As lines, which is what a caller gets unless it asked otherwise.

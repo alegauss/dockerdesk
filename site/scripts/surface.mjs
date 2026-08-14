@@ -3,7 +3,7 @@
 //
 //   agent-budget.json                        what the canonical task measured, and every
 //                                            per-shape ceiling a test asserts (DD23)
-//   src/DockerDesk.Tray/Cli/AgentSurface.cs  the verb registry — the table the router
+//   src/FreeWilly.Tray/Cli/AgentSurface.cs  the verb registry — the table the router
 //                                            dispatches on, so it is what actually exists
 //
 // The second one is the reason this script exists rather than a hand-kept list. The page
@@ -21,7 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const siteDir = join(here, "..");
 const repoRoot = join(siteDir, "..");
 const budgetFile = join(repoRoot, "agent-budget.json");
-const registryFile = join(repoRoot, "src", "DockerDesk.Tray", "Cli", "AgentSurface.cs");
+const registryFile = join(repoRoot, "src", "FreeWilly.Tray", "Cli", "AgentSurface.cs");
 const outFile = join(siteDir, "src", "lib", "surface.generated.ts");
 
 function read(path, what) {

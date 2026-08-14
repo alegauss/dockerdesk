@@ -26,15 +26,21 @@ export const surface: SurfaceData = {
     "read context": 200,
     "read doctor": 280,
     "read logs": 400,
+    "read changes": 115,
+    "do reclaim": 170,
     "do compose up": 140,
-    "read verify": 110
+    "read verify": 240
   },
   "shipped": [
+    "read changes",
     "read context",
     "read doctor",
     "read logs",
     "read ports",
     "read ps",
-    "do engine"
+    "read verify",
+    "do compose up",
+    "do engine",
+    "do reclaim"
   ]
 };

@@ -50,7 +50,7 @@ test("the generated baseline is the budget file's own measurement", () => {
 
 test("the shipped list is the verb registry's, verbatim", () => {
   const registry = readFileSync(
-    join(repoRoot, "src", "DockerDesk.Tray", "Cli", "AgentSurface.cs"),
+    join(repoRoot, "src", "FreeWilly.Tray", "Cli", "AgentSurface.cs"),
     "utf8",
   );
   // The third constructor argument is AgentVerb.Shape, which is how the verb is typed.

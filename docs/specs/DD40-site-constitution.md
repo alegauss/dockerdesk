@@ -236,7 +236,7 @@ Three facts about this repository shape it:
   its output directory would delete them. So the site builds to `site/dist/` and the
   published tree is assembled from there — never written into `docs/`.
 - **The URL does not change.** The site stays at
-  <https://alegauss.github.io/dockerdesk/>, so Vite's `base` is `/dockerdesk/` and every
+  <https://alegauss.github.io/freewilly/>, so Vite's `base` is `/freewilly/` and every
   canonical, sitemap entry and asset path carries that prefix. Moving Pages from
   *deploy from `main` `/docs`* to *deploy from a GitHub Actions artefact* is a repository
   setting the publish task must state, because the job is inert until it is changed, and

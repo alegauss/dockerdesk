@@ -70,6 +70,7 @@
 - ✅ **DD64** **The test that gates every cost claim can go red for a reason that is not cost** — The fake speaks HTTP/1.1, so the close .NET's retry was racing is gone (design §DD64 superseded: it said the fake could not tell a counted body from an EOF-delimited one, and the response says which).
 - ✅ **DD58** **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — The invocation is freewilly everywhere it is quoted, and a guard derives the allowlist pattern from the executable's own name so the two cannot drift into matching nothing.
 - ✅ **DD63** **No verb on this surface creates anything, so the session stamp has nothing to stamp** — do compose up is the first verb that creates: the services come from the CLI, a generated override outside the project stamps each one, and the answer names the undo.
+- ✅ **DD65** **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — The same task through read context, doctor, logs and verify is 4 calls and 774 tokens against the baseline's 6 and 11711, recorded as task-for-task rather than payload-for-payload.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

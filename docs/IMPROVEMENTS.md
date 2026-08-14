@@ -25,6 +25,83 @@ half out loud — that an evidence line is allowed to be as long as the thing it
 so the two rules read as one decision rather than as an exception somebody has to
 rediscover.
 
+### §DD73 Compose is a plugin nobody placed
+
+The manifest pins three artefacts and the Windows zip carries one binary: docker.exe.
+Compose v2 is a separate upstream release with its own digest, so placing it is a fourth
+pinned artefact and nothing more — the same download, verify, place shape PlaceCli
+already has.
+
+Where it lands is the decision. The CLI finds a plugin under the Docker config
+directory, which is the user's own and is the one place this project has refused to
+write ever since DD32 left the agent files beside the install and printed the two
+commands instead. Three candidates, in order of how much they touch: a plugins directory
+inside this install with DOCKER_CONFIG naming it, which fixes the bundled call and
+leaves a plain shell without compose; the same directory offered to the user as one
+command the after-install page prints; or writing the user's config directory outright,
+which is what a rival does.
+
+DD63 raises the cost of getting this wrong: the verb ships, shells into docker compose,
+and on a machine that never had Docker Desktop the refusal it returns is about a
+subcommand that does not exist rather than about the project it was asked to bring up.
+
+### §DD74 Build without BuildKit is build without most Dockerfiles
+
+BuildKit is not an option a modern Dockerfile takes: a cache mount, a heredoc, a secret
+mount and a multi-platform build are all syntax the classic builder cannot parse, and
+the classic builder is what a CLI with no buildx plugin falls back to — with a
+deprecation notice, on the versions that still have it at all.
+
+So the gap is not that builds are slower. It is that a Dockerfile a developer already
+has, which builds on any machine with a current Docker, fails here on a line the error
+message blames on the file rather than on the missing plugin. That reads as this tool
+being unable to build, which is the impression the whole project exists to avoid.
+
+The mechanics are the compose task's mechanics — a pinned upstream release, a digest,
+and a plugins directory — so whichever placement that one settles on, this one follows
+it and adds no new decision. What is worth measuring first is what docker build actually
+does on the pinned CLI with no plugin present, because a version that removed the
+classic builder turns a slow path into a dead one.
+
+### §DD75 A bind source is a path the daemon reads, and the daemon is Linux
+
+A bind source is a path the daemon resolves, and the daemon is Linux. Docker Desktop
+hides this: something in its stack rewrites a Windows drive path into a host mount
+inside the VM, which is why an inspect there reports a source under
+/run/desktop/mnt/host — the convention DD26 deliberately refuses to recognise. Nothing
+in this project does that rewriting, and the Windows CLI sends what it was given.
+
+So the paths that work here are the ones already spelled the distribution's way, through
+the automatic drive mounts Wsl.ToDistributionPath produces, and the mount row in doctor
+and verify was written to that expectation. The paths that fail are the ones a user
+actually types and the ones compose computes for them: a relative volume in a compose
+file is resolved against the project by a Windows binary, so it arrives as a drive path
+nobody chose.
+
+What has to be measured before anything is designed is which of the two failures this is
+— a daemon refusing a source that is not absolute, or a daemon quietly accepting a
+string and giving the container an empty directory. The second is the one the mount row
+exists to catch, and it is also the one that costs a user an afternoon.
+
+### §DD76 The other side of the pipe, and what it would cost
+
+A developer whose shell is Ubuntu under WSL2 has no engine here. The daemon listens on a
+unix socket inside the owned distribution, the only way out is a Windows named pipe, and
+a Linux client cannot dial one. Docker Desktop answers this with a per-distribution
+toggle that mounts its own Linux CLI and a socket into each distribution the user ticks.
+
+That answer is in tension with two things this project has already decided. The owned
+distribution exists so that nothing of the user's is touched, and the same instinct kept
+the install out of a .claude directory; writing a CLI and a socket into somebody's
+Ubuntu is the largest version of exactly that. And the pipe is a pipe rather than a port
+because its ACL restricts the Engine API to one account, which a socket reachable from
+any distribution starts to give away.
+
+So this is filed as an idea and not as a design. The cheap intermediate is to say the
+true thing in the after-install page and in the doctor rows a WSL shell would reach: the
+engine is on the Windows side, docker.exe is what reaches it, and a bind mount typed in
+a WSL shell carries a path the daemon reads differently.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
@@ -108,31 +185,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
-
-### §DD65 The benchmark refused to invent a number, and now one exists
-
-`agent-budget.json` carries `"surface": { "exists": false }` beside an `about` naming
-`read context`, `read doctor`, `read logs` and `read verify` as work that "does not
-exist yet, so there is no number here and one is not invented". That refusal was right
-when written and is now false: all four shipped, each with a measured ceiling in the
-same file.
-
-What is missing is the thing DD23 built the file to produce. The baseline is recorded —
-6 calls, 11711 tokens for the canonical task through the Engine API — and the shaped
-side is still blank. The `target` block asks for 5 calls and 5000 tokens, and nothing
-yet says whether the surface met it.
-
-The work is to measure the canonical task through the surface the way
-`MeasureCanonicalTaskAsync` measures it through the API — same fixtures, same fake
-daemon, same estimator — and record calls, tokens and the ratio, with a test that fails
-if either side moves. Not to sum the per-shape ceilings: the claim is about a task, and
-a task is calls as well as tokens.
-
-Two cautions. DD64 is unfixed and it is the harness this would run on, so a number taken
-before that is one that can drift under load. And the honest comparison is
-task-for-task: the surface answers in fewer calls partly by answering a slightly
-different question, and the record should say so rather than let a ratio imply the two
-payloads are interchangeable.
 
 ### §DD72 The session label is read back, so respelling it loses a session
 

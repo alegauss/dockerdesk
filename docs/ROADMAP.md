@@ -5,6 +5,10 @@
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
 - 📋 **DD68** (deps: —) **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — Only a short fixture path keeps the two rules from colliding, and the repair a red line-length assertion argues for is the split path DD52 was reverted over. → §DD68
+- 📋 **DD73** (deps: DD63 ✅) **docker compose is not a command on a clean install, and the do compose verb shells into exactly that** — PlaceCli extracts only docker.exe and nothing lands in a plugins directory, so DD63 and every compose file a user already has fail on a machine that never had Docker Desktop. → §DD73
+- 📋 **DD74** (deps: DD73) **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Without the plugin docker build falls back to the classic builder at best, and BuildKit syntax a modern Dockerfile assumes fails on a line the error blames on the file. → §DD74
+- 📋 **DD75** (deps: —) **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose. → §DD75
+- 💭 **DD76** (deps: —) **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all. → §DD76
 
 ## Block B — The daemon client (talk to the engine)
 
@@ -22,7 +26,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD65** (deps: DD30 ✅) **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — agent-budget.json sets surface.exists false and names read context, doctor, logs and verify as not existing; all four shipped and are now measurable. → §DD65
 - 📋 **DD72** (deps: —) **The session label key is the last name in the rename set that is state on a machine rather than spelling in a build** — read changes and do reclaim both answer from that label, so a build that simply respells it stops seeing every container a previous one created. → §DD72
 
 ## Block H — The public surface (the site a reader and an agent both read)

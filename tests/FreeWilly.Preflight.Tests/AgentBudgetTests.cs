@@ -60,17 +60,30 @@ public sealed class AgentBudgetTests
     /// task re-reads as state moves. Ports and labels included because they are what makes the real
     /// response wide.
     /// </remarks>
+    private static readonly (string Name, string Image, string State, string Status, string Port)[]
+        Services =
+    [
+        ("api", "shop/api:latest", "exited", "Exited (137) 12 seconds ago", "8080"),
+        ("db", "postgres:16-alpine", "running", "Up 4 minutes (healthy)", "5432"),
+        ("cache", "redis:7-alpine", "running", "Up 4 minutes", "6379"),
+        ("worker", "shop/worker:latest", "running", "Up 4 minutes", ""),
+        ("mailhog", "mailhog/mailhog:v1.0.1", "running", "Up 4 minutes", "8025"),
+        ("proxy", "traefik:v3.1", "running", "Up 4 minutes", "80"),
+    ];
+
+    /// <summary>The id the list gives the container at <paramref name="index"/>.</summary>
+    /// <remarks>
+    /// Derived rather than pasted, because the shaped side routes by id: every verb there resolves
+    /// the name through the list first, so a fixture whose ids are written twice is one where the
+    /// two copies can drift into a 404 that reads like a missing container.
+    /// </remarks>
+    private static string ContainerId(int index) =>
+        new string((char)('a' + index), 8) + index
+        + "3f9c1b7e2d4a6c8f0b1d3e5a7c9f1b3d5e7a9c1f3b5d7e9a";
+
     private static string ContainerListJson()
     {
-        var services = new[]
-        {
-            ("api", "shop/api:latest", "exited", "Exited (137) 12 seconds ago", "8080"),
-            ("db", "postgres:16-alpine", "running", "Up 4 minutes (healthy)", "5432"),
-            ("cache", "redis:7-alpine", "running", "Up 4 minutes", "6379"),
-            ("worker", "shop/worker:latest", "running", "Up 4 minutes", ""),
-            ("mailhog", "mailhog/mailhog:v1.0.1", "running", "Up 4 minutes", "8025"),
-            ("proxy", "traefik:v3.1", "running", "Up 4 minutes", "80"),
-        };
+        var services = Services;
 
         // A template with markers rather than an interpolated raw string: JSON is mostly braces, and
         // an interpolated literal cannot tell a doubled brace it should print from one it should read.
@@ -97,7 +110,7 @@ public sealed class AgentBudgetTests
             json.Append(i == 0 ? "" : ",")
                 .Append(one
                     .ReplaceLineEndings("")
-                    .Replace("@ID@", new string((char)('a' + i), 8) + i + "3f9c1b7e2d4a6c8f0b1d3e5a7c9f1b3d5e7a9c1f3b5d7e9a")
+                    .Replace("@ID@", ContainerId(i))
                     .Replace("@IMAGEID@", new string((char)('1' + i), 12) + "9f2c4a6e8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e4b6d")
                     .Replace("@HASH@", new string((char)('a' + i), 64))
                     .Replace("@NETID@", "n" + i + "c4a6e8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e4b6d8f")
@@ -228,6 +241,101 @@ public sealed class AgentBudgetTests
         await using (var stream = await api.StreamAsync("networks/shop_default"))
         {
             paid.Add(await new StreamReader(stream).ReadToEndAsync());
+        }
+
+        return (TokenEstimate.OfAll(paid), daemon.Requested.Count);
+    }
+
+    // ---- the same task, through the surface that was built to be cheaper ------------------------
+
+    /// <summary>The container the whole task is about, as the surface has to name it.</summary>
+    private const string Api = "shop-api-1";
+
+    /// <summary>What a caller types, in the order the canonical task is worked through.</summary>
+    /// <remarks>
+    /// Four verbs against the baseline's six reads, and they are not the same four questions rewritten
+    /// — that is the thing the ratio must not be allowed to imply. <c>read doctor</c> joins the list,
+    /// the inspect and a tail of stderr into a verdict, so it answers in one call what the baseline
+    /// answers by handing over three payloads and leaving the joining to the reader. <c>read verify</c>
+    /// stands where the baseline's network read stood and answers a strictly larger question: whether
+    /// the host port accepts, which <c>/networks/…</c> cannot say at all.
+    /// </remarks>
+    private static readonly string[][] ShapedTask =
+    [
+        ["read", "context"],
+        ["read", "doctor", Api],
+        ["read", "logs", Api],
+        ["read", "verify", Api],
+    ];
+
+    /// <summary>
+    /// The daemon the shaped side is driven against, carrying the baseline's own fixtures.
+    /// </summary>
+    /// <remarks>
+    /// Same list, same inspect, same log bytes. The routes differ because the verbs ask differently:
+    /// they resolve a name through the list and then address the container by id, and they read the
+    /// log framed, with timestamps and a deeper tail. The engine also answers <c>_ping</c>, the
+    /// version, images and volumes here, because <c>read context</c> states the whole machine — those
+    /// requests are the surface's, not the fixtures'.
+    /// </remarks>
+    private static FakeDockerDaemon ShapedDaemon()
+    {
+        var id = ContainerId(0);
+        return new FakeDockerDaemon()
+            .Fails(Path("_ping"), "200 OK", "OK")
+            .Json(Path("version"), """{"Version":"29.7.2","ApiVersion":"1.55","MinAPIVersion":"1.24","Os":"linux","Arch":"amd64"}""")
+            .Json(Path("containers/json?all=1"), ContainerListJson())
+            .Json(Path("images/json?all=0"), "[]")
+            .Json(Path("volumes"), """{"Volumes":[]}""")
+            .Json(Path($"containers/{id}/json"), InspectJson())
+            .Raw(
+                Path($"containers/{id}/logs?stdout=1&stderr=1&tail=200&follow=0&timestamps=0"),
+                FramedLog())
+            .Raw(
+                Path($"containers/{id}/logs?stdout=1&stderr=1&tail=2000&follow=0&timestamps=1"),
+                FramedLog());
+    }
+
+    /// <summary>The log fixture as the daemon actually sends it: one multiplexed stdout frame.</summary>
+    /// <remarks>
+    /// A header of a stream byte, three zeroes and a big-endian length, which is why this is bytes and
+    /// not a string — no encoder round-trips an arbitrary length. Framing it rather than reframing the
+    /// fixture keeps both sides paying for the same log.
+    /// </remarks>
+    private static byte[] FramedLog()
+    {
+        var body = Encoding.UTF8.GetBytes(LogsPayload());
+        var frame = new byte[LogFrames.HeaderSize + body.Length];
+        frame[0] = 1;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(frame.AsSpan(4), body.Length);
+        body.CopyTo(frame.AsSpan(LogFrames.HeaderSize));
+
+        var head = Encoding.ASCII.GetBytes(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n"
+            + $"Content-Length: {frame.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)}\r\n\r\n");
+
+        return [.. head, .. frame];
+    }
+
+    /// <summary>Drive the same task through the surface and return what it cost.</summary>
+    /// <remarks>
+    /// A call here is a verb invocation, which is what the caller pays for — not a request the daemon
+    /// received. The two coincide on the baseline, where the agent is the one making every request,
+    /// and they do not here: the requests behind a verb are made by this process and cost the reader
+    /// nothing. <paramref name="Served"/> is reported anyway, so a verb that started re-reading the
+    /// machine is visible even while the payload it prints stays the same size.
+    /// </remarks>
+    private static async Task<(AgentCost Cost, int Served)> MeasureShapedTaskAsync()
+    {
+        await using var daemon = ShapedDaemon();
+        using var engine = new DockerApi(daemon.PipeName);
+
+        var paid = new List<string>();
+        foreach (var call in ShapedTask)
+        {
+            var output = new StringWriter();
+            AgentSurface.Read(AgentSurface.Find(call)!, engine, call[2..], output);
+            paid.Add(output.ToString());
         }
 
         return (TokenEstimate.OfAll(paid), daemon.Requested.Count);
@@ -369,16 +477,80 @@ public sealed class AgentBudgetTests
     // ---- what the file itself has to say ------------------------------------------------------
 
     [Fact]
-    public void The_shaped_surface_is_reported_absent_rather_than_estimated()
+    public async Task The_shaped_surface_costs_what_the_budget_records()
     {
-        // DD24 to DD31 are the surface, and none of it exists. A ratio against nothing would be the
-        // exact thing this task exists to stop: a number that was argued rather than measured.
+        // The file said `exists: false` for eight tasks, and refusing to invent a number was right
+        // for every one of them (DD65). It is measurable now, so the refusal is replaced by the
+        // measurement and not by a claim.
+        var (cost, served) = await MeasureShapedTaskAsync();
+
         using var budget = Budget();
         var surface = budget.RootElement.GetProperty("surface");
+        Assert.True(surface.GetProperty("exists").GetBoolean());
 
-        Assert.False(surface.GetProperty("exists").GetBoolean());
-        Assert.True(surface.TryGetProperty("target", out var target));
-        Assert.Equal(5, target.GetProperty("calls").GetInt32());
+        var measured = surface.GetProperty("measured");
+        Assert.Equal(measured.GetProperty("calls").GetInt32(), cost.Calls);
+
+        // Exact, because the fixtures fully determine it: this is the figure that goes red when a
+        // verb quietly starts asking the daemon something it did not ask before.
+        Assert.Equal(measured.GetProperty("requests").GetInt32(), served);
+
+        var recorded = measured.GetProperty("tokens").GetInt32();
+        var tolerance = budget.RootElement.GetProperty("fixtures")
+            .GetProperty("sizes").GetProperty("tolerance").GetDouble();
+        var low = (int)(recorded * (1 - tolerance));
+        var high = (int)(recorded * (1 + tolerance));
+        Assert.True(
+            cost.Tokens >= low && cost.Tokens <= high,
+            $"the shaped task now estimates {cost.Tokens} tokens, outside the recorded {recorded} "
+            + $"+/-{tolerance:P0} ({low}..{high}). If this is deliberate, raise it in "
+            + "agent-budget.json and say in the commit what the tokens bought.");
+    }
+
+    [Fact]
+    public async Task The_surface_meets_what_it_was_budgeted_for_before_it_existed()
+    {
+        // The acceptance criteria in the constitution's section 3.1, written into this file before
+        // any verb did, and now answerable. Kept as an assertion rather than a note, because a
+        // target nothing checks is a target that was met by being forgotten.
+        var (cost, _) = await MeasureShapedTaskAsync();
+
+        using var budget = Budget();
+        var target = budget.RootElement.GetProperty("surface").GetProperty("target");
+
+        Assert.True(
+            cost.Calls <= target.GetProperty("calls").GetInt32(),
+            $"the shaped task takes {cost.Calls} calls against a target of "
+            + $"{target.GetProperty("calls").GetInt32()}");
+        Assert.True(
+            cost.Tokens <= target.GetProperty("tokens").GetInt32(),
+            $"the shaped task estimates {cost.Tokens} tokens against a target of "
+            + $"{target.GetProperty("tokens").GetInt32()}");
+    }
+
+    [Fact]
+    public void The_recorded_ratio_is_the_two_recorded_measurements_and_not_a_third_number()
+    {
+        // The ratio is the thing DD23 built this file to produce, so it is written down rather than
+        // left to a reader with a calculator - and the moment it is written down it is a third
+        // number that can drift. This is what stops it: it is checked against the two it comes from,
+        // so a measurement that moves takes the ratio with it or fails.
+        using var budget = Budget();
+        var baseline = budget.RootElement.GetProperty("baseline").GetProperty("measured");
+        var surface = budget.RootElement.GetProperty("surface");
+        var measured = surface.GetProperty("measured");
+        var ratio = surface.GetProperty("ratio");
+
+        Assert.Equal(
+            Math.Round(
+                (double)baseline.GetProperty("calls").GetInt32()
+                / measured.GetProperty("calls").GetInt32(), 1),
+            ratio.GetProperty("calls").GetDouble());
+        Assert.Equal(
+            Math.Round(
+                (double)baseline.GetProperty("tokens").GetInt32()
+                / measured.GetProperty("tokens").GetInt32(), 1),
+            ratio.GetProperty("tokens").GetDouble());
     }
 
     [Fact]

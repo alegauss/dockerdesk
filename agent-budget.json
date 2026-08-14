@@ -13,7 +13,8 @@
 
   "method": {
     "tokens": "characters / 4, rounded up (FreeWilly.Core.Agent.TokenEstimate)",
-    "calls": "one per request the daemon received, counted by the fake daemon itself",
+    "calls": "one per thing the caller asked for: a request on the baseline, where the agent is the one making every request, and a verb invocation on the surface, where the requests behind it are made by this process and cost the reader nothing",
+    "requests": "one per request the daemon received, counted by the fake daemon itself - equal to calls on the baseline by construction, and recorded separately on the surface so a verb that started re-reading the machine is visible even while its printed payload stays the same size",
     "caveat": [
       "The token figure is an approximation and not a count from any model's tokenizer. It is used",
       "because it needs no tokenizer, so it is the same number on every machine and in CI, and a",
@@ -68,14 +69,41 @@
   },
 
   "surface": {
-    "exists": false,
+    "exists": true,
     "about": [
-      "The shaped side of the ratio. `read context`, `read doctor`, `read logs` and `read verify` are",
-      "DD24-DD31 and do not exist yet, so there is no number here and one is not invented. The",
-      "benchmark says so rather than reporting a ratio against nothing.",
+      "The shaped side of the ratio, measured (DD65). `read context`, `read doctor`, `read logs` and",
+      "`read verify` shipped as DD25-DD30, and the same canonical task driven through them - same",
+      "fixtures, same fake daemon, same estimator as the baseline above - is what `measured` records.",
       "",
-      "These are the acceptance criteria from the constitution's section 3.1, written down here so",
-      "the first verb that lands is checked against what it was budgeted for."
+      "`target` is the constitution's section 3.1 acceptance criteria, kept after the fact rather than",
+      "deleted: what the surface was budgeted for is the thing the measurement is an answer to."
+    ],
+    "task": "the same one the baseline names, worked through as `read context`, `read doctor shop-api-1`, `read logs shop-api-1`, `read verify shop-api-1`",
+    "measured": {
+      "calls": 4,
+      "requests": 16,
+      "tokens": 774
+    },
+    "ratio": {
+      "about": [
+        "Baseline over surface, recorded rather than left to a reader with a calculator, and asserted",
+        "against the two `measured` blocks so no one of the three can move on its own."
+      ],
+      "calls": 1.5,
+      "tokens": 15.1
+    },
+    "caveat": [
+      "Task-for-task, not payload-for-payload, and the difference is not a rounding error. `read doctor`",
+      "answers in one call what the baseline answers by handing over a list, a whole inspect and a log",
+      "and leaving the joining to the reader - so part of the 15x is work moved off the reader rather",
+      "than bytes saved. `read verify` stands where the baseline's network read stood and answers a",
+      "strictly larger question: whether the host port accepts, which /networks/... cannot say at all.",
+      "Read the ratio as what the task costs, never as two interchangeable payloads compared.",
+      "",
+      "Two inputs are read from the machine rather than from a fixture: the Docker client named in the",
+      "context pack's engine line, and whether anything on Windows holds port 8080 in the doctor's",
+      "ports row. That is why the token figure is banded like the baseline's and the request count,",
+      "which the fixtures fully determine, is asserted exactly."
     ],
     "target": {
       "calls": 5,

@@ -19,8 +19,8 @@ namespace FreeWilly.Preflight.Tests;
 internal sealed class FakeDockerDaemon : IAsyncDisposable
 {
     private readonly CancellationTokenSource _stopping = new();
-    private readonly Dictionary<string, Func<string>> _routes = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _prefixes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, byte[]> _routes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, byte[]> _prefixes = new(StringComparer.Ordinal);
     private readonly List<string> _requested = [];
     private readonly Lock _guard = new();
     private readonly Task _serving;
@@ -52,11 +52,22 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
         Raw(path, Http(status, "text/plain", body));
 
     /// <summary>Answer <paramref name="path"/> with exactly these bytes.</summary>
-    internal FakeDockerDaemon Raw(string path, string response)
+    internal FakeDockerDaemon Raw(string path, string response) =>
+        Raw(path, Encoding.UTF8.GetBytes(response));
+
+    /// <summary>
+    /// Answer <paramref name="path"/> with bytes no string could carry.
+    /// </summary>
+    /// <remarks>
+    /// A container's log arrives multiplexed, and a frame header is a stream byte and a big-endian
+    /// length — arbitrary bytes, which is exactly what a UTF-8 encoder does not round-trip. A fixture
+    /// the surface's own frame reader can read has to be handed over as bytes.
+    /// </remarks>
+    internal FakeDockerDaemon Raw(string path, byte[] response)
     {
         lock (_guard)
         {
-            _routes[path] = () => response;
+            _routes[path] = response;
         }
 
         return this;
@@ -74,7 +85,7 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
     {
         lock (_guard)
         {
-            _prefixes[prefix] = Http("200 OK", "application/json", json);
+            _prefixes[prefix] = Encoding.UTF8.GetBytes(Http("200 OK", "application/json", json));
         }
 
         return this;
@@ -126,8 +137,7 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
                 }
 
                 var response = ResponseFor(asked.Line);
-                var bytes = Encoding.UTF8.GetBytes(response);
-                await client.WriteAsync(bytes, cancellation).ConfigureAwait(false);
+                await client.WriteAsync(response, cancellation).ConfigureAwait(false);
                 await client.FlushAsync(cancellation).ConfigureAwait(false);
 
                 // A body the client can count ends on its own, so the connection stays open and the
@@ -153,26 +163,42 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
     }
 
     /// <summary>The canned answer for a request line, or a 404 naming the path.</summary>
-    private string ResponseFor(string request)
+    private byte[] ResponseFor(string request)
     {
         // The request line is `GET /v1.43/version HTTP/1.1`; routes are keyed by the path.
         var path = request.Split(' ') is [_, var target, ..] ? target : "";
         lock (_guard)
         {
             return _routes.TryGetValue(path, out var canned)
-                ? canned()
+                ? canned
                 : _prefixes.FirstOrDefault(p =>
                     path.StartsWith(p.Key, StringComparison.Ordinal)).Value
-                  ?? Http("404 Not Found", "text/plain", $"no route for {path}");
+                  ?? Encoding.UTF8.GetBytes(
+                      Http("404 Not Found", "text/plain", $"no route for {path}"));
         }
     }
 
     /// <summary>Whether a response says where its body ends without closing the connection.</summary>
-    private static bool EndsOnItsOwnCount(string response)
+    private static bool EndsOnItsOwnCount(byte[] response)
     {
-        var head = response.Split("\r\n\r\n")[0];
+        // Only the head, and only as ASCII: the body may be frames, which is not text at all.
+        var head = Encoding.ASCII.GetString(response, 0, HeadLength(response));
         return !Has(head, "Connection: close")
             && (Has(head, "Content-Length:") || Has(head, "Transfer-Encoding: chunked"));
+    }
+
+    private static int HeadLength(byte[] response)
+    {
+        for (var i = 0; i + 3 < response.Length; i++)
+        {
+            if (response[i] == (byte)'\r' && response[i + 1] == (byte)'\n'
+                && response[i + 2] == (byte)'\r' && response[i + 3] == (byte)'\n')
+            {
+                return i;
+            }
+        }
+
+        return response.Length;
     }
 
     private static bool Has(string head, string header) =>

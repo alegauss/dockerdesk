@@ -8,7 +8,7 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD103** (deps: —) **Three tests fail whenever a tray is running, and the failure names an assertion rather than the tray** — They claim the product's real named objects on purpose, so the suite cannot pass on a machine using the product, and the message points at none of that. → §DD103
+- 🛠 **DD103** (deps: —) **Three tests fail whenever a tray is running, and the failure names an assertion rather than the tray** — They claim the product's real named objects on purpose, so the suite cannot pass on a machine using the product, and the message points at none of that. → §DD103
 - 📋 **DD106** (deps: —) **Every container of a compose project is a peer row, so the project it belongs to is invisible** — The label that names the project is already on the list response, so the hierarchy costs no second call, and without it a four-service project is found by reading forty rows. → §DD106
 
 ## Block D — Container operations (what a user came to do)

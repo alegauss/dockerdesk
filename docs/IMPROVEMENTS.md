@@ -57,31 +57,6 @@ already writes that container and its layout is the reference. And the mark's fr
 below 48 come from `build/icon.svg`, so the 24 and 32 the shell asks for are already the
 drawing made for a tray.
 
-### §DD100 A coverage test with nothing to enumerate
-
-`Every_verb_that_routes_somewhere_is_in_the_help_text` reads as a coverage test and is
-not one. It loops over `EngineVerbs` — a set the router already owns — and then names
-five more verbs one at a time, by hand. A verb added to `CommandLine.Of` and not to that
-list is documented nowhere and asserted by nothing, which is the exact failure the
-test's own comment says it exists to prevent.
-
-This is not hypothetical. `--capture-window` and `--tray` were both missing from it,
-silently, until DD67 added a sixth verb and the list was read closely enough to notice.
-Two of the executable's console faces were undocumented as far as this test was
-concerned, and it had been green throughout.
-
-The obstacle is that the routes are not enumerable the way `EngineVerbs` is.
-`Surface.Tray` has no verb, `Surface.Agent` is reached by the bare words `read` and `do`
-rather than a flag, and the rest are constants scattered down the class. So the fix is a
-declaration: one table the router reads and the help renders, with those two spelled as
-what they are rather than left out. Then the test loops over the table and the list
-cannot drift.
-
-Worth deciding: whether the help text is generated from the table or still written by
-hand and merely checked against it. The text carries grouping, blank lines and prose the
-table has no place for, so checking is likely to beat generating — but that is a
-judgement about the help's shape rather than about the router's.
-
 ### §DD103 The suite cannot be run where the product is
 
 `SingleTrayTests` claims the real named objects, deliberately: the names are the

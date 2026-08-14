@@ -72,6 +72,21 @@ public static class CommandLine
     /// </remarks>
     public const string TrayOnlyVerb = "--tray";
 
+    /// <summary>The verb that prints what this build calls itself.</summary>
+    /// <remarks>
+    /// These three were string literals in the router until DD100. That mattered because the test
+    /// named for verb coverage checks a list, and a verb with no constant to reflect over is one
+    /// nothing can enumerate — which is how <c>--capture-window</c> and <c>--tray</c> went missing
+    /// from that list, silently, while it stayed green.
+    /// </remarks>
+    public const string VersionVerb = "--version";
+
+    /// <inheritdoc cref="VersionVerb"/>
+    public const string HelpVerb = "--help";
+
+    /// <inheritdoc cref="VersionVerb"/>
+    public const string HelpShortVerb = "-h";
+
     /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
     public const string CaptureWindowVerb = "--capture-window";
 
@@ -184,8 +199,8 @@ public static class CommandLine
 
         return first switch
         {
-            "--version" => new Route(Surface.Version, OpenWindow: false, []),
-            "-h" or "--help" => new Route(Surface.Help, OpenWindow: false, []),
+            VersionVerb => new Route(Surface.Version, OpenWindow: false, []),
+            HelpShortVerb or HelpVerb => new Route(Surface.Help, OpenWindow: false, []),
             _ => new Route(Surface.Unknown, OpenWindow: false, arguments),
         };
     }
@@ -219,8 +234,8 @@ public static class CommandLine
           --watch          print /events as they happen, until Ctrl+C
           --autostart      on | off | status  - off unless you turn it on
 
-          --version        what this build calls itself
-          --help           this
+          {VersionVerb}        what this build calls itself
+          {HelpVerb}           this, and {HelpShortVerb} does the same
 
         Exit code 0 means the verb finished; 1 names what stopped it; 2 is an argument
         this executable does not have.

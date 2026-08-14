@@ -52,6 +52,7 @@
 - ✅ **DD104** **The water's second repeat is never drawn, so the drift empties the band from the right instead of moving it** — Every layer is now arranged at the width it is drawn at, so the drift moves water rather than withdrawing it, and the far layer's direction and each layer's own rise are the site's.
 - ✅ **DD105** **Nothing can be typed into the window: the WinForms pump drops every key press the WPF windows need** — A WinForms IMessageFilter now offers every thread message to ComponentDispatcher before the pump translates it, which is the pass WPF's own loop performs, so the filter box, Tab and Escape work.
 - ✅ **DD99 (the size at draw time)** **The tray icon is always drawn at 16 pixels, so the per-monitor-DPI manifest buys a shell-scaled icon anyway** — `StateIcon.Icon` asks Windows for the notification area's size instead of taking 16, so the tray draws 32 on a 200% display rather than being stretched to it.
+- ✅ **DD100** **The test named for verb coverage checks a hand-written list, so a verb added to the router is asserted by nothing** — Every verb is a declared constant the test reflects over, and a second guard refuses a string literal in the router, so neither route to an undocumented verb is open.
 
 ## Block D — Container operations (what a user came to do)
 

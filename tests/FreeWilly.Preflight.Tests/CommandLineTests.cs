@@ -151,20 +151,89 @@ public sealed class CommandLineTests
         // documented in neither is a verb nobody can find. There is one text now; this is what
         // keeps it honest when a verb is added to the router.
         var help = CommandLine.HelpText;
+        var verbs = DeclaredVerbs();
 
-        foreach (var verb in CommandLine.EngineVerbs)
+        // The count is asserted so the reflection cannot quietly find nothing. A rename of the
+        // "Verb" suffix would otherwise turn this into a loop over an empty list — which is the
+        // shape of the defect it replaces, not a fix for it.
+        Assert.True(verbs.Count >= 15, $"only {verbs.Count} verbs were found to check");
+
+        foreach (var verb in verbs)
         {
             Assert.Contains(verb, help, StringComparison.Ordinal);
         }
 
-        Assert.Contains(CommandLine.PreflightVerb, help, StringComparison.Ordinal);
-        Assert.Contains(CommandLine.WindowVerb, help, StringComparison.Ordinal);
-        Assert.Contains(CommandLine.TrayOnlyVerb, help, StringComparison.Ordinal);
-        Assert.Contains(CommandLine.CaptureWindowVerb, help, StringComparison.Ordinal);
-        Assert.Contains(CommandLine.ShowMenuVerb, help, StringComparison.Ordinal);
-        Assert.Contains("--version", help, StringComparison.Ordinal);
-        Assert.Contains("--help", help, StringComparison.Ordinal);
         Assert.Contains(CommandLine.ExecutableName, help, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every verb this executable declares, found rather than listed (DD100).</summary>
+    /// <remarks>
+    /// What stood here was a hand-written list of names beside a loop over <c>EngineVerbs</c>, and
+    /// <c>--capture-window</c> and <c>--tray</c> had both gone missing from it, silently, while it
+    /// stayed green — so a test called "every verb that routes somewhere" was asserting about
+    /// whichever verbs somebody had remembered.
+    /// </remarks>
+    private static IReadOnlyList<string> DeclaredVerbs()
+    {
+        var found = new List<string>(CommandLine.EngineVerbs);
+
+        foreach (var type in new[] { typeof(CommandLine), typeof(AgentSurface) })
+        {
+            found.AddRange(type
+                .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                .Where(field => field is { IsLiteral: true, IsInitOnly: false })
+                .Where(field => field.FieldType == typeof(string))
+                .Where(field => field.Name.EndsWith("Verb", StringComparison.Ordinal))
+                .Select(field => (string)field.GetRawConstantValue()!));
+        }
+
+        return found;
+    }
+
+    [Fact]
+    public void Every_verb_the_router_matches_on_is_one_it_declares()
+    {
+        // The other half, and the one that closes the hole. Reflection finds a verb that was given
+        // a constant; a verb typed straight into `Of` as a literal is invisible to it, and that is
+        // exactly how a route gets added without the help ever hearing about it. So the router's
+        // own body is read: since DD100 it compares against constants alone, and any string literal
+        // appearing there is a verb nobody declared.
+        var source = File.ReadAllText(System.IO.Path.Combine(
+            RepositoryRoot(), "src/FreeWilly.Tray/Cli/CommandLine.cs"));
+
+        var start = source.IndexOf("public static Route Of(", StringComparison.Ordinal);
+        Assert.True(start > 0, "the router was renamed and this guard now reads nothing");
+
+        var end = source.IndexOf("\n    }", start, StringComparison.Ordinal);
+        Assert.True(end > start, "the end of the router was not found");
+
+        var body = source[start..end]
+            .Split('\n')
+            .Select(line => line.TrimStart())
+            .Where(line => !line.StartsWith("//", StringComparison.Ordinal));
+
+        var literals = System.Text.RegularExpressions.Regex
+            .Matches(string.Join('\n', body), "\"([^\"]*)\"")
+            .Select(match => match.Groups[1].Value)
+            .ToList();
+
+        Assert.True(
+            literals.Count == 0,
+            "the router matches on string literals rather than declared verbs, so nothing can "
+            + $"enumerate them for the help: {string.Join(", ", literals)}");
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null
+            && !File.Exists(System.IO.Path.Combine(directory.FullName, "FreeWilly.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.True(directory is not null, "the repository root was not found above the test binaries");
+        return directory!.FullName;
     }
 
     // ---- the verb that opens a popup so something can photograph it (DD67) --------------------

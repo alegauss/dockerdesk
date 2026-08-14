@@ -30,7 +30,6 @@
 ## Block H — The public surface (the site a reader and an agent both read)
 
 - 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59
-- 📋 **DD60** (deps: —) **Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them** — The guard denies the edit, so each one moves through the verb that owns it, and a ledger naming a product nobody can find is where a stale name actively misleads. → §DD60
 - 📋 **DD71** (deps: —) **README and the site still name the product and the distribution as they were before the rename** — One line is not merely stale but wrong: it says the distribution is called dockerdesk, which after DD55 is only true of an install that was adopted. → §DD71
 
 ## Non-goals
@@ -50,7 +49,7 @@
 - **A resident background service** The complaint this project answers is a desktop app
   holding gigabytes at every boot. Both the app and the engine run when asked, and
   autostart stays a setting the user turns on.
-- **A model, prompts or API keys** DockerDesk is the substrate an external agent drives,
+- **A model, prompts or API keys** FreeWilly is the substrate an external agent drives,
   never a place intelligence lives: the caller already has a model, and hosting one
   would end the free, offline, no-account tool this is.
 - **A second Docker CLI** The agent surface answers the joins the Engine API cannot

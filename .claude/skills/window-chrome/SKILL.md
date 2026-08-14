@@ -1,6 +1,6 @@
 ---
 name: window-chrome
-description: How DockerDesk's WPF windows are formatted. Use whenever touching MainWindow, LogWindow, XAML, styles, colours, fonts, or anything a user sees — and before adding a new window, page, row or chip.
+description: How FreeWilly's WPF windows are formatted. Use whenever touching MainWindow, LogWindow, XAML, styles, colours, fonts, or anything a user sees — and before adding a new window, page, row or chip.
 ---
 
 # Window chrome — claude-tray is the reference
@@ -15,7 +15,7 @@ Its source lives in `src/Ui/`. The files worth reading first are `Brand.cs`,
 
 ## What has already been borrowed, and how
 
-**`Brand.cs` → `src/DockerDesk.Tray/Ui/Palette.cs` (DD34).** A colour whose meaning is
+**`Brand.cs` → `src/FreeWilly.Tray/Ui/Palette.cs` (DD34).** A colour whose meaning is
 not a free choice is declared **once, as bytes**, and each edge converts:
 
 - GDI+ (`System.Drawing.Color`) for the tray icon
@@ -48,15 +48,15 @@ Found by capturing the window and comparing, not by reasoning. Do not undo them:
 
 ## Always capture before and after
 
-`DockerDesk.exe --capture-window <png> [containers|images|volumes]` renders the window
+`FreeWilly.exe --capture-window <png> [containers|images|volumes]` renders the window
 off-screen and needs no desktop. A change that is meant to be invisible must produce a
 **byte-identical** PNG:
 
 ```
-dotnet publish src/DockerDesk.Tray -c Release
-DockerDesk.exe --capture-window before.png containers
+dotnet publish src/FreeWilly.Tray -c Release
+FreeWilly.exe --capture-window before.png containers
 # ...change...
-DockerDesk.exe --capture-window after.png containers
+FreeWilly.exe --capture-window after.png containers
 cmp before.png after.png
 ```
 

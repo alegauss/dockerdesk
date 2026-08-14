@@ -231,29 +231,6 @@ The repository rename is not a write this project can make, so sequencing is the
 risk: the base path and the repository name have to change in the same window, or the
 published site returns 404 on every route it has.
 
-### §DD60 The old name in the governed files leaves by verb or not at all
-
-Fifteen lines of governed prose name the product: one in `ROADMAP.md` — the non-goal
-beginning "A model, prompts or API keys", which says DockerDesk is the substrate an
-external agent drives — five in `CHANGELOG.md`, and nine in `IMPROVEMENTS.md`. The guard
-denies an `Edit` to every one of them, so each moves through the verb that owns it:
-`restate` or `amend` for a task line, `section` for rationale prose, `record` for a
-ledger entry, `non-goal amend` for the bullet.
-
-The count only shrinks from here, which is an argument for doing this late rather than
-first: a `ship` drops the rationale section it retires, so an old name inside an
-unshipped section leaves with its task. Doing it at all is the point, though, because
-`CHANGELOG.md` is the ledger a reader consults for what this product has done, and a
-ledger naming a product nobody can find is the one file where the stale name actively
-misleads.
-
-Outside `docs/`, `.claude/skills/dockerdesk-roadmap-docs/` is a directory name that
-`.claude/settings.json` and every invocation of the skill spell out, and the skill's own
-prose names the project throughout. What does not change is `roadkeep.toml`'s `prefix =
-"DD"`: renumbering the ids would rewrite every dependency, every section anchor and
-every pushed commit message that cites one, to say the same thing in two different
-letters.
-
 ### §DD71 The public prose fell through the gap the rename set carved
 
 The rename set carved the tree up by ownership, and the public prose fell through the

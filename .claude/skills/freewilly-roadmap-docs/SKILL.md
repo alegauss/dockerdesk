@@ -1,9 +1,9 @@
 ---
-name: dockerdesk-roadmap-docs
-description: How work on DockerDesk is finished and committed — the one-task-one-commit rule (`run-commit.cmd -m "<ascii title>"` the moment a DD task is validated, code + roadkeep doc sync in that single commit), batching a run of tasks under /loop, and the fact that docs/ROADMAP.md, docs/CHANGELOG.md and docs/IMPROVEMENTS.md are owned by the roadkeep CLI and never hand-edited. Use whenever starting, shipping or retiring a DD task, adding new work to the backlog (reuse an existing block; a new block is a last resort and must be generic), working through a block or a list of DD-numbers, marking something shipped, or about to commit anything in this repo. Covers roadkeep, roadkeep.toml, DD numbering, block placement, and where the commit boundary falls.
+name: freewilly-roadmap-docs
+description: How work on FreeWilly is finished and committed — the one-task-one-commit rule (`run-commit.cmd -m "<ascii title>"` the moment a DD task is validated, code + roadkeep doc sync in that single commit), batching a run of tasks under /loop, and the fact that docs/ROADMAP.md, docs/CHANGELOG.md and docs/IMPROVEMENTS.md are owned by the roadkeep CLI and never hand-edited. Use whenever starting, shipping or retiring a DD task, adding new work to the backlog (reuse an existing block; a new block is a last resort and must be generic), working through a block or a list of DD-numbers, marking something shipped, or about to commit anything in this repo. Covers roadkeep, roadkeep.toml, DD numbering, block placement, and where the commit boundary falls.
 ---
 
-# DockerDesk — finishing a task
+# FreeWilly — finishing a task
 
 ## ⛔ READ FIRST — one task, one commit (non-negotiable)
 

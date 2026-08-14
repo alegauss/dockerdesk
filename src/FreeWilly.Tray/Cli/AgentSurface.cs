@@ -290,10 +290,11 @@ public static class AgentSurface
             if (mine)
             {
                 // The daemon attaches an object's labels to its events, so narrowing costs no extra
-                // call. An event carrying no labels at all is somebody else's by definition.
+                // call. An event carrying no labels at all is somebody else's by definition, and one
+                // stamped before the rename is still the caller's own (DD72) — which is why the match
+                // goes through SessionLabel rather than reading a key out of the attributes here.
                 events = [.. events.Where(e =>
-                    e.Actor.Attributes.TryGetValue(SessionLabel.Key, out var stamped)
-                    && string.Equals(stamped, session, StringComparison.Ordinal))];
+                    SessionLabel.Owns(e.Actor.Attributes, session))];
             }
 
             var delta = ChangeFeed.Collapse(events, until);

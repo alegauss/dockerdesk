@@ -220,7 +220,7 @@ What an agent created is indistinguishable from what you created, so the only cl
 offer is `prune` — scoped to the whole machine, unable to tell this afternoon's
 scaffolding from the database you have been filling since March, and therefore the one
 command nobody delegates. Everything created through `do` is stamped
-`dockerdesk.session=<id>`, `read changes` answers from that label and never from a
+`freewilly.session=<id>`, `read changes` answers from that label and never from a
 timestamp, and the undo is scoped to it:
 
 ```

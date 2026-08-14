@@ -25,7 +25,23 @@ namespace FreeWilly.Core.Agent;
 public static class SessionLabel
 {
     /// <summary>The label key every created object carries.</summary>
-    public const string Key = "dockerdesk.session";
+    public const string Key = "freewilly.session";
+
+    /// <summary>What was stamped before the rename, and is still read (DD72).</summary>
+    /// <remarks>
+    /// A label is state on somebody's machine rather than spelling in a build, so a build that merely
+    /// respelled this would compile, pass every test, and then answer <c>read changes --session</c>
+    /// with nothing on a machine full of the caller's own containers. <c>do reclaim --session</c> is
+    /// the worse half: finding nothing to remove reads as "there was nothing there" rather than as an
+    /// error, and the leftovers stay.
+    ///
+    /// <para>The Engine API cannot relabel an existing object — labels are set at creation, and the
+    /// only way to change one is to recreate the container, which is exactly what this surface refuses
+    /// to do to somebody's work. So the migration is read-both, write-new, the way DD55 resolves an
+    /// adopted install rather than rewriting it: a machine carries both keys for as long as the older
+    /// objects live, and nothing is lost in the middle.</para>
+    /// </remarks>
+    public const string LegacyKey = "dockerdesk.session";
 
     /// <summary>The variable that names the session.</summary>
     public const string Variable = "FREEWILLY_SESSION";
@@ -67,13 +83,34 @@ public static class SessionLabel
     public static IReadOnlyDictionary<string, string> For(string session) =>
         new Dictionary<string, string>(StringComparer.Ordinal) { [Key] = session };
 
+    /// <summary>
+    /// The session an object was stamped with, under either key, or <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// The one place both spellings are read, so every caller that asks "whose is this?" sees both
+    /// generations without each of them remembering to. <see cref="Key"/> wins where an object somehow
+    /// carries both: the current key is the one this build writes, so it is the one that is true.
+    /// </remarks>
+    /// <param name="labels">The object's labels.</param>
+    /// <returns>The session id it carries, or nothing.</returns>
+    public static string? StampedOn(IReadOnlyDictionary<string, string>? labels)
+    {
+        if (labels is null)
+        {
+            return null;
+        }
+
+        return labels.TryGetValue(Key, out var current) ? current
+            : labels.TryGetValue(LegacyKey, out var before) ? before
+            : null;
+    }
+
     /// <summary>Whether a set of labels says this object belongs to a session.</summary>
     /// <param name="labels">The object's labels.</param>
     /// <param name="session">The session id.</param>
     /// <returns><see langword="true"/> where it does.</returns>
     public static bool Owns(IReadOnlyDictionary<string, string>? labels, string session) =>
-        labels is not null
-        && labels.TryGetValue(Key, out var stamped)
+        StampedOn(labels) is { } stamped
         && string.Equals(stamped, session, StringComparison.Ordinal);
 
     /// <summary>Whether an id names a derived scope rather than a piece of work.</summary>

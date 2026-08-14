@@ -186,31 +186,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD72 The session label is read back, so respelling it loses a session
-
-`SessionLabel.Key` is `"dockerdesk.session"`, the last name in the rename set that is
-state rather than spelling. It survived the sweep because changing it would have
-compiled and every test would still have passed.
-
-It is written onto containers and volumes and read back by `read changes --session` and
-`do reclaim --session`, which is how an agent asks what it made and removes exactly that
-and nothing else. A build that simply spells it `freewilly.session` stops seeing
-everything a previous build labelled: `read changes --session` answers empty on a
-machine full of the caller's own containers, and `do reclaim --session` finds nothing to
-remove — the worse of the two, because it reads as "there was nothing there" rather than
-as an error.
-
-That is DD55's shape exactly, and DD55's answer is the one to weigh first: resolve
-rather than rewrite. A read that matched either key would see both generations, and a
-write that used the new one would stop adding to the old. What that costs is a machine
-holding two label keys for a while, and what it buys is that nobody loses a session
-mid-migration.
-
-The alternative is to relabel on sight — rewriting a container's labels is not something
-the Engine API offers without recreating the container, which is exactly the thing this
-surface refuses to do to somebody's work. So it is probably read-both, write-new, with
-the old key spelled once beside the distribution's in `EnginePaths.Legacy`.
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ### §DD59 The published surface is a path, not just prose

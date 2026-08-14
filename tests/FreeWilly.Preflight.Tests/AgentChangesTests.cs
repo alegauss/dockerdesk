@@ -22,11 +22,17 @@ public sealed class AgentChangesTests
         $"events?since={since.ToUnixTimeSeconds()}&until={Now.ToUnixTimeSeconds()}";
 
     /// <summary>Two containers moving, one of them this session's.</summary>
+    /// <remarks>
+    /// The first crash carries the label spelled the way the build before the rename wrote it and the
+    /// second carries today's, because that is the machine a caller is actually on during the
+    /// migration (DD72). A narrowing that knew only one key would report half a crash loop, which is
+    /// worse than reporting none: two restarts and one exit reads like a container that settled.
+    /// </remarks>
     private const string Events = """
         {"Type":"container","Action":"start","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","dockerdesk.session":"repro-17"}},"time":1}
         {"Type":"container","Action":"die","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","dockerdesk.session":"repro-17","exitCode":"137"}},"time":2}
-        {"Type":"container","Action":"start","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","dockerdesk.session":"repro-17"}},"time":3}
-        {"Type":"container","Action":"die","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","dockerdesk.session":"repro-17","exitCode":"137"}},"time":4}
+        {"Type":"container","Action":"start","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","freewilly.session":"repro-17"}},"time":3}
+        {"Type":"container","Action":"die","Actor":{"ID":"aaaa","Attributes":{"name":"shop-worker-1","freewilly.session":"repro-17","exitCode":"137"}},"time":4}
         {"Type":"container","Action":"stop","Actor":{"ID":"bbbb","Attributes":{"name":"theirs-db-1"}},"time":5}
         """;
 
@@ -109,14 +115,18 @@ public sealed class AgentChangesTests
         await using var daemon = new FakeDockerDaemon()
             .Fails(Path("_ping"), "200 OK", "OK")
             .Json(Path("containers/json?all=1"),
-                """[{"Id":"aaaa","Names":["/mine-a"],"Image":"shop/api:latest","State":"exited","Labels":{"dockerdesk.session":"repro-17"},"Ports":[]}]""")
+                """[{"Id":"aaaa","Names":["/mine-a"],"Image":"shop/api:latest","State":"exited","Labels":{"dockerdesk.session":"repro-17"},"Ports":[]},"""
+                + """{"Id":"bbbb","Names":["/mine-b"],"Image":"shop/api:latest","State":"exited","Labels":{"freewilly.session":"repro-17"},"Ports":[]}]""")
             .Json(Path("volumes"), """{"Volumes":[]}""");
         var output = new StringWriter();
 
         var code = Changes(daemon, ["--session", Session], output);
 
         Assert.Equal(0, code);
+
+        // One made before the rename and one after, both this session's (DD72).
         Assert.Contains("mine-a", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("mine-b", output.ToString(), StringComparison.Ordinal);
         Assert.DoesNotContain(daemon.Requested, line => line.Contains("events", StringComparison.Ordinal));
     }
 

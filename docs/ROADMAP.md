@@ -26,8 +26,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD72** (deps: —) **The session label key is the last name in the rename set that is state on a machine rather than spelling in a build** — read changes and do reclaim both answer from that label, so a build that simply respells it stops seeing every container a previous one created. → §DD72
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 - 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59

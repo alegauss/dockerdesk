@@ -137,7 +137,7 @@ export const heroSession = {
   target: "This session: ≈5 calls · ~2–5k tokens · 0 interruptions",
   note: [
     "A scripted session — the costs are ",
-    { b: "targets DD23 must prove or falsify" },
+    { b: "targets the benchmark must prove or falsify" },
     ", acceptance criteria and not measurements. Steps 1, 2, 3 and 5 are reads, so one allowlist line — ",
     { code: "Bash(freewilly read:*)" },
     " — removes every prompt on the inspection path while step 4 still asks.",
@@ -171,11 +171,7 @@ export const operator = {
     },
   ],
   actorsNote: [
-    "The desktop path is not sacrificed — it is what the installer and the tray (",
-    { code: "DD14" },
-    ", ",
-    { code: "DD15" },
-    ", Block C) are for, and the agent surface does not start until they ship.",
+    "The desktop path is not sacrificed — the installer, the tray and the window are what it is for, and they landed before the agent surface did rather than after.",
   ] as Rich,
   lawsEyebrow: "The design laws",
   lawsHeading: "Ten laws, in the order an agent meets them",
@@ -656,17 +652,13 @@ export const claudeCode = {
     { code: "docker" },
     " call — which permits deleting a volume — or approves each one. Splitting the verbs in argv makes it one line of settings, and what that buys is not keystrokes: it is the removal of an interruption from the 90% of agent Docker work that mutates nothing.",
   ] as Rich,
-  // The badges and the count in this banner are read off the verb registry itself (S1, S2),
-  // so what follows is the copy around them and never the figure. The claim this replaces —
-  // "the designed surface, not a shipped one" — is exactly the claim that went false the day
-  // DD24 landed, and nothing on the page failed when it did.
-  statusLead: "verbs exist today.",
+  // The count is read off the verb registry itself (S1, S2), so what follows is the copy
+  // around it and never the figure. The banner used to name the block the rest was designed
+  // under, which is an address that resolves only inside this repository (DD90) — a reader
+  // meeting "Block G" has no way to look it up and no reason to care.
+  statusLead: "verbs, and every one of them exists.",
   status: [
-    "The rest of the surface below is designed under ",
-    { b: "Block G" },
-    " and the plugin is ",
-    { b: "DD32" },
-    ". Every badge on this page is read off the verb registry in the build, so a verb that lands moves its own badge.",
+    "The list below is the registry the build reads, so a verb that has not landed is not on it — and the ceiling beside each one is the figure a build fails on rather than a number this page claims.",
   ] as Rich,
   allowlistHeading: "The one line that pays for it",
   allowlistLead: "One entry in .claude/settings.json:",
@@ -680,6 +672,13 @@ export const claudeCode = {
   // `k` is the verb as it is typed, which is also the key its ceiling lives under in
   // agent-budget.json and the string the registry dispatches on — so one field joins a row
   // to both generated sources, and a row for a verb nobody named cannot claim to exist.
+  //
+  // Every row here is a verb the registry dispatches (DD90). It used to list five more —
+  // read disk, read path, do start, do rm, do prune — under a "designed" mark, and a page
+  // that lists what does not exist is asserting it does: the reader who runs `do prune`
+  // finds out this page was a plan. The mark went with them rather than the list being
+  // unmarked, which would have made the same claim silently. `surface.test.mjs` still
+  // fails on a row whose `k` the registry does not carry, so this list cannot drift back.
   readHeading: "read — the inspection path (no prompt)",
   read: [
     { k: "read context", v: "context", d: "the whole machine in one budgeted, terse payload — engine, services, ports, disk, cursor" },
@@ -687,25 +686,18 @@ export const claudeCode = {
     { k: "read logs", v: "logs <name>", d: "deduped and budgeted, written to a file the agent Greps — paying for matches, not the whole log" },
     { k: "read ps", v: "ps", d: "the container list, addressed by name, with a cursor" },
     { k: "read ports", v: "ports", d: "what is published, and whether it actually listens from Windows" },
-    { k: "read disk", v: "disk", d: "images and volumes — what is dangling, what is unused" },
     { k: "read changes", v: "changes --since <cur>", d: "the delta since last session, so N+1 is cheaper than N" },
     { k: "read verify", v: "verify <target>", d: "cheap textual proof a service answers — the agent cannot see" },
-    { k: "read path", v: "path <name>", d: "resolve a name to its id and paths" },
   ],
   doHeading: "do — the mutating path (still asks)",
   do: [
-    { k: "do start", v: "start · stop · restart", d: "lifecycle, by name" },
-    { k: "do rm", v: "rm", d: "remove, behind a confirm token" },
-    { k: "do compose", v: "compose", d: "shells out to the compose you already have, with --wait" },
+    { k: "do compose up", v: "compose up", d: "brings the project here up, stamped so do reclaim can take it back" },
     { k: "do engine", v: "engine", d: "start or stop the engine itself" },
     { k: "do reclaim", v: "reclaim", d: "an undo scoped to this session's own labels" },
-    { k: "do prune", v: "prune", d: "the machine-wide cleanup — still explicit, never implicit" },
   ],
   pluginHeading: "The plugin that makes it discoverable",
   pluginBody: [
-    "A surface nobody discovers is one nobody uses, and the moment it is discoverable is the moment the installer runs. So the Claude Code plugin — the skill, the allowlist entry, and a project brief generated from the live machine — is ",
-    { code: "DD32" },
-    ", filed under the installer because that is what it is.",
+    "A surface nobody discovers is one nobody uses, and the moment it is discoverable is the moment the installer runs. So the Claude Code plugin — the skill, the allowlist entry, and a project brief generated from the live machine — ships with the install rather than being something to go and find.",
   ] as Rich,
   refusesHeading: "What it deliberately refuses",
   refusesLead: [
@@ -768,7 +760,6 @@ export const friction = {
       here: {
         cmd: "freewilly read context",
         verb: "read context",
-        task: "DD25",
         body: [
           "One payload: the engine, every container with its state and compose address, the published ports, the disk, and a cursor that fingerprints the machine. Sorted by name, so it caches and a diff means something. It also answers the canonical question — ",
           { code: "OOM  limit=512m" },
@@ -788,7 +779,6 @@ export const friction = {
       here: {
         cmd: "freewilly read doctor api",
         verb: "read doctor",
-        task: "DD26",
         body: [
           "The same join, returned as a verdict and a remedy per row, over the model the preflight already uses: state, memory, restarts, health, ports and mounts. What comes back is the conclusion and the action, not the fields they were read from.",
         ] as Rich,
@@ -807,7 +797,6 @@ export const friction = {
       here: {
         cmd: "freewilly read logs api --dedup --level warn --out .freewilly/logs/api.log",
         verb: "read logs",
-        task: "DD27",
         body: [
           { code: "--dedup" },
           " collapses an identical line to one and a count, across the whole read rather than only adjacent ones — the copies of a trace are separated by everything each run printed. ",
@@ -828,7 +817,6 @@ export const friction = {
       },
       here: {
         cmd: "truncated 37 more line(s) — budget reached, read on from the cursor",
-        task: "DD27",
         body: [
           "Every budgeted payload here cuts from the end, states how much it cut, and prints the cursor to read on from. A silent truncation is the one thing a ceiling must not become, so it is the property the tests hold rather than the size.",
         ] as Rich,
@@ -848,7 +836,6 @@ export const friction = {
       },
       here: {
         cmd: "freewilly read doctor svc:shop/api",
-        task: "DD24",
         body: [
           "The address is the name: the container's, or ",
           { code: "svc:<project>/<service>" },
@@ -871,11 +858,14 @@ export const friction = {
       here: {
         cmd: "freewilly read verify svc:shop/api",
         verb: "read verify",
-        task: "DD30",
         body: [
           "FreeWilly is a Windows process, so it can join what the daemon cannot: whether the host port actually listens, which PID holds it, whether a rival engine is answering the pipe, whether a stale context is pointing the CLI elsewhere. ",
           { code: "read doctor" },
-          " already carries the port fact; the standalone proof is DD30 and the refusal that names the process holding the port is DD28.",
+          " already carries the port fact; ",
+          { code: "read verify" },
+          " is the standalone proof, and ",
+          { code: "read ports" },
+          " is the refusal that names the process holding the port.",
         ] as Rich,
       },
     },
@@ -894,7 +884,6 @@ export const friction = {
       },
       here: {
         cmd: "Bash(freewilly read:*)",
-        task: "DD24",
         body: [
           "Reads and writes are separate words in argv, so the rule is one line — and it is enforced under it: a read verb is written against a handle with no start, no remove and no prune on it, and a test drives every one of them and requires each request it made to be a GET.",
         ] as Rich,
@@ -910,9 +899,8 @@ export const friction = {
       },
       here: {
         cmd: "freewilly read changes --since c:4f21a0",
-        task: "DD31",
         body: [
-          "Every pack already prints a state cursor, and the tray already holds the engine's event stream open for the window — so the delta is a cursor over a stream the user started rather than a daemon this adds. That is DD31, and it is the only mechanism that makes a second session cheaper than the first.",
+          "Every pack already prints a state cursor, and the tray already holds the engine's event stream open for the window — so the delta is a cursor over a stream the user started rather than a daemon this adds. It is the only mechanism here that makes a second session cheaper than the first.",
         ] as Rich,
       },
     },
@@ -972,7 +960,7 @@ export const compare = {
     {
       law: "For an agent",
       rows: [
-        { cap: "Read/do split at the argv level", cells: ["✓†", "✗", "✗", "✗", "✗"] },
+        { cap: "Read/do split at the argv level", cells: ["✓", "✗", "✗", "✗", "✗"] },
       ],
     },
     {
@@ -985,7 +973,6 @@ export const compare = {
       ],
     },
   ],
-  tableNote: "† designed under Block G — not shipped yet.",
   winsHeading: "What each alternative is genuinely better at",
   wins: [
     { name: "Docker Desktop", body: "Kubernetes, an extensions marketplace, a build cloud, and somebody to call. Pick it when you need those, or want a vendor on the hook." },

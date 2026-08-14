@@ -67,7 +67,6 @@ export function Compare() {
               </tbody>
             </table>
           </div>
-          <p className="cmp-note reveal">{cmp.tableNote}</p>
         </div>
       </section>
 

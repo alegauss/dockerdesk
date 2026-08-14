@@ -1,6 +1,5 @@
 import { claudeCode as cc, friction } from "../lib/site-content";
-import { ceiling, isShipped, measured, shippedCount, surface, thousands } from "../lib/surface";
-import { hasShipped, taskById } from "../lib/roadmap";
+import { ceiling, measured, shippedCount, surface, thousands } from "../lib/surface";
 import { Nav } from "../components/Nav";
 import { Footer } from "../components/Footer";
 import { Rich } from "../components/ui/Rich";
@@ -14,18 +13,16 @@ function VerbList({ heading, verbs }: { heading: string; verbs: Verb[] }) {
       <h3 className="verbs-head">{heading}</h3>
       <div className="verbs">
         {verbs.map((verb) => {
-          // S1: the badge is read off the verb registry in the build (scripts/surface.mjs),
-          // never typed here — so the day a verb lands, its own row stops saying "designed".
-          const shipped = isShipped(verb.k);
+          // No shipped/designed mark (DD90): every row here is a verb the registry
+          // dispatches, so the mark had one value and said it fifteen times. The claim it
+          // used to carry is now carried by the list itself, and the assertion that keeps
+          // that true is in surface.test.mjs rather than in a badge a reader has to read.
           const cap = ceiling(verb.k);
           return (
-            <div className={shipped ? "verb verb-shipped" : "verb"} key={verb.k}>
-              {/* a <p>, so the twin keeps the verb, its badge and its ceiling on one line */}
+            <div className="verb verb-shipped" key={verb.k}>
+              {/* a <p>, so the twin keeps the verb and its ceiling on one line */}
               <p className="verb-head">
                 <code className="verb-name">{verb.v}</code>{" "}
-                <span className={shipped ? "verb-mark shipped" : "verb-mark"}>
-                  {shipped ? "shipped" : "designed"}
-                </span>{" "}
                 {cap !== null && <span className="verb-cap">≤ {cap} tok</span>}
               </p>
               <span className="verb-desc">{verb.d}</span>
@@ -41,14 +38,12 @@ function VerbList({ heading, verbs }: { heading: string; verbs: Verb[] }) {
  * One friction: what the command costs today, and the verb that replaces it.
  *
  * Both figures are generated. `shape` keys into the measured baseline and throws on a shape
- * the benchmark does not measure; `task` keys into the roadmap and throws on an id it does
- * not carry. So a row cannot outlive the thing it is about (S1, S2).
+ * the benchmark does not measure; `verb` keys into the budget file's ceilings and the
+ * registry's own list. So a row cannot outlive the thing it is about (S1, S2).
  */
 function Friction({ item }: { item: (typeof friction.items)[number] }) {
   const cost = "shape" in item.today && item.today.shape ? measured(item.today.shape) : null;
   const cap = "verb" in item.here && item.here.verb ? ceiling(item.here.verb) : null;
-  const task = taskById(item.here.task);
-  const shipped = hasShipped(item.here.task);
 
   return (
     <article className="fr reveal">
@@ -76,18 +71,16 @@ function Friction({ item }: { item: (typeof friction.items)[number] }) {
           →
         </div>
         <div className="fr-side fr-here">
-          <p className="fr-label">
-            {friction.hereLabel}{" "}
-            <span className={shipped ? "fr-badge shipped" : "fr-badge"}>
-              {task.id} {shipped ? "shipped" : "designed"}
-            </span>
-          </p>
+          {/* No task id and no shipped mark (DD90): the id addressed this repository's
+              backlog and the mark restated what the verb's presence already says. The
+              ceiling below is the claim that matters, and a build fails on it. */}
+          <p className="fr-label">{friction.hereLabel}</p>
           <p className="fr-cmd">
             <code>{item.here.cmd}</code>
           </p>
           {cap !== null && (
             <p className="fr-cost">
-              <b>≤ {cap}</b> tok {shipped ? "ceiling" : "budgeted"}
+              <b>≤ {cap}</b> tok ceiling
             </p>
           )}
           <p className="fr-body">

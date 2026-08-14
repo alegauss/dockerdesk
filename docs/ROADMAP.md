@@ -35,8 +35,7 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD90** (deps: —) **Reader-facing pages print internal task ids and a per-verb progress mark: DD badges, Block G, shipped or designed** — An id resolving only inside this repository makes a feature list unreadable, and five of the fifteen verbs listed do not exist, so the mark cannot just be dropped. → §DD90
-- 📋 **DD91** (deps: DD90) **The site publishes a burndown of its own backlog: a board of every DD line, block progress bars and a next-task line** — Every basic capability has landed, so a page organised around how much is left measures what matters least, and answers a question only the author has. → §DD91
+- 📋 **DD91** (deps: DD90 ✅) **The site publishes a burndown of its own backlog: a board of every DD line, block progress bars and a next-task line** — Every basic capability has landed, so a page organised around how much is left measures what matters least, and answers a question only the author has. → §DD91
 - 📋 **DD92** (deps: —) **The hero badge and a section of its own still say the project is in development with nothing to download** — S10 tied that copy to DD15, which has shipped with DD14, so the framing now dates the site rather than informing a reader. → §DD92
 
 ## Non-goals

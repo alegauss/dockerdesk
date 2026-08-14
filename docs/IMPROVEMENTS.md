@@ -338,32 +338,6 @@ thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD90 DD90 - the site stops naming its own task ids
-
-A `DD25` badge beside a friction row, `Block G` in a sentence about the agent surface,
-and `DD32` named as what makes the plugin discoverable are one defect: a string that
-resolves only against this repository, printed for a reader who has never seen it.
-
-The per-verb `shipped` / `designed` mark is the harder half, because it is the status
-board's progress claim restated fifteen times. Dropping it naively breaks S1 rather than
-tidying: ten of the fifteen listed verbs are in the registry and five are not, so an
-unmarked list asserts that `do prune` and `read disk` exist, and whoever runs them finds
-they do not.
-
-So the page claims the inventory it has. The five the registry does not dispatch — `read
-disk`, `read path`, `do start`, `do rm`, `do prune` — come off the list, the badge goes
-with them, and `shippedCount()` stops being a headline figure. Nine working verbs argue
-better than fifteen with a third asterisked.
-
-The rest is prose. `Block G` and `DD32` leave `claudeCode.status` and `pluginBody`;
-`/compare` loses the `†` on its read/do row and the `tableNote` explaining it, a caveat
-that expired when the row came true; `llms.txt` loses its `roadmap DD14/DD15` pointer.
-The footer link into the governed docs stays, because an agent following it is the one
-reader the backlog answers.
-
-`surface.test.mjs` asserts every id the content names is still on the roadmap. That
-loses its subject here, and is deleted with the ids.
-
 ### §DD91 DD91 - the published surface stops tracking the backlog
 
 DD43 built the board against a real defect: the hand-written page listed five shipped

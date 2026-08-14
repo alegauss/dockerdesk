@@ -177,13 +177,13 @@ export const features: FeatureRecord[] = [
     slug: "agent-surface",
     title: "The agent surface — the context pack, read doctor, teaching errors",
     description:
-      "One budgeted context pack answers a session's opening questions; read doctor is the diagnostic join; and every refusal carries the Windows fact that explains it. The designed agent surface, Block G.",
+      "One budgeted context pack answers a session's opening questions; read doctor is the diagnostic join; and every refusal carries the Windows fact that explains it.",
     ogTitle: "FreeWilly — the agent surface",
     ogDescription: "The context pack, read doctor, and teaching errors with the Windows join.",
     eyebrow: "For an agent",
     heading: "The agent surface",
     lead: [
-      "The primary operator is a coding agent, and the surface is shaped for it: one call replaces a session, a file beats a stream, names are the address, and errors are instructions. This is the designed surface — Block G — not shipped yet.",
+      "The primary operator is a coding agent, and the surface is shaped for it: one call replaces a session, a file beats a stream, names are the address, and errors are instructions. Every verb below is one the CLI dispatches today.",
     ],
     sections: [
       {

@@ -116,7 +116,7 @@ it.
 
 ## Installation
 
-- **No packaged install exists yet** (roadmap DD14/DD15). What is planned: a per-user install
+- **No packaged install exists yet.** What is planned: a per-user install
   into `%LOCALAPPDATA%` with no administrator prompt, an uninstall that respects the user's
   data, and releases built by CI rather than on one developer's machine.
 - **From source** (needs the .NET 10 SDK and Windows 10 build 19041 or later):

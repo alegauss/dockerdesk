@@ -1,13 +1,16 @@
 // S1 — the friction section on /claude-code argues with the agent surface's own numbers and
 // its own inventory, and both are generated. This asserts the join in the direction the
-// bundle cannot: that every shape a row cites is one the benchmark measures, every verb it
-// prices is one the budget file gives a ceiling, and every task id it names is one the
-// roadmap still carries. A row whose subject was renamed or retired fails here rather than
-// rendering a blank where its whole argument was.
+// bundle cannot: that every shape a row cites is one the benchmark measures and every verb
+// it prices is one the budget file gives a ceiling. A row whose subject was renamed or
+// retired fails here rather than rendering a blank where its whole argument was.
+//
+// DD90 moved one more claim here. The verb list used to carry a shipped/designed mark per
+// row, so a row for a verb that did not exist was merely marked; now the list *is* the
+// claim, and the assertion that every row names a verb the registry dispatches is what
+// stops a plan being written back into it.
 //
 // It also holds the generator to its sources: the shipped list has to be the registry's, and
-// the measured baseline has to be the budget file's. A generator that quietly stopped
-// matching AgentSurface.All would otherwise leave every verb on the page marked "designed".
+// the measured baseline has to be the budget file's.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -29,13 +32,12 @@ function loadGenerated(file, exportName) {
 }
 
 const surface = loadGenerated("surface.generated.ts", "surface");
-const roadmap = loadGenerated("roadmap.generated.ts", "roadmap");
 const content = readFileSync(join(siteDir, "src", "lib", "site-content.ts"), "utf8");
 const budget = JSON.parse(readFileSync(join(repoRoot, "agent-budget.json"), "utf8"));
 
-// Every `shape:`, `verb:` and `task:` in the content module, which is where the friction
-// rows live. Reading the source rather than importing it keeps this a plain node --test with
-// no transpile step, the same trade the roadmap test makes.
+// Every `shape:`, `verb:` and `k:` in the content module — the first two are the friction
+// rows, the third is the verb list. Reading the source rather than importing it keeps this a
+// plain node --test with no transpile step.
 const cited = (field) => [
   ...new Set([...content.matchAll(new RegExp(`\\b${field}: "([^"]+)"`, "g"))].map((m) => m[1])),
 ];
@@ -88,10 +90,27 @@ test("every verb a friction row prices is one the budget file knows", () => {
   }
 });
 
-test("every task id the content names is still on the roadmap", () => {
-  const ids = new Set([...roadmap.open, ...roadmap.ledger].map((t) => t.id));
-  for (const id of cited("task")) {
-    assert.ok(ids.has(id), `the content names task ${id}, which the roadmap no longer carries`);
+test("every verb the page lists is one the registry dispatches (DD90)", () => {
+  // The page prints this list with no per-row mark, which asserts that all of it exists. It
+  // listed five that did not — read disk, read path, do start, do rm, do prune — under a
+  // "designed" badge, and a reader who ran one found out the page was a plan.
+  const listed = cited("k");
+  assert.ok(listed.length > 0, "the verb list is empty");
+  for (const verb of listed) {
+    assert.ok(
+      surface.shipped.includes(verb),
+      `the page lists "${verb}", which AgentSurface.All does not dispatch: `
+        + `${surface.shipped.join(", ")}`,
+    );
+  }
+});
+
+test("the page lists every verb the registry has, not just some of them (DD90)", () => {
+  // The other direction, and the one that goes wrong quietly: a verb that ships and never
+  // reaches the page is a capability nobody is told about, which no badge would have caught.
+  const listed = cited("k");
+  for (const verb of surface.shipped) {
+    assert.ok(listed.includes(verb), `the registry dispatches "${verb}" and the page omits it`);
   }
 });
 
@@ -100,5 +119,4 @@ test("the friction section still has rows on both sides of the split", () => {
   // and nothing else here would notice.
   assert.ok(cited("shape").length > 0, "no measured shape is cited anywhere");
   assert.ok(cited("verb").length > 0, "no verb is priced anywhere");
-  assert.ok(cited("task").length > 0, "no task is named anywhere");
 });

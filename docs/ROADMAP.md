@@ -10,9 +10,13 @@
 
 ## Block D — Container operations (what a user came to do)
 
+- 📋 **DD114** (deps: —) **Restarting a project reaches its database last, so its dependents end up pointing at one that restarted after them** — The fan-out splits on Start against everything else, but a restart is a stop and a start per container and what matters is the state each is left in. → §DD114
+
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)
+
+- 📋 **DD115** (deps: —) **Committed agent configuration is rewritten by whatever session is open, and a trimmed entry ships inside another change** — Nothing fails when a permission goes: a clone simply starts asking for tools this project already granted, and no test reads the file at all. → §DD115
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

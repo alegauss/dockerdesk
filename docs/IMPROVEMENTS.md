@@ -8,19 +8,24 @@ A bind source is a path the daemon resolves, and the daemon is Linux. Docker Des
 hides this: something in its stack rewrites a Windows drive path into a host mount
 inside the VM, which is why an inspect there reports a source under
 /run/desktop/mnt/host — the convention DD26 deliberately refuses to recognise. Nothing
-in this project does that rewriting, and the Windows CLI sends what it was given.
+in this project does that rewriting.
 
-So the paths that work here are the ones already spelled the distribution's way, through
-the automatic drive mounts Wsl.ToDistributionPath produces, and the mount row in doctor
-and verify was written to that expectation. The paths that fail are the ones a user
-actually types and the ones compose computes for them: a relative volume in a compose
-file is resolved against the project by a Windows binary, so it arrives as a drive path
-nobody chose.
+**Measured** against upstream `dockerd` 29.7.2 with no Docker Desktop in the path,
+driven by the pinned Windows CLI. It is not one failure but two, and which one you get
+is decided by the spelling:
 
-What has to be measured before anything is designed is which of the two failures this is
-— a daemon refusing a source that is not absolute, or a daemon quietly accepting a
-string and giving the container an empty directory. The second is the one the mount row
-exists to catch, and it is also the one that costs a user an afternoon.
+- `-v D:\project:/data` and `-v D:/project:/data` are **refused**: `Error response from
+  daemon: invalid mode: /data`. The daemon splits the spec on `:`, so the drive letter
+  becomes the source, the rest becomes the destination and `/data` becomes a mode. The
+  message names neither the path nor Windows.
+- `-v /mnt/d/project:/data`, the spelling `Wsl.ToDistributionPath` produces, is **accepted**.
+  The daemon creates the missing source, `inspect` reports it exactly as typed, the run exits
+  0, and `ls -A /data` prints nothing. An empty directory, silently.
+
+So converting a path to the distribution's spelling does not make the mount work. It
+converts a loud failure into the quiet one, unless that drive is really automounted
+inside the distribution the engine runs in — which is a property of this project's own
+distro and is the thing to establish next.
 
 ### §DD76 The other side of the pipe, and what it would cost
 

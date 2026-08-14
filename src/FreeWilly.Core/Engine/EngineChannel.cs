@@ -41,12 +41,16 @@ public sealed class WslSocatBackend : IEngineBackend
     private readonly string _socketPath;
 
     /// <summary>Construct a backend.</summary>
-    /// <param name="distribution">The owned distribution.</param>
+    /// <param name="distribution">
+    /// The owned distribution, or <see langword="null"/> to ask the machine which one this install
+    /// owns — which is the legacy name where an older install is being adopted (DD55).
+    /// </param>
     /// <param name="socketPath">Where the daemon listens inside it.</param>
     public WslSocatBackend(
-        string distribution = EnginePaths.DistributionName,
+        string? distribution = null,
         string socketPath = EngineLifecycle.SocketPath)
     {
+        distribution ??= new EnginePaths().DistributionName;
         ArgumentException.ThrowIfNullOrWhiteSpace(distribution);
         ArgumentException.ThrowIfNullOrWhiteSpace(socketPath);
         _distribution = distribution;

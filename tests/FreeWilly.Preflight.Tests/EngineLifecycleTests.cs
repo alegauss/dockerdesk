@@ -191,6 +191,15 @@ public sealed class EngineLifecycleTests
 
     private static string Pipe() => $"freewilly-test-{Guid.NewGuid():N}";
 
+    /// <summary>The distribution these tests pretend this install owns.</summary>
+    /// <remarks>
+    /// Passed rather than resolved (DD55). The lifecycle otherwise asks the machine which name it
+    /// owns, and a developer whose laptop carries an install made before the rename would run a
+    /// suite that answers <c>dockerdesk</c> where every fixture here says <c>freewilly</c> — a test
+    /// that passes or fails on what is registered outside the repository.
+    /// </remarks>
+    private const string Owned = "freewilly";
+
     // ---- reading a reply --------------------------------------------------------------------
 
     [Fact]
@@ -311,7 +320,7 @@ public sealed class EngineLifecycleTests
         var wsl = new FakeWsl();
         wsl.Default = new WslResult(0, "Ubuntu\r\n", null);
         await using var engine = new EngineLifecycle(
-            wsl, new FakeDaemon(), new FakeBackend(Ok200), Pipe());
+            wsl, new FakeDaemon(), new FakeBackend(Ok200), Pipe(), Owned);
 
         var status = await engine.StartAsync(TimeSpan.FromSeconds(2));
 
@@ -323,9 +332,9 @@ public sealed class EngineLifecycleTests
     public async Task A_daemon_that_dies_while_starting_names_its_log_rather_than_timing_out()
     {
         var wsl = new FakeWsl();
-        wsl.Default = new WslResult(0, "dockerdesk\r\n", null);
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
         await using var engine = new EngineLifecycle(
-            wsl, new FakeDaemon(aliveWhenLaunched: false), new FakeBackend(null), Pipe());
+            wsl, new FakeDaemon(aliveWhenLaunched: false), new FakeBackend(null), Pipe(), Owned);
 
         var status = await engine.StartAsync(TimeSpan.FromSeconds(20));
 
@@ -339,9 +348,9 @@ public sealed class EngineLifecycleTests
         // Not Running and not Stopped: something is up and the engine is not usable, which is the
         // state the whole enum exists to be able to say.
         var wsl = new FakeWsl();
-        wsl.Default = new WslResult(0, "dockerdesk\r\n", null);
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
         await using var engine = new EngineLifecycle(
-            wsl, new FakeDaemon(), new FakeBackend(null), Pipe());
+            wsl, new FakeDaemon(), new FakeBackend(null), Pipe(), Owned);
 
         var status = await engine.StartAsync(TimeSpan.FromSeconds(3));
 
@@ -354,9 +363,9 @@ public sealed class EngineLifecycleTests
     public async Task A_start_that_reaches_an_answering_engine_is_Running_with_its_api_version()
     {
         var wsl = new FakeWsl();
-        wsl.Default = new WslResult(0, "dockerdesk\r\n", null);
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
         await using var engine = new EngineLifecycle(
-            wsl, new FakeDaemon(), new FakeBackend(Ok200), Pipe());
+            wsl, new FakeDaemon(), new FakeBackend(Ok200), Pipe(), Owned);
 
         var status = await engine.StartAsync(TimeSpan.FromSeconds(20));
 
@@ -369,10 +378,10 @@ public sealed class EngineLifecycleTests
     public async Task Stopping_stops_the_daemon_and_terminates_the_distribution()
     {
         var wsl = new FakeWsl();
-        wsl.Default = new WslResult(0, "dockerdesk\r\n", null);
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
         var daemon = new FakeDaemon();
         await using var engine = new EngineLifecycle(
-            wsl, daemon, new FakeBackend(Ok200), Pipe());
+            wsl, daemon, new FakeBackend(Ok200), Pipe(), Owned);
         await engine.StartAsync(TimeSpan.FromSeconds(20));
 
         var status = await engine.StopAsync();
@@ -381,7 +390,7 @@ public sealed class EngineLifecycleTests
         Assert.Equal(1, daemon.Stops);
         Assert.Contains(
             wsl.Invocations,
-            argv => argv.Length > 1 && argv[0] == "--terminate" && argv[1] == "dockerdesk");
+            argv => argv.Length > 1 && argv[0] == "--terminate" && argv[1] == "freewilly");
     }
 
     [Fact]
@@ -390,7 +399,7 @@ public sealed class EngineLifecycleTests
         var wsl = new FakeWsl();
         wsl.Default = new WslResult(0, "Ubuntu\r\n", null);
         var daemon = new FakeDaemon();
-        await using var engine = new EngineLifecycle(wsl, daemon, new FakeBackend(Ok200), Pipe());
+        await using var engine = new EngineLifecycle(wsl, daemon, new FakeBackend(Ok200), Pipe(), Owned);
 
         var status = await engine.StopAsync();
 
@@ -403,11 +412,11 @@ public sealed class EngineLifecycleTests
     public async Task Status_reports_Running_only_when_the_engine_answers()
     {
         var wsl = new FakeWsl();
-        wsl.Default = new WslResult(0, "dockerdesk\r\n", null);
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
         var pipe = Pipe();
         await using var relay = new EnginePipeRelay(new FakeBackend(Ok200), pipe);
         await using var engine = new EngineLifecycle(
-            wsl, new FakeDaemon(), new FakeBackend(Ok200), pipe);
+            wsl, new FakeDaemon(), new FakeBackend(Ok200), pipe, Owned);
 
         var before = await engine.StatusAsync();
         relay.Start();

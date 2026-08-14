@@ -42,11 +42,15 @@ public sealed class EngineLifecycle : IAsyncDisposable
     /// <param name="daemon">The daemon process.</param>
     /// <param name="backend">How the relay reaches the daemon.</param>
     /// <param name="pipeName">The pipe to serve; overridden in tests.</param>
+    /// <param name="distribution">
+    /// The distribution this install owns, or <see langword="null"/> to ask the machine (DD55).
+    /// </param>
     public EngineLifecycle(
         IWsl wsl,
         IDaemonProcess daemon,
         IEngineBackend backend,
-        string pipeName = EnginePipeRelay.DefaultPipeName)
+        string pipeName = EnginePipeRelay.DefaultPipeName,
+        string? distribution = null)
     {
         ArgumentNullException.ThrowIfNull(wsl);
         ArgumentNullException.ThrowIfNull(daemon);
@@ -55,14 +59,20 @@ public sealed class EngineLifecycle : IAsyncDisposable
         _daemon = daemon;
         _backend = backend;
         _pipeName = pipeName;
+        Distribution = distribution ?? new EnginePaths().DistributionName;
     }
+
+    /// <summary>
+    /// The distribution this install owns — the current name, or the legacy one where an install
+    /// made before the rename is being adopted (DD55).
+    /// </summary>
+    public string Distribution { get; }
 
     /// <summary>Whether the distribution this tool owns is registered at all.</summary>
     public bool DistributionRegistered =>
         _wsl.Run("--list", "--quiet").Output
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Any(line => line.Trim().Equals(
-                EnginePaths.DistributionName, StringComparison.OrdinalIgnoreCase));
+            .Any(line => line.Trim().Equals(Distribution, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Read the state, by asking the engine rather than by remembering what was asked.</summary>
     /// <param name="cancellation">Cancellation.</param>
@@ -80,7 +90,7 @@ public sealed class EngineLifecycle : IAsyncDisposable
         if (!DistributionRegistered)
         {
             return new EngineStatus(EngineState.Stopped,
-                $"{EnginePaths.DistributionName} is not registered — the engine is not installed");
+                $"{Distribution} is not registered — the engine is not installed");
         }
 
         return _daemon.Alive
@@ -102,7 +112,7 @@ public sealed class EngineLifecycle : IAsyncDisposable
         if (!DistributionRegistered)
         {
             return new EngineStatus(EngineState.Stopped,
-                $"{EnginePaths.DistributionName} is not registered — run the install first");
+                $"{Distribution} is not registered — run the install first");
         }
 
         var already = await EnginePing.AskAsync(_pipeName, cancellation: cancellation)
@@ -133,7 +143,7 @@ public sealed class EngineLifecycle : IAsyncDisposable
             {
                 return new EngineStatus(EngineState.Stopped,
                     $"the daemon exited while starting — read {LogPath} inside "
-                    + EnginePaths.DistributionName);
+                    + Distribution);
             }
 
             var ping = await EnginePing.AskAsync(
@@ -178,10 +188,10 @@ public sealed class EngineLifecycle : IAsyncDisposable
 
         if (DistributionRegistered)
         {
-            var terminated = _wsl.Run("--terminate", EnginePaths.DistributionName);
+            var terminated = _wsl.Run("--terminate", Distribution);
             done.Add(terminated.Succeeded
-                ? $"terminated {EnginePaths.DistributionName}"
-                : $"could not terminate {EnginePaths.DistributionName}: {terminated.Output.Trim()}");
+                ? $"terminated {Distribution}"
+                : $"could not terminate {Distribution}: {terminated.Output.Trim()}");
         }
 
         _ = cancellation;
@@ -223,9 +233,13 @@ public sealed class WslDaemonProcess : IDaemonProcess
     private Process? _process;
 
     /// <summary>Construct a daemon launcher.</summary>
-    /// <param name="distribution">The owned distribution.</param>
-    public WslDaemonProcess(string distribution = EnginePaths.DistributionName)
+    /// <param name="distribution">
+    /// The owned distribution, or <see langword="null"/> to ask the machine which one this install
+    /// owns — which is the legacy name where an older install is being adopted (DD55).
+    /// </param>
+    public WslDaemonProcess(string? distribution = null)
     {
+        distribution ??= new EnginePaths().DistributionName;
         ArgumentException.ThrowIfNullOrWhiteSpace(distribution);
         _distribution = distribution;
     }

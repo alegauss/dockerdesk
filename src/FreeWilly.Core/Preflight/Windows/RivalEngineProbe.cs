@@ -268,42 +268,11 @@ internal static class RivalEngineProbe
     /// <summary>The registered WSL distributions, read where WSL records them.</summary>
     /// <returns>Their names, or empty where the key is absent or unreadable.</returns>
     /// <remarks>
-    /// The registry and not <c>wsl --list --quiet</c>. Three reasons, all of them measured on this
-    /// project: the subprocess costs a preflight that is already slow, its output is UTF-16LE and
-    /// mis-decoding it reads as "WSL is not installed" on a machine where it is, and the registry
-    /// answers while WSL is shut down — which is precisely the machine this row got wrong.
+    /// The read itself moved to <see cref="Wsl.RegisteredDistributions"/> when DD55 gave it a second
+    /// caller. Unreadable arriving as empty is not the same thing, but this row cannot report Unknown
+    /// for one of four signals, and the other three still answer — which is why there are four.
     /// </remarks>
-    internal static IReadOnlyList<string> ReadDistributions()
-    {
-        try
-        {
-            using var lxss = Registry.CurrentUser.OpenSubKey(LxssKey);
-            if (lxss is null)
-            {
-                return [];
-            }
-
-            var names = new List<string>();
-            foreach (var child in lxss.GetSubKeyNames())
-            {
-                using var distribution = lxss.OpenSubKey(child);
-                if (distribution?.GetValue("DistributionName") is string name
-                    && name.Length > 0)
-                {
-                    names.Add(name);
-                }
-            }
-
-            return names;
-        }
-        catch (Exception exception) when (exception is System.Security.SecurityException
-            or UnauthorizedAccessException or IOException)
-        {
-            // Unreadable is not the same as empty, but this row cannot report Unknown for one of
-            // four signals. The other three still answer, which is why there are four.
-            return [];
-        }
-    }
+    internal static IReadOnlyList<string> ReadDistributions() => Wsl.RegisteredDistributions();
 
     /// <summary>Whether a resolved docker command is this tool's own.</summary>
     private static bool IsOurs(string docker, RivalSignals signals)

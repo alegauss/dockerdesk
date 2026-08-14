@@ -236,7 +236,7 @@ public sealed class EngineProvisioningTests : IDisposable
         var argv = provisioner.ImportArguments(@"C:\downloads\rootfs.tar.gz");
 
         Assert.Equal(
-            ["--import", "dockerdesk", paths.Distribution, @"C:\downloads\rootfs.tar.gz",
+            ["--import", "freewilly", paths.Distribution, @"C:\downloads\rootfs.tar.gz",
              "--version", "2"],
             argv);
     }
@@ -277,7 +277,7 @@ public sealed class EngineProvisioningTests : IDisposable
     public async Task An_already_registered_distribution_is_left_alone()
     {
         var wsl = new FakeWsl();
-        wsl.Answer(0, "Ubuntu\r\ndockerdesk\r\n");
+        wsl.Answer(0, "Ubuntu\r\nfreewilly\r\n");
         var provisioner = Provisioner(wsl, out _, WithRealArtefacts());
 
         var outcome = await provisioner.ProvisionAsync();

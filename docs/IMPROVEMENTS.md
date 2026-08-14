@@ -2,30 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD55 The distribution name and the app root are state, not spelling
-
-Two names in `EnginePaths` are the only ones the rename cannot simply overwrite.
-`DistributionName` is `"dockerdesk"` (line 14), and the parameterless constructor roots
-everything under `%LOCALAPPDATA%\DockerDesk` (line 28). Both are state on a machine
-rather than text in a build: the distribution holds every image, container and volume
-the user created, and `distro`, `downloads` and `bin` hang off that root — `bin` being
-the directory the installer put on `PATH`.
-
-A build that simply spells them `freewilly` and `%LOCALAPPDATA%\FreeWilly` starts an
-empty engine beside a full one, reports nothing installed on a machine that has
-everything, and leaves behind a distribution no uninstaller now knows about. The comment
-over `DistributionName` already states why the name is owned and fixed: it makes the
-uninstall exactly one command. The rename has to keep that sentence true across the
-transition.
-
-So the deliverable is the migration, not the constant: detect the old distribution and
-the old root, and either move them or adopt them in place, once and idempotently, with
-the old names spelled in one place so the next reader sees them as legacy rather than
-current. `dockerdesk-engine.exe`, which the tray looks for beside itself, is the third
-name in this set and moves with it. Whether an adopted distribution keeps its old WSL
-name forever or is re-imported under the new one is the decision this task makes and
-records.
-
 ### §DD56 The rival probe loses the collision it was written against and gains a real one
 
 `RivalEngineProbe` carries a rule that exists for one reason: this tool's own

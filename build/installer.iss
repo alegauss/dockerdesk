@@ -41,7 +41,13 @@ PrivilegesRequiredOverridesAllowed=dialog
 ; {app} is deliberately the same directory EnginePaths calls Root, so everything this tool owns —
 ; the executable, the downloads, the distribution, the docker CLI — is under one folder a person can
 ; find, and the uninstall has one place to ask about.
-DefaultDirName={localappdata}\DockerDesk
+;
+; DD55: the new name is what a fresh install gets, and an upgrade never sees it. Inno records the
+; directory against the AppId, so a machine that already has this product reuses %LOCALAPPDATA%\
+; DockerDesk and EnginePaths.RootFor adopts exactly that — which is the only reason the two agree
+; without either of them storing a flag. Changing the AppId would break that, and it is DD57's to
+; weigh.
+DefaultDirName={localappdata}\FreeWilly
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 AllowNoIcons=yes
@@ -130,7 +136,13 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName} now"; \
 
 [Code]
 const
-  DistroName = 'dockerdesk';
+  // DD55. This product owns both names by construction: an install made before the rename registered
+  // `dockerdesk` and a fresh one registers `freewilly`, and no machine has both. The uninstall
+  // unregisters both rather than deriving which one is there — `wsl --unregister` on a name that is
+  // not registered fails harmlessly, and getting the derivation wrong would leave a distribution no
+  // uninstaller now knows about, which is the exact failure this whole set exists to avoid.
+  DistroName = 'freewilly';
+  LegacyDistroName = 'dockerdesk';
 
 // ---------------------------------------------------------------------------------------------
 // PATH
@@ -255,7 +267,7 @@ begin
   if UninstallSilent then
     Exit;
 
-  if MsgBox('Also delete the ' + DistroName + ' WSL2 distribution?' + #13#10#13#10
+  if MsgBox('Also delete this install''s WSL2 distribution?' + #13#10#13#10
           + 'It holds every image, container and volume DockerDesk created, and there is no '
           + 'undo. Choosing No leaves it on disk, and reinstalling DockerDesk picks it up '
           + 'again.' + #13#10#13#10
@@ -266,6 +278,8 @@ begin
   // Unregister first: the virtual disk is open while the distribution is registered, so deleting the
   // directory underneath it fails and leaves a distribution pointing at nothing.
   Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + DistroName,
+       '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + LegacyDistroName,
        '', SW_HIDE, ewWaitUntilTerminated, Code);
   DelTree(ExpandConstant('{app}\distro'), True, True, True);
   DelTree(ExpandConstant('{app}\downloads'), True, True, True);

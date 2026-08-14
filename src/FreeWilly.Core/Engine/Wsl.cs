@@ -28,9 +28,57 @@ public interface IWsl
 /// <summary>The real <c>wsl.exe</c>.</summary>
 public sealed class Wsl : IWsl
 {
+    /// <summary>Where WSL records every registered distribution.</summary>
+    private const string LxssKey = @"Software\Microsoft\Windows\CurrentVersion\Lxss";
+
     /// <summary>Where the launcher lives.</summary>
     public static string LauncherPath =>
         Path.Combine(Environment.SystemDirectory, "wsl.exe");
+
+    /// <summary>Every distribution registered on this machine.</summary>
+    /// <returns>Their names, or empty where the key is absent or unreadable.</returns>
+    /// <remarks>
+    /// The registry and not <c>wsl --list --quiet</c>. Three reasons, all measured on this project:
+    /// the subprocess costs a preflight that is already slow, its output is UTF-16LE and mis-decoding
+    /// it reads as "WSL is not installed" on a machine where it is, and the registry answers while WSL
+    /// is shut down — which is precisely the machine the rival row used to get wrong.
+    ///
+    /// <para>Here rather than in the rival probe that first needed it, because DD55 gave it a second
+    /// caller: <see cref="EnginePaths"/> asks the same question to decide whether this install owns a
+    /// distribution under the old name. Two readers of one registry key would be two chances to
+    /// disagree about what is installed.</para>
+    /// </remarks>
+    public static IReadOnlyList<string> RegisteredDistributions()
+    {
+        try
+        {
+            using var lxss = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(LxssKey);
+            if (lxss is null)
+            {
+                return [];
+            }
+
+            var names = new List<string>();
+            foreach (var child in lxss.GetSubKeyNames())
+            {
+                using var distribution = lxss.OpenSubKey(child);
+                if (distribution?.GetValue("DistributionName") is string name && name.Length > 0)
+                {
+                    names.Add(name);
+                }
+            }
+
+            return names;
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException
+            or UnauthorizedAccessException or IOException)
+        {
+            // Unreadable is not the same as empty, and every caller here treats it the same way on
+            // purpose: the rival row has three other signals, and an install that cannot read this
+            // resolves to the current name, which is what a fresh machine would give anyway.
+            return [];
+        }
+    }
 
     /// <inheritdoc/>
     public WslResult Run(params string[] arguments)

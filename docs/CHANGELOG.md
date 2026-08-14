@@ -11,6 +11,7 @@
 - ✅ **DD19** **Inside a VM the preflight calls virtualization enabled and clears an install that WSL2 then refuses to start** — The row reads whether this machine is itself a guest, and abstains inside one instead of reading HypervisorPresent as proof it can host a hypervisor.
 - ✅ **DD20** **A leftover docker context sends the CLI to another pipe, so docker reports no daemon while this engine is answering** — A preflight row reads the active context and names both endpoints, so a CLI pointing elsewhere is visible, and it changes no setting of the user's.
 - ✅ **DD52** **The rival row prints its evidence as one 254-character line, and wrapping it on spaces splits a path** — The rival row names the products and puts each path, pipe and distribution on its own line, whole - so the evidence can be copied into a shell or grepped, and the JSON report carries it as a list.
+- ✅ **DD55** **The engine owns a WSL distribution and an app root both named dockerdesk, and a rename orphans them** — An install made before the rename is adopted where it stands: both names resolve from what is on disk and registered, and nothing moves - distro is the BasePath WSL holds.
 
 ## Block B — The daemon client (talk to the engine)
 

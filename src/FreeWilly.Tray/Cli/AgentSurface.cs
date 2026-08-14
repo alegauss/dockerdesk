@@ -417,7 +417,7 @@ public static class AgentSurface
             var client = new Core.Preflight.Windows.WindowsMachineFacts().DockerClient;
             var facts = new ContextFacts(
                 EngineState: "running",
-                Distribution: EnginePaths.DistributionName,
+                Distribution: new EnginePaths().DistributionName,
                 ApiVersion: version.ApiVersion,
                 ContextName: client.FromEnvironment ? "DOCKER_HOST" : client.ContextName,
                 ContextReachesEngine:
@@ -499,7 +499,7 @@ public static class AgentSurface
     /// <summary>The pack for a machine whose engine is not answering.</summary>
     private static ContextFacts Down(string state) => new(
         EngineState: state,
-        Distribution: EnginePaths.DistributionName,
+        Distribution: new EnginePaths().DistributionName,
         ApiVersion: DockerApi.ApiVersion,
         ContextName: null,
         ContextReachesEngine: false,

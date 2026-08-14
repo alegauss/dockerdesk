@@ -178,7 +178,7 @@ public sealed class EngineProvisioner
     public string[] ImportArguments(string rootfsPath) =>
     [
         "--import",
-        EnginePaths.DistributionName,
+        _paths.DistributionName,
         _paths.Distribution,
         rootfsPath,
         "--version",
@@ -255,28 +255,35 @@ public sealed class EngineProvisioner
     {
         if (DistributionExists())
         {
+            // DD55: on a machine carrying an install made before the rename this is the adoption, and
+            // it is the whole of it — the distribution is left exactly where WSL registered it. An
+            // export and re-import under the new name would copy gigabytes to change a label, and
+            // would have a failure mode in the middle that loses every image and volume in it.
             return new StepResult(ProvisioningStep.ImportDistribution, true,
-                $"{EnginePaths.DistributionName} is already registered, left as it is");
+                _paths.IsAdopted
+                    ? $"{_paths.DistributionName} is registered from an install made before the "
+                      + "rename, and is adopted as it stands"
+                    : $"{_paths.DistributionName} is already registered, left as it is");
         }
 
         var result = _wsl.Run(ImportArguments(rootfsPath));
         return result.Succeeded
             ? new StepResult(ProvisioningStep.ImportDistribution, true,
-                $"{EnginePaths.DistributionName} imported into {_paths.Distribution}")
+                $"{_paths.DistributionName} imported into {_paths.Distribution}")
             : new StepResult(ProvisioningStep.ImportDistribution, false,
-                Explain($"importing {EnginePaths.DistributionName}", result));
+                Explain($"importing {_paths.DistributionName}", result));
     }
 
     private StepResult InstallEngine(string engineTarballPath)
     {
         var result = _wsl.Run(
-            "-d", EnginePaths.DistributionName, "-u", "root", "--",
+            "-d", _paths.DistributionName, "-u", "root", "--",
             "/bin/sh", "-c", InstallScript(engineTarballPath));
 
         return result.Succeeded
             ? new StepResult(ProvisioningStep.InstallEngine, true,
                 $"engine {_manifest.Engine.Version} unpacked into "
-                + $"{EnginePaths.DistributionName}:/usr/local/bin")
+                + $"{_paths.DistributionName}:/usr/local/bin")
             : new StepResult(ProvisioningStep.InstallEngine, false,
                 Explain("installing the engine binaries", result));
     }
@@ -316,7 +323,7 @@ public sealed class EngineProvisioner
         return listed.Output
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Any(line => line.Trim().Equals(
-                EnginePaths.DistributionName, StringComparison.OrdinalIgnoreCase));
+                _paths.DistributionName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string Explain(string what, WslResult result)

@@ -174,6 +174,36 @@ public sealed class ComposeUpTests
     }
 
     [Fact]
+    public void Every_label_the_session_carries_reaches_the_file_and_not_just_the_one_named_here()
+    {
+        // The guard DD79 exists for. Before it, this file spelled `SessionLabel.Key` into the YAML
+        // by hand, so `For` was the documented write point with no caller and a second label added
+        // there would have stamped nothing. Driven off `For` rather than off a literal: a test that
+        // named the key would pass just as happily against a writer that had gone back to naming it.
+        var yaml = ComposeUp.Override([Service("api"), Service("db")], "repro-17");
+
+        var labels = SessionLabel.For("repro-17");
+        Assert.NotEmpty(labels);
+        foreach (var label in labels)
+        {
+            Assert.Equal(
+                2,
+                yaml.Split($"      {label.Key}: \"{label.Value}\"").Length - 1);
+        }
+    }
+
+    [Fact]
+    public void The_same_session_generates_the_same_bytes()
+    {
+        // A dictionary promises no order, and this is a file somebody diffs. Cheap to assert and
+        // the only thing standing between a second label and an override that reshuffles per run.
+        Assert.Equal(
+            ComposeUp.Override([Service("api"), Service("db")], "repro-17"),
+            ComposeUp.Override([Service("api"), Service("db")], "repro-17"),
+            StringComparer.Ordinal);
+    }
+
+    [Fact]
     public void A_derived_session_is_quoted_because_a_colon_is_a_mapping_in_yaml()
     {
         // `dir:8f21a0` unquoted parses as a nested key, so the label a reclaim looks for would

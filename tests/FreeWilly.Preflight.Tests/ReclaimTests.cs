@@ -74,7 +74,11 @@ public sealed class ReclaimTests
         // through exactly the respelling that loses a session. DD72 learned that; DD86 removed the
         // second key it had added, because nothing was ever released carrying it.
         Assert.Equal("freewilly.session", SessionLabel.Key);
-        Assert.Equal(SessionLabel.Key, SessionLabel.For(Session).Keys.Single());
+
+        // Contains rather than Single: DD79 made `For` the set a create writes, and a second label
+        // joining it is a change that should cost one method. What must not change without this
+        // failing is the key that finds a session already on a machine.
+        Assert.Equal(Session, SessionLabel.For(Session)["freewilly.session"]);
     }
 
     [Fact]

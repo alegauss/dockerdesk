@@ -136,27 +136,4 @@ one, and only a measurement passes anything else.
 The band on the baseline stays: that one exists for a different reason, which is a
 fixture somebody shrinks, and it is honest about being one.
 
-### §DD79 A single write point that is not the write point
-
-`SessionLabel.For(session)` is documented as "the labels to stamp on anything created".
-No caller in `src/` uses it. The one thing that creates anything, `ComposeUp`, appends
-`SessionLabel.Key` into the generated YAML by hand, and the only exercise `For` gets is
-an assertion written for DD72.
-
-Nothing is wrong today, because both spell the same constant. What is wrong is the
-invitation: a reader looking for where a label is written finds a helper that says it is
-the answer and is not, and the next change that adds a second label — or that has to
-spell a value differently for compose than for the API — lands in one of the two places.
-
-DD72 is the evidence this matters. The key was respelled in `SessionLabel` and the
-change reached the compose writer only because that writer names the constant; a helper
-returning a dictionary would have carried it either way, and a second label added to
-`For` would still not reach compose today.
-
-The direction is for `ComposeUp` to render whatever `For` returns rather than one key it
-names, which also removes the assumption that there is exactly one label. Whether `For`
-survives at all is the other option worth weighing: a helper with one caller and one
-shape is not obviously better than the caller spelling it, and deleting it says the same
-thing honestly.
-
 ## Block H — The public surface (the site a reader and an agent both read)

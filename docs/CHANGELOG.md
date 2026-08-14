@@ -86,6 +86,7 @@
 - ✅ **DD65** **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — The same task through read context, doctor, logs and verify is 4 calls and 774 tokens against the baseline's 6 and 11711, recorded as task-for-task rather than payload-for-payload.
 - ✅ **DD72** **The session label key is the last name in the rename set that is state on a machine rather than spelling in a build** — The key written is freewilly.session and both spellings are read, so a machine mid-migration keeps every session a previous build labelled.
 - 🗑 **DD77** **Nothing says a machine still carries objects labelled the way the build before the rename wrote them** — superseded by DD86: DD86 deletes the legacy label key outright rather than migrating off it, so there is no dual read left for this to make visible.
+- ✅ **DD79** **SessionLabel.For reads as the one place a label is stamped and nothing in the product stamps through it** — `ComposeUp` renders every pair `SessionLabel.For` returns, so a second label is a change to one method, and a test drives off `For` rather than the key the old assertion named.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

@@ -62,6 +62,15 @@ public static class SessionLabel
         Resolve(Environment.GetEnvironmentVariable(Variable), Directory.GetCurrentDirectory());
 
     /// <summary>The labels to stamp on anything created.</summary>
+    /// <remarks>
+    /// The one place a stamp is written, and until DD79 it only said so: the single thing in this
+    /// product that creates — <c>ComposeUp</c> — spelled <see cref="Key"/> into its YAML by hand, so
+    /// this was reached by a test and by nothing else. Both spelled the same constant, so nothing was
+    /// wrong; what was wrong is that a second label added here would not have reached a container.
+    ///
+    /// <para>The set is what varies, not the key. A caller renders every pair rather than the one it
+    /// knows about, which is what makes adding the second label a change to this method alone.</para>
+    /// </remarks>
     /// <param name="session">The session id.</param>
     /// <returns>The labels.</returns>
     public static IReadOnlyDictionary<string, string> For(string session) =>

@@ -24,7 +24,6 @@
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 - 📋 **DD78** (deps: —) **The shaped token figure is banded because two of its inputs are read from the machine and not a fixture** — A 15% band is wide enough to hide a regression a build could ship, and the request count recorded beside it is exact for want of the same seam. → §DD78
-- 📋 **DD79** (deps: —) **SessionLabel.For reads as the one place a label is stamped and nothing in the product stamps through it** — ComposeUp writes the key straight into YAML, so the helper is reached only by a test and the next change to a label has two places to find rather than one. → §DD79
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

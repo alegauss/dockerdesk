@@ -27,6 +27,9 @@ public enum Surface
     /// <summary>The tray's context menu, held open so a screen copy can reach it (DD67).</summary>
     ShowMenu,
 
+    /// <summary>Ask the tray this session is running to exit, on the console (DD121).</summary>
+    Quit,
+
     /// <summary>A verb this executable does not have.</summary>
     Unknown,
 }
@@ -86,6 +89,22 @@ public static class CommandLine
 
     /// <inheritdoc cref="VersionVerb"/>
     public const string HelpShortVerb = "-h";
+
+    /// <summary>
+    /// The verb that asks a running tray to exit, and waits until it has (DD121).
+    /// </summary>
+    /// <remarks>
+    /// Written for the uninstaller, which cannot delete an executable a process is holding open, and
+    /// which had nothing to ask with: it removed the Run value and the Add/Remove entry and then
+    /// failed on the one file, leaving a root nobody owns. A verb rather than a kill, because the
+    /// tray owns an icon the shell has to be told about and a stream the daemon has to be let go of
+    /// — a terminated process leaves both, and the icon stays in the overflow until something
+    /// hovers it.
+    ///
+    /// <para>It waits, and that is the half that makes it usable from a script. Signalling and
+    /// returning would hand the caller a race it has no way to win.</para>
+    /// </remarks>
+    public const string QuitVerb = "--quit";
 
     /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
     public const string CaptureWindowVerb = "--capture-window";
@@ -162,6 +181,16 @@ public static class CommandLine
             return new Route(Surface.Agent, OpenWindow: false, arguments);
         }
 
+        // Nothing follows it, and the refusal is the same shape as --tray's: this reaches into a
+        // running process, and guessing what an argument it does not have was meant to qualify is
+        // worse than saying so.
+        if (string.Equals(first, QuitVerb, StringComparison.Ordinal))
+        {
+            return arguments.Length == 1
+                ? new Route(Surface.Quit, OpenWindow: false, [])
+                : new Route(Surface.Unknown, OpenWindow: false, arguments);
+        }
+
         if (string.Equals(first, CaptureWindowVerb, StringComparison.Ordinal))
         {
             // The verb is dropped: what follows is the output path and an optional tab.
@@ -217,6 +246,7 @@ public static class CommandLine
           do <verb>        the agent surface that does
           {TrayOnlyVerb}           the tray icon alone, which is what "start with Windows" uses
           {WindowVerb}         accepted, and what a bare launch already does
+          {QuitVerb}           ask the running tray to exit, and wait until it has
           {CaptureWindowVerb} <out.png> [tab]
                            render the window to a PNG off-screen, photographing nothing else
           {ShowMenuVerb} [state] [--seconds n]

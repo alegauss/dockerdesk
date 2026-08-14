@@ -163,6 +163,94 @@ public sealed class SingleTrayTests
     }
 
     [Fact]
+    public void The_quit_signal_reaches_the_live_one_and_is_not_the_raise()
+    {
+        RequireTheTraySlot();
+
+        Assert.True(SingleTray.TryClaim(out var only));
+        using (only)
+        {
+            using var asked = new ManualResetEventSlim(false);
+            using var raised = new ManualResetEventSlim(false);
+            only!.OnRaise(() => raised.Set());
+            only.OnQuit(() => asked.Set());
+
+            Assert.True(SingleTray.AskTheLiveOneToQuit());
+
+            Assert.True(
+                asked.Wait(TimeSpan.FromSeconds(5)),
+                "the live instance was never asked to close");
+
+            // Two named objects rather than one, and this is why: an auto-reset event carries no
+            // payload, so a single handle would make "show yourself" and "close yourself" the same
+            // signal — and the uninstaller would put a window on screen on its way to deleting it.
+            Assert.False(raised.IsSet, "asking the tray to quit also asked it to show its window");
+        }
+    }
+
+    [Fact]
+    public void Asking_a_machine_with_no_tray_to_quit_is_not_a_failure()
+    {
+        // What the uninstaller runs on a machine where nobody ever opened the tray. It asked for a
+        // machine with no tray on it and that is what it has, so `--quit` reports success — exit 1
+        // is kept for the one answer the uninstaller has to act on, which is a tray that stayed.
+        RequireTheTraySlot();
+
+        Assert.False(SingleTray.AskTheLiveOneToQuit());
+    }
+
+    [Fact]
+    public void The_wait_answers_yes_only_once_the_slot_is_actually_free()
+    {
+        // The half that makes the verb usable from an uninstaller. The signal only says the request
+        // was delivered; what has to be true before a delete is attempted is that the process is
+        // gone, and the slot is released on the way out — so the mutex is what is watched.
+        RequireTheTraySlot();
+
+        using var taken = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        // Held from another thread, because a mutex is owned by a thread and is reentrant: a claim
+        // made on this one would let the wait straight through and assert nothing.
+        var holder = new Thread(() =>
+        {
+            var mine = SingleTray.TryClaim(out var claim);
+            taken.Set();
+            release.Wait();
+            if (mine)
+            {
+                claim!.Dispose();
+            }
+        });
+
+        holder.Start();
+        Assert.True(taken.Wait(TimeSpan.FromSeconds(5)), "the stand-in tray never claimed the slot");
+
+        // Short, because this asserts that it waits rather than how long it is willing to.
+        Assert.False(
+            SingleTray.WaitUntilTheTrayIsGone(TimeSpan.FromMilliseconds(300)),
+            "the wait reported the tray gone while something still held the slot");
+
+        release.Set();
+        holder.Join();
+
+        Assert.True(
+            SingleTray.WaitUntilTheTrayIsGone(TimeSpan.FromSeconds(5)),
+            "the wait never noticed the slot come free");
+    }
+
+    [Fact]
+    public void Quitting_when_nothing_holds_the_tray_leaves_the_slot_claimable()
+    {
+        // The probe the wait makes has to give the slot straight back, or a tray relaunched in the
+        // same second would find it taken by something that only wanted to look.
+        RequireTheTraySlot();
+
+        Assert.True(SingleTray.WaitUntilTheTrayIsGone(TimeSpan.FromSeconds(1)));
+        Assert.True(ClaimedElsewhere());
+    }
+
+    [Fact]
     public void Raising_when_nothing_holds_the_tray_is_silent()
     {
         // The fourth, and it did not fail — which is worse. Its premise is in its name, and with a

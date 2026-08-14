@@ -88,6 +88,10 @@ InfoAfterFile=after-install.txt
 
 ; The tray may be running from a previous install. Restart Manager closes it without forcing a
 ; reboot; RestartApplications=no because nothing here needs the machine restarted.
+;
+; DD121: this covers the uninstall too, and it is the backstop rather than the plan. The uninstall
+; asks the product to close itself first — a terminated tray leaves its icon in the notification area
+; until something hovers it — and only what a graceful exit missed reaches Restart Manager.
 CloseApplications=yes
 RestartApplications=no
 
@@ -385,8 +389,25 @@ begin
 end;
 
 // ---------------------------------------------------------------------------------------------
-// Uninstall: remove what was installed, ask about what was created
+// Uninstall: stop what is running before deleting it (DD121)
 // ---------------------------------------------------------------------------------------------
+//
+// An uninstall that cannot delete the program it is uninstalling is not an uninstall. The tray holds
+// {app}\FreeWilly.exe open, so what used to happen was: the Run value went, the PATH entry went, the
+// Add/Remove Programs entry went, and then the one file could not be deleted — leaving a root nobody
+// owns and no uninstaller left to offer to take it.
+//
+// Four steps, in this order. Ask, stop gracefully, force only what did not go, then delete and say
+// what could not be removed rather than exiting 0 over it.
+
+var
+  // What the page below decided, read again in usPostUninstall — after Inno has removed its own
+  // files, which is the only point at which the root is otherwise empty. Silence means keep, so the
+  // safe default is what an unattended uninstall gets by never touching this.
+  RemoveTheDistribution: Boolean;
+
+  // Set by the tasklist callback, because a callback cannot return anything.
+  SawTheProcess: Boolean;
 
 function OwnedDataExists: Boolean;
 begin
@@ -397,46 +418,279 @@ begin
          or DirExists(ExpandConstant('{app}\downloads'));
 end;
 
+procedure TasklistSaid(const S: String; const Error, FirstLine: Boolean);
+begin
+  if Pos(Lowercase('{#MyAppExeName}'), Lowercase(S)) > 0 then
+    SawTheProcess := True;
+end;
+
+function AnythingIsStillRunning: Boolean;
+var
+  Code: Integer;
+begin
+  // tasklist rather than a handle test: a running executable can still be renamed and can still be
+  // opened for reading, so every cheap probe answers the wrong question. With no match it prints
+  // "INFO: No tasks are running..." and the image name appears nowhere in it, which is the whole
+  // decision below.
+  SawTheProcess := False;
+  if not ExecAndLogOutput(ExpandConstant('{sys}\tasklist.exe'),
+       '/FI "IMAGENAME eq {#MyAppExeName}" /NH', '', SW_HIDE,
+       ewWaitUntilTerminated, Code, @TasklistSaid) then
+  begin
+    // It could not be asked. Answering yes here would force-kill on no evidence, so this defers to
+    // Restart Manager, which is exactly what CloseApplications is carried for.
+    Result := False;
+    Exit;
+  end;
+
+  Result := SawTheProcess;
+end;
+
+/// Lay one wrapping paragraph out at Y and answer the Y the next control starts at.
+function Paragraph(Form: TSetupForm; const Text: string; Left, Top, Width: Integer): Integer;
+var
+  Block: TLabel;
+begin
+  Block := TLabel.Create(Form);
+  Block.Parent := Form;
+
+  // AutoSize with WordWrap is what makes the height follow the text rather than the other way
+  // round. A fixed height would be a guess about a font this script does not choose and a language
+  // it does not know: BrazilianPortuguese.isl is shipped beside Default.isl, and the first
+  // translation of this page that runs one line longer would have that line clipped off the bottom
+  // of a fixed box with nothing to say it had happened.
+  // The order is the whole of it, and both ways of getting it wrong were measured on this page.
+  //
+  // An auto-sizing label re-measures itself when its CAPTION changes and not when its width does,
+  // and it measures at whatever width it has at that moment. So the width has to be right before
+  // the text arrives, and these two flags have to be set before the width — an auto-sizing label
+  // with no text in it collapses to nothing, and a flag flipped after the width would collapse a
+  // width that had already been set.
+  //
+  // Setting the flags first, then the width, then the caption is the one order that leaves both
+  // the wrap column and the height correct. Caption before width wraps the text at a column of
+  // zero: one word per line, a page tall, and a form dragged out to the size of the screen. Caption
+  // before width but width set afterwards is worse, because it looks fixed — the text re-wraps to
+  // the right column, and the height stays at the value the collapsed measurement produced, so the
+  // page renders correctly above a screenful of blank space.
+  Block.WordWrap := True;
+  Block.AutoSize := True;
+  Block.Left := Left;
+  Block.Top := Top;
+  Block.Width := Width;
+  Block.Caption := Text;
+
+  Result := Block.Top + Block.Height;
+end;
+
+function AskAboutTheUninstall: Boolean;
+var
+  Form: TSetupForm;
+  Heading: TLabel;
+  Distribution: TNewCheckBox;
+  Proceed, Abandon: TNewButton;
+  Left, Width, Y, Buttons: Integer;
+begin
+  // Setup's wizard-page API is Setup's alone, so an uninstaller that wants a page builds the form.
+  // It is worth the lines: the two things about to happen — a running program closed, and possibly
+  // every image and volume deleted — are precisely the two a MsgBox chain asks about one at a time,
+  // out of order, with no way to see them together before agreeing to either.
+  //
+  // Fixed width and not resizable: the prose is written to a column, and a form somebody could drag
+  // wider would only re-wrap it. The height is set at the end, from what the text actually measured.
+  Left := ScaleX(16);
+  Width := ScaleX(398);
+
+  Form := CreateCustomForm(Width + (2 * Left), ScaleY(260), False, False);
+  try
+    Form.Caption := 'Uninstall {#MyAppName}';
+
+    Heading := TLabel.Create(Form);
+    Heading.Parent := Form;
+    Heading.Left := Left;
+    Heading.Top := ScaleY(16);
+    Heading.AutoSize := True;
+    Heading.Font.Style := [fsBold];
+    Heading.Caption := 'These are closed before anything is removed';
+    Y := Heading.Top + Heading.Height + ScaleY(10);
+
+    Y := Paragraph(Form,
+        'The tray icon and window, asked to close themselves.'#13#10
+      + 'The container engine, and the ' + DistroName + ' distribution it runs in.'#13#10#13#10
+      + 'Anything still holding a file after that is closed forcibly. Windows will not delete a '
+      + 'program that is running, and an uninstall that stops there leaves a folder nothing can '
+      + 'remove.', Left, Y, Width) + ScaleY(16);
+
+    Distribution := TNewCheckBox.Create(Form);
+    Distribution.Parent := Form;
+    Distribution.SetBounds(Left, Y, Width, ScaleY(17));
+    Distribution.Caption := 'Also delete the WSL2 distribution';
+
+    // Off, and it stays off in every path that does not include somebody reading this. Stopping is
+    // reversible; this is the one question here with no undo.
+    Distribution.Checked := False;
+    Distribution.Enabled := OwnedDataExists;
+    Y := Distribution.Top + Distribution.Height + ScaleY(4);
+
+    // Indented under the box it qualifies, so the sentence with no undo in it is read as part of
+    // the tick rather than as a second, separate thing.
+    if OwnedDataExists then
+      Y := Paragraph(Form,
+          'It holds every image, container and volume FreeWilly created, and there is no undo. '
+        + 'Left alone it stays on disk, and reinstalling FreeWilly picks it up again.'#13#10
+        + ExpandConstant('{app}'), Left + ScaleX(16), Y, Width - ScaleX(16))
+    else
+      Y := Paragraph(Form,
+          'There is none on this machine — nothing was ever provisioned here.',
+          Left + ScaleX(16), Y, Width - ScaleX(16));
+
+    Buttons := Y + ScaleY(20);
+
+    // Positioned against the text column rather than against Form.ClientWidth, which is not the
+    // width this page asked for until the assignment below has actually happened.
+    Proceed := TNewButton.Create(Form);
+    Proceed.Parent := Form;
+    Proceed.SetBounds(Left + Width - ScaleX(75 + 6 + 75), Buttons, ScaleX(75), ScaleY(23));
+    Proceed.Caption := 'Remove';
+    Proceed.ModalResult := mrOk;
+    Proceed.Default := True;
+
+    Abandon := TNewButton.Create(Form);
+    Abandon.Parent := Form;
+    Abandon.SetBounds(Left + Width - ScaleX(75), Buttons, ScaleX(75), ScaleY(23));
+    Abandon.Caption := 'Cancel';
+    Abandon.ModalResult := mrCancel;
+    Abandon.Cancel := True;
+
+    // Now that everything has measured itself. A form sized before its text is a form with either
+    // a clipped last line or a band of empty space under the buttons, depending on the machine.
+    // The width is restated rather than trusted: it is the one number every control above was
+    // placed against, so this is where the two are held equal.
+    Form.ClientWidth := Width + (2 * Left);
+    Form.ClientHeight := Buttons + ScaleY(23 + 16);
+    Form.ActiveControl := Proceed;
+
+    // Centred on the screen by CreateCustomForm itself. There is no WizardForm to centre on in an
+    // uninstall, and the progress window behind this one is Inno's rather than a page of ours.
+    Result := Form.ShowModal = mrOk;
+    if Result then
+      RemoveTheDistribution := Distribution.Checked;
+  finally
+    Form.Free;
+  end;
+end;
+
+procedure StopEverything;
+var
+  Code: Integer;
+  Exe: string;
+begin
+  Exe := ExpandConstant('{app}\{#MyAppExeName}');
+
+  // Nothing to ask, and nothing that could have started the engine either. A root without the
+  // executable in it is one a previous uninstall got most of the way through.
+  if not FileExists(Exe) then
+    Exit;
+
+  // The engine first. --stop ends the pipe relay and terminates the distribution, which is what
+  // makes the unregister below a clean one — an open virtual disk is a directory that survives its
+  // own deletion. It also takes the detached `--run` process with it, since what that serves lives
+  // inside the distribution being terminated.
+  Exec(Exe, '--stop', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Code);
+
+  // Then the tray, by the verb written for this (DD121). It waits until the process is actually
+  // gone rather than until the request was delivered, so returning from here means the file is no
+  // longer open. A kill would leave the notification icon in the overflow until something hovers it.
+  Exec(Exe, '--quit', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, Code);
+
+  if not AnythingIsStillRunning then
+    Exit;
+
+  // The last resort, and the page said it would happen. Reached by a process that ignored the verb
+  // or by a `--run` started outside the tray; either way the alternative is the failure this whole
+  // section exists to remove.
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM {#MyAppExeName} /T',
+       '', SW_HIDE, ewWaitUntilTerminated, Code);
+
+  // Handles are closed by the kernel after the process is, and Inno's first delete follows
+  // immediately. Half a second costs nothing on the path where it was not needed.
+  Sleep(500);
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Code: Integer;
 begin
+  // Before Inno removes a single file, and after the user has already confirmed the uninstall
+  // itself: the page below asks the two questions that confirmation could not, and Cancel on it
+  // abandons the whole uninstall rather than leaving a half-removed install behind.
+  if CurUninstallStep = usUninstall then
+  begin
+    // An unattended uninstall gets the safe half: everything is stopped, and nothing anybody owns
+    // is deleted. A modal box in a deployment is a machine that looks hung to whoever pushed it.
+    if not UninstallSilent then
+    begin
+      if not AskAboutTheUninstall then
+        Abort;
+    end;
+
+    StopEverything;
+
+    RemovePathEntry;
+
+    // Everything this install put in {app} that Inno did not, and therefore does not know to take
+    // back: the two reports, the CLI the provision extracted, and the plugin directory it filled.
+    // None of it is anybody's data — it is this product's own files under this product's own root.
+    // DD119 made that universal by provisioning during the install, so it is settled here rather
+    // than left to the question above, which is about images and volumes and nothing else.
+    DeleteFile(ExpandConstant('{app}\preflight.txt'));
+    DeleteFile(ExpandConstant('{app}\provision.log'));
+    DelTree(ExpandConstant('{app}\bin'), True, True, True);
+    DelTree(ExpandConstant('{app}\cli-plugins'), True, True, True);
+
+    if RemoveTheDistribution then
+    begin
+      // Terminated again rather than trusting the stop above: this is the one operation here that
+      // cannot be repeated, and the executable that would have run --stop may not have been there.
+      Exec(ExpandConstant('{sys}\wsl.exe'), '--terminate ' + DistroName,
+           '', SW_HIDE, ewWaitUntilTerminated, Code);
+
+      // Unregister first: the virtual disk is open while the distribution is registered, so
+      // deleting the directory underneath it fails and leaves a distribution pointing at nothing.
+      Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + DistroName,
+           '', SW_HIDE, ewWaitUntilTerminated, Code);
+      DelTree(ExpandConstant('{app}\distro'), True, True, True);
+      DelTree(ExpandConstant('{app}\downloads'), True, True, True);
+    end;
+
+    Exit;
+  end;
+
   if CurUninstallStep <> usPostUninstall then
     Exit;
 
-  RemovePathEntry;
-
-  // Everything this install put in {app} that Inno did not, and therefore does not know to take
-  // back: the two reports, the CLI the provision extracted, and the plugin directory it filled.
-  // None of it is anybody's data — it is this product's own files under this product's own root,
-  // and left behind it is what keeps {app} on disk after an uninstall that removed everything
-  // else. DD119 made that universal by provisioning during the install, so it is settled here
-  // rather than left to the question below, which is about images and volumes and nothing else.
-  DeleteFile(ExpandConstant('{app}\preflight.txt'));
-  DeleteFile(ExpandConstant('{app}\provision.log'));
-  DelTree(ExpandConstant('{app}\bin'), True, True, True);
-  DelTree(ExpandConstant('{app}\cli-plugins'), True, True, True);
-
-  if not OwnedDataExists then
+  // Everything above happens in usUninstall, and that placement is the whole of this paragraph.
+  //
+  // Inno removes the install directory during its own file pass, which runs between usUninstall and
+  // usPostUninstall, and it removes it only if it is empty by then. Doing this work in
+  // usPostUninstall — where it stood — meant Inno met a root still holding distro\ and downloads\,
+  // left it alone as it should, and then this emptied it a moment too late. Measured: an uninstall
+  // that removed the registration, the distribution, the virtual disk and every file, and left an
+  // empty C:\Users\...\FreeWilly standing with nothing left that would ever offer to take it.
+  //
+  // So the only thing left for this step is to check the work, and it cannot check the root: the
+  // uninstaller is still running out of it, unins000.exe is still in it, and Inno deletes both
+  // after this returns. What it can check is what the page promised — that the distribution and its
+  // downloads are gone — and that is the promise with no undo behind it.
+  if UninstallSilent or not RemoveTheDistribution or not OwnedDataExists then
     Exit;
 
-  // Silence means keep. An unattended uninstall must never be the thing that deletes somebody's
-  // images and volumes, and there is nobody there to ask.
-  if UninstallSilent then
-    Exit;
-
-  if MsgBox('Also delete this install''s WSL2 distribution?' + #13#10#13#10
-          + 'It holds every image, container and volume FreeWilly created, and there is no '
-          + 'undo. Choosing No leaves it on disk, and reinstalling FreeWilly picks it up '
-          + 'again.' + #13#10#13#10
-          + ExpandConstant('{app}'),
-            mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then
-    Exit;
-
-  // Unregister first: the virtual disk is open while the distribution is registered, so deleting the
-  // directory underneath it fails and leaves a distribution pointing at nothing.
-  Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + DistroName,
-       '', SW_HIDE, ewWaitUntilTerminated, Code);
-  DelTree(ExpandConstant('{app}\distro'), True, True, True);
-  DelTree(ExpandConstant('{app}\downloads'), True, True, True);
+  MsgBox('FreeWilly is uninstalled, but part of the WSL2 distribution could not be deleted:'
+       + #13#10#13#10
+       + ExpandConstant('{app}') + #13#10#13#10
+       + 'Something was still holding a file inside it — most often WSL2 itself, which keeps the '
+       + 'virtual disk open for a while after a distribution is unregistered. Running '
+       + '"wsl --shutdown" and then deleting the folder by hand finishes it. Nothing here is '
+       + 'registered any more, and nothing will start it again.',
+         mbInformation, MB_OK);
 end;

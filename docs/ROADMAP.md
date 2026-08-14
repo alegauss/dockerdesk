@@ -14,8 +14,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD121** (deps: —) **Uninstalling while FreeWilly runs leaves the .exe and its root on disk, and never offers to stop the engine first** — It asks about the distribution but never about the processes holding it: the tray locks the .exe, and a running distribution outlives its unregister. → §DD121
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

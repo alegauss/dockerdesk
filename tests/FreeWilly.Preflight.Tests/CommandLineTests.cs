@@ -124,6 +124,19 @@ public sealed class CommandLineTests
         Assert.Equal(Surface.Help, CommandLine.Of([spelling]).Surface);
 
     [Fact]
+    public void The_quit_verb_is_a_console_surface_and_not_a_second_tray() =>
+        // DD121. It reaches into the tray that is already running, so routing it anywhere near
+        // Surface.Tray would start the very process it exists to end.
+        Assert.Equal(Surface.Quit, CommandLine.Of(["--quit"]).Surface);
+
+    [Fact]
+    public void The_quit_verb_takes_nothing_else() =>
+        // The same refusal --tray gets, for the same reason: this reaches into a running process,
+        // and guessing what an argument it does not have was meant to qualify is worse than saying
+        // so. The uninstaller is the caller, and a mistyped argument there must not be absorbed.
+        Assert.Equal(Surface.Unknown, CommandLine.Of(["--quit", "--force"]).Surface);
+
+    [Fact]
     public void The_version_verb_is_its_own_surface() =>
         Assert.Equal(Surface.Version, CommandLine.Of(["--version"]).Surface);
 

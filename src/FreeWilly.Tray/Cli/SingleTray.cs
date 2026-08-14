@@ -34,14 +34,24 @@ internal sealed class SingleTray : IDisposable
     /// <summary>What a second launch sets to ask the live one to show itself.</summary>
     private const string RaiseName = "FreeWilly.tray.raise";
 
+    /// <summary>What <c>--quit</c> sets to ask the live one to go away (DD121).</summary>
+    /// <remarks>
+    /// A second object rather than a flag beside the first, because an auto-reset event carries no
+    /// payload: one handle serving both would make "show yourself" and "close yourself" the same
+    /// signal, and the uninstaller would raise a window on its way to deleting it.
+    /// </remarks>
+    private const string QuitName = "FreeWilly.tray.quit";
+
     private readonly Mutex _held;
     private readonly EventWaitHandle _raise;
+    private readonly EventWaitHandle _quit;
     private readonly CancellationTokenSource _stopping = new();
 
-    private SingleTray(Mutex held, EventWaitHandle raise)
+    private SingleTray(Mutex held, EventWaitHandle raise, EventWaitHandle quit)
     {
         _held = held;
         _raise = raise;
+        _quit = quit;
     }
 
     /// <summary>
@@ -73,7 +83,9 @@ internal sealed class SingleTray : IDisposable
         }
 
         only = new SingleTray(
-            mutex, new EventWaitHandle(false, EventResetMode.AutoReset, RaiseName));
+            mutex,
+            new EventWaitHandle(false, EventResetMode.AutoReset, RaiseName),
+            new EventWaitHandle(false, EventResetMode.AutoReset, QuitName));
         return true;
     }
 
@@ -83,18 +95,62 @@ internal sealed class SingleTray : IDisposable
     /// claiming the mutex and creating it, which is a window of microseconds, and a launch that
     /// silently did nothing is better than one that throws at a user who double-clicked.
     /// </remarks>
-    internal static void RaiseTheLiveOne()
+    internal static void RaiseTheLiveOne() => _ = Signal(RaiseName);
+
+    /// <summary>Ask whatever holds the tray to close itself (DD121).</summary>
+    /// <returns>
+    /// <see langword="true"/> where something was there to hear it. False is not a failure: a
+    /// machine with no tray running is already in the state the caller wanted.
+    /// </returns>
+    internal static bool AskTheLiveOneToQuit() => Signal(QuitName);
+
+    /// <summary>Set one of the two named events, if anything is listening on it.</summary>
+    private static bool Signal(string name)
     {
         try
         {
-            using var raise = EventWaitHandle.OpenExisting(RaiseName);
-            _ = raise.Set();
+            using var handle = EventWaitHandle.OpenExisting(name);
+            return handle.Set();
         }
         catch (Exception exception) when (exception is WaitHandleCannotBeOpenedException
             or UnauthorizedAccessException)
         {
             // Nothing to signal, or another session's. Either way this process is not the tray and
             // has nothing useful left to do.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Wait for the tray slot to come free, which is the tray actually being gone (DD121).
+    /// </summary>
+    /// <param name="budget">How long to wait before answering no.</param>
+    /// <returns><see langword="true"/> where nothing holds the slot any more.</returns>
+    /// <remarks>
+    /// The mutex and not the signal is what is watched, because the signal only says the request was
+    /// delivered. What the uninstaller needs to know is that the file is no longer open, and the slot
+    /// is released in <see cref="Dispose"/> — after the message loop has ended and the process is on
+    /// its way out. A caller told "quit" too early deletes into a lock and reports success.
+    /// </remarks>
+    internal static bool WaitUntilTheTrayIsGone(TimeSpan budget)
+    {
+        var deadline = DateTime.UtcNow + budget;
+        while (true)
+        {
+            if (TryClaim(out var free))
+            {
+                // Claimed only to prove it was claimable. Held for any longer and a tray relaunched
+                // by a user in the same second would find the slot taken by a probe.
+                free!.Dispose();
+                return true;
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                return false;
+            }
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(100));
         }
     }
 
@@ -103,23 +159,33 @@ internal sealed class SingleTray : IDisposable
     /// What shows the window. It is called off the UI thread, so it has to marshal — which
     /// <c>TrayApplication</c> already does with the context it keeps for the event stream.
     /// </param>
-    internal void OnRaise(Action raise)
+    internal void OnRaise(Action raise) => Listen(_raise, "freewilly-tray-raise", raise);
+
+    /// <summary>Run <paramref name="quit"/> when <c>--quit</c> asks the tray to go (DD121).</summary>
+    /// <param name="quit">
+    /// What ends the tray. Called off the UI thread, exactly like the raise above, so it has to
+    /// marshal — ending the message loop from a background thread is not the same thing as ending it.
+    /// </param>
+    internal void OnQuit(Action quit) => Listen(_quit, "freewilly-tray-quit", quit);
+
+    /// <summary>Watch one named event until the claim is disposed.</summary>
+    private void Listen(EventWaitHandle signal, string name, Action act)
     {
-        ArgumentNullException.ThrowIfNull(raise);
+        ArgumentNullException.ThrowIfNull(act);
 
         // A background thread, so it cannot hold the process open by itself: quitting the tray ends
         // the message loop, and this must not outlive it.
         var listening = new Thread(() =>
         {
-            var handles = new WaitHandle[] { _raise, _stopping.Token.WaitHandle };
+            var handles = new WaitHandle[] { signal, _stopping.Token.WaitHandle };
             while (WaitHandle.WaitAny(handles) == 0)
             {
-                raise();
+                act();
             }
         })
         {
             IsBackground = true,
-            Name = "freewilly-tray-raise",
+            Name = name,
         };
 
         listening.Start();
@@ -132,6 +198,7 @@ internal sealed class SingleTray : IDisposable
         _held.ReleaseMutex();
         _held.Dispose();
         _raise.Dispose();
+        _quit.Dispose();
         _stopping.Dispose();
     }
 }

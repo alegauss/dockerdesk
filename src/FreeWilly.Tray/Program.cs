@@ -100,6 +100,15 @@ internal sealed class TrayApplication : ApplicationContext
     /// </remarks>
     internal void RaiseWindow() => _ui.Post(_ => OpenWindow(), null);
 
+    /// <summary>Close the tray because <c>--quit</c> asked for it (DD121).</summary>
+    /// <remarks>
+    /// Posted for the same reason <see cref="RaiseWindow"/> is: the signal arrives on a background
+    /// thread, and <see cref="Quit"/> hides the notify icon and ends the message loop — both of which
+    /// belong to the UI thread. It is the menu item's own exit and not a second one, so the engine is
+    /// left running here too; an uninstall that wants it stopped runs <c>--stop</c> as well.
+    /// </remarks>
+    internal void QuitFromSignal() => _ui.Post(_ => Quit(), null);
+
     private void OpenWindow()
     {
         if (_open is not null)
@@ -344,6 +353,7 @@ internal static class Program
 
                 var tray = new TrayApplication(openWindow: route.OpenWindow);
                 only!.OnRaise(tray.RaiseWindow);
+                only.OnQuit(tray.QuitFromSignal);
                 Application.Run(tray);
             }
 
@@ -362,6 +372,8 @@ internal static class Program
                 return Cli.WindowCapture.Run(route.Arguments);
             case Cli.Surface.ShowMenu:
                 return Cli.MenuPreview.Run(route.Arguments);
+            case Cli.Surface.Quit:
+                return Cli.QuitCommand.Run(route.Arguments);
             case Cli.Surface.Preflight:
                 return Cli.PreflightCommand.Run(route.Arguments);
             case Cli.Surface.Engine:

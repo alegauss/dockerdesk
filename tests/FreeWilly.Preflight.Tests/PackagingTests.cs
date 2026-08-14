@@ -548,7 +548,7 @@ public sealed class PackagingTests
         // The question that remains is about images and volumes, and it is the only one.
         var script = InstallerScript();
         var removal = script.IndexOf("RemovePathEntry;", StringComparison.Ordinal);
-        var question = script.IndexOf("if not OwnedDataExists then", StringComparison.Ordinal);
+        var question = script.IndexOf("if RemoveTheDistribution then", StringComparison.Ordinal);
         Assert.True(removal > 0 && question > removal);
 
         var unconditional = script[removal..question];
@@ -560,6 +560,173 @@ public sealed class PackagingTests
         {
             Assert.Contains($"'{path}'", unconditional, StringComparison.Ordinal);
         }
+    }
+
+    // ---- DD121: the uninstall stops what is running before it deletes anything ------------------
+
+    /// <summary>The uninstall half of the script, which is the only part these read.</summary>
+    private static string UninstallSection()
+    {
+        var script = InstallerScript();
+        var start = script.IndexOf(
+            "// Uninstall: stop what is running before deleting it", StringComparison.Ordinal);
+
+        Assert.True(start > 0, "the uninstall section was renamed and these guards now read nothing");
+        return script[start..];
+    }
+
+    [Fact]
+    public void Nothing_is_deleted_until_what_is_holding_the_files_has_been_asked_to_go()
+    {
+        // The defect DD121 removes, asserted as an order rather than as a presence. Windows will not
+        // delete an executable a process has open, so an uninstall run while the tray is in the
+        // notification area took the Run value, the PATH entry and the Add/Remove Programs entry —
+        // and then failed on FreeWilly.exe, leaving a root with no uninstaller left to take it.
+        //
+        // usUninstall is what makes it an order: Inno raises it before it removes a single file,
+        // and usPostUninstall — where every DelTree in this script lives — after.
+        var uninstall = UninstallSection();
+
+        var stopping = uninstall.IndexOf("procedure StopEverything;", StringComparison.Ordinal);
+        var stage = uninstall.IndexOf(
+            "if CurUninstallStep = usUninstall then", StringComparison.Ordinal);
+        var called = uninstall.IndexOf("StopEverything;", stage, StringComparison.Ordinal);
+        var later = uninstall.IndexOf(
+            "if CurUninstallStep <> usPostUninstall then", StringComparison.Ordinal);
+
+        Assert.True(stopping > 0, "nothing in the uninstall stops the product");
+        Assert.True(stage > stopping, "the uninstall never reaches usUninstall");
+        Assert.True(called > stage && called < later,
+            "the stop does not happen in usUninstall, which is the only step that runs before "
+            + "Inno removes files");
+    }
+
+    [Fact]
+    public void The_uninstall_stops_the_product_with_the_product_s_own_verbs()
+    {
+        // Two strings in Pascal against two constants in C#, and nothing but this notices them
+        // drifting: a renamed verb leaves an uninstall that runs a command the executable refuses,
+        // exits 2, and carries on into the delete that was the whole reason for running it.
+        var uninstall = UninstallSection();
+
+        Assert.Contains($"'{CommandLine.QuitVerb}'", uninstall, StringComparison.Ordinal);
+        Assert.Contains("'--stop'", uninstall, StringComparison.Ordinal);
+        Assert.Contains("--stop", CommandLine.EngineVerbs);
+
+        // The engine before the tray: --stop terminates the distribution, and the detached --run
+        // process serves something that lives inside it. Quitting the tray first would leave that
+        // one running with nothing left to ask it to go.
+        var stop = uninstall.IndexOf("'--stop'", StringComparison.Ordinal);
+        var quit = uninstall.IndexOf($"'{CommandLine.QuitVerb}'", StringComparison.Ordinal);
+        Assert.True(stop < quit, "the tray is asked to quit before the engine is stopped");
+    }
+
+    [Fact]
+    public void Forcing_a_process_is_the_last_resort_and_never_the_first_move()
+    {
+        // A terminated tray leaves its icon in the notification area until something hovers it, so
+        // the graceful verb has to be tried and its result read before anything is killed. The
+        // ordering is the assertion: taskkill after the probe, and the probe after the verbs.
+        var uninstall = UninstallSection();
+
+        var quit = uninstall.IndexOf($"'{CommandLine.QuitVerb}'", StringComparison.Ordinal);
+        var probe = uninstall.IndexOf("if not AnythingIsStillRunning then", StringComparison.Ordinal);
+        var kill = uninstall.IndexOf("taskkill.exe", StringComparison.Ordinal);
+
+        Assert.True(probe > quit, "nothing checks whether the graceful exit worked");
+        Assert.True(kill > probe, "the uninstall forces processes without asking them first");
+    }
+
+    [Fact]
+    public void The_one_choice_with_no_undo_is_off_until_somebody_ticks_it()
+    {
+        // Images and volumes, and the rule that survived DD121 unchanged: silence means keep. An
+        // unattended uninstall has nobody to ask, so it must never be the thing that deletes them —
+        // which is what the unset default buys, since UninstallSilent skips the page entirely.
+        var uninstall = UninstallSection();
+
+        Assert.Contains("Distribution.Checked := False;", uninstall, StringComparison.Ordinal);
+        Assert.Contains("if not UninstallSilent then", uninstall, StringComparison.Ordinal);
+
+        // Read after the page rather than set by it in the silent path, so the default is the
+        // variable's own zero and not a line somebody has to remember to write.
+        var reading = uninstall.IndexOf("if RemoveTheDistribution then", StringComparison.Ordinal);
+        Assert.True(reading > 0, "nothing acts on the distribution answer");
+    }
+
+    [Fact]
+    public void Everything_this_product_owns_is_gone_before_Inno_tries_to_remove_the_root()
+    {
+        // Inno removes the install directory during its own file pass — between usUninstall and
+        // usPostUninstall — and only if it is empty by then. Measured: with this work in
+        // usPostUninstall, an uninstall took the registration, the distribution, the virtual disk
+        // and every file, and left an empty root standing that nothing would ever offer to take.
+        //
+        // So the assertion is a placement. Every delete has to sit above the usPostUninstall guard,
+        // which is the line that separates the two steps in this procedure.
+        var uninstall = UninstallSection();
+        var boundary = uninstall.IndexOf(
+            "if CurUninstallStep <> usPostUninstall then", StringComparison.Ordinal);
+
+        Assert.True(boundary > 0, "the two uninstall steps are no longer told apart here");
+
+        foreach (var delete in new[]
+                 {
+                     @"DelTree(ExpandConstant('{app}\bin')",
+                     @"DelTree(ExpandConstant('{app}\cli-plugins')",
+                     @"DelTree(ExpandConstant('{app}\distro')",
+                     @"DelTree(ExpandConstant('{app}\downloads')",
+                 })
+        {
+            var at = uninstall.IndexOf(delete, StringComparison.Ordinal);
+            Assert.True(at > 0, $"{delete} is not in the uninstall at all");
+            Assert.True(at < boundary,
+                $"{delete} runs after Inno has already decided whether the root was empty, so an "
+                + "uninstall that removed everything still leaves the folder behind");
+        }
+    }
+
+    [Fact]
+    public void The_report_checks_the_promise_that_had_no_undo_and_not_the_root()
+    {
+        // The root cannot be the check: the uninstaller is still running out of it, unins000.exe is
+        // still in it, and Inno deletes both after usPostUninstall returns — so DirExists({app})
+        // there is always true and the report always fires. Measured, on a successful uninstall.
+        //
+        // What can be checked is what the page promised: the distribution and its downloads gone.
+        var uninstall = UninstallSection();
+        var report = uninstall.IndexOf(
+            "if CurUninstallStep <> usPostUninstall then", StringComparison.Ordinal);
+        var after = uninstall[report..];
+
+        Assert.Contains("not OwnedDataExists", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("DirExists(Left)", after, StringComparison.Ordinal);
+
+        // Silence stays silent, and a kept distribution is a choice rather than a failure.
+        Assert.Contains(
+            "if UninstallSilent or not RemoveTheDistribution or not OwnedDataExists then",
+            after,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_distribution_is_terminated_before_it_is_unregistered()
+    {
+        // An open virtual disk is a directory that survives its own deletion: unregistering a
+        // running distribution leaves the .vhdx locked, the DelTree below fails, and {app} stays on
+        // disk holding a quarter of a gigabyte nothing will ever offer to remove again.
+        var uninstall = UninstallSection();
+
+        var terminate = uninstall.IndexOf("'--terminate '", StringComparison.Ordinal);
+        var unregister = uninstall.IndexOf("'--unregister '", StringComparison.Ordinal);
+        // The removal and not the probe: OwnedDataExists names the same directory to decide whether
+        // there is anything to ask about, and it stands above all of this.
+        var tree = uninstall.IndexOf(
+            @"DelTree(ExpandConstant('{app}\distro')", StringComparison.Ordinal);
+
+        Assert.True(terminate > 0, "the distribution is unregistered without being terminated");
+        Assert.True(unregister > terminate);
+        Assert.True(tree > unregister);
     }
 
     [Fact]

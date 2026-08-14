@@ -1315,17 +1315,46 @@ public static class AgentSurface
                 + string.Join(", ", ComposeUp.FileNames));
         }
 
-        var listed = cli.Run(directory, ComposeUp.ServicesArguments(composeFile));
+        var listed = cli.Run(directory, ComposeUp.ConfigArguments(composeFile));
         if (!listed.Succeeded)
         {
-            return Refuse($"reading the services out of {Path.GetFileName(composeFile)} failed: "
-                + Said(listed));
+            return Refuse($"reading {Path.GetFileName(composeFile)} failed: " + Said(listed));
         }
 
-        var services = ComposeUp.Services(listed.Output);
+        IReadOnlyList<ComposeUp.ComposeService> services;
+        try
+        {
+            services = ComposeUp.Project(listed.Output);
+        }
+        catch (FormatException exception)
+        {
+            return Refuse(exception.Message);
+        }
+
         if (services.Count == 0)
         {
             return Refuse($"{Path.GetFileName(composeFile)} declares no services");
+        }
+
+        // A bind source this cannot respell is refused rather than sent (DD75). The daemon would
+        // take it, create the directory it names on the Linux side and give the container an empty
+        // one — measured — and an empty mount is a defect nobody sees until the data is missing.
+        foreach (var service in services)
+        {
+            foreach (var bind in service.Binds.Where(b => ComposeUp.NeedsTranslating(b.Source)))
+            {
+                try
+                {
+                    _ = Core.Engine.Wsl.ToDistributionPath(bind.Source);
+                }
+                catch (ArgumentException)
+                {
+                    return Refuse(
+                        $"{service.Name} mounts {bind.Source}, which the engine's distribution "
+                        + "cannot reach: it is not on a mapped drive letter, and the daemon would "
+                        + "silently give the container an empty directory instead");
+                }
+            }
         }
 
         // Outside the project on purpose: a generated file left in a working directory is the file

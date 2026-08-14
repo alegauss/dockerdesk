@@ -2,31 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD75 A bind source is a path the daemon reads, and the daemon is Linux
-
-A bind source is a path the daemon resolves, and the daemon is Linux. Docker Desktop
-hides this: something in its stack rewrites a Windows drive path into a host mount
-inside the VM, which is why an inspect there reports a source under
-/run/desktop/mnt/host — the convention DD26 deliberately refuses to recognise. Nothing
-in this project does that rewriting.
-
-**Measured** against upstream `dockerd` 29.7.2 with no Docker Desktop in the path,
-driven by the pinned Windows CLI. It is not one failure but two, and which one you get
-is decided by the spelling:
-
-- `-v D:\project:/data` and `-v D:/project:/data` are **refused**: `Error response from
-  daemon: invalid mode: /data`. The daemon splits the spec on `:`, so the drive letter
-  becomes the source, the rest becomes the destination and `/data` becomes a mode. The
-  message names neither the path nor Windows.
-- `-v /mnt/d/project:/data`, the spelling `Wsl.ToDistributionPath` produces, is **accepted**.
-  The daemon creates the missing source, `inspect` reports it exactly as typed, the run exits
-  0, and `ls -A /data` prints nothing. An empty directory, silently.
-
-So converting a path to the distribution's spelling does not make the mount work. It
-converts a loud failure into the quiet one, unless that drive is really automounted
-inside the distribution the engine runs in — which is a property of this project's own
-distro and is the thing to establish next.
-
 ### §DD76 The other side of the pipe, and what it would cost
 
 A developer whose shell is Ubuntu under WSL2 has no engine here. The daemon listens on a

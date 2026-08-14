@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD75** (deps: —) **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose. → §DD75
 - 💭 **DD76** (deps: —) **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all. → §DD76
 
 ## Block B — The daemon client (talk to the engine)

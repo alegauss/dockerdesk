@@ -75,6 +75,10 @@ public sealed class ComposeUpTests
 {
     private static ComposeResult Ok(string output = "") => new(0, output, null);
 
+    /// <summary>What `compose config --format json` answers for a one-service project.</summary>
+    private static ComposeResult Configured(string service = "api") =>
+        Ok("{\"name\":\"shop\",\"services\":{\"" + service + "\":{\"image\":\"nginx\"}}}");
+
     /// <summary>An engine holding one container already stamped for the session under test.</summary>
     private static ListingEngine Stamped() =>
         new(new ContainerSummary
@@ -151,12 +155,16 @@ public sealed class ComposeUpTests
         Assert.Null(ComposeUp.FileIn(@"C:\shop", _ => false));
     }
 
+    /// <summary>A service with the binds named, which is all these tests need of one.</summary>
+    private static ComposeUp.ComposeService Service(
+        string name, params ComposeUp.ComposeBind[] binds) => new(name, binds);
+
     // ---- the stamp ---------------------------------------------------------------------------------
 
     [Fact]
     public void The_override_stamps_every_service_with_the_session_label()
     {
-        var yaml = ComposeUp.Override(["api", "db"], "repro-17");
+        var yaml = ComposeUp.Override([Service("api"), Service("db")], "repro-17");
 
         Assert.Contains("services:", yaml, StringComparison.Ordinal);
         Assert.Contains("  api:", yaml, StringComparison.Ordinal);
@@ -176,7 +184,7 @@ public sealed class ComposeUpTests
 
         Assert.Contains(
             $"{SessionLabel.Key}: \"{derived}\"",
-            ComposeUp.Override(["api"], derived),
+            ComposeUp.Override([Service("api")], derived),
             StringComparison.Ordinal);
     }
 
@@ -255,7 +263,7 @@ public sealed class ComposeUpTests
             var composeFile = Path.Combine(scratch.FullName, "compose.yaml");
             File.WriteAllText(composeFile, "services:\n  api:\n    image: nginx\n");
 
-            var cli = new FakeComposeCli(Ok("api\n"), Ok());
+            var cli = new FakeComposeCli(Configured(), Ok());
             var output = new StringWriter();
 
             var code = AgentSurface.DoCompose(
@@ -294,7 +302,7 @@ public sealed class ComposeUpTests
             File.WriteAllText(Path.Combine(scratch.FullName, "compose.yaml"), "services:\n  api:\n");
 
             var cli = new FakeComposeCli(
-                Ok("api\n"),
+                Configured(),
                 new ComposeResult(1, "Error response from daemon: port is already allocated", null));
             var output = new StringWriter();
 

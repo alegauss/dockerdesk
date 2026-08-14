@@ -4,6 +4,7 @@
 // route metadata comes from the same table routes.tsx has already asserted against the
 // component map — so a route missing from either side never reaches this loop.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -128,6 +129,68 @@ const manifest = {
 };
 writeFileSync(join(distDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
+// --- robots.txt and sitemap.xml (§DD84) ---
+// Generated from the same ROUTE_META the loop above walked, so a route that exists appears
+// and a deleted one disappears with no second list to keep current. Committing them as
+// static files is the failure this replaces: the old sitemap listed one URL, was correct
+// for a site that was one scroll, and stayed at one entry after the page became nine
+// routes — and a committed file would have survived DD59's rename still publishing
+// addresses nothing serves.
+
+/**
+ * When the authored site last changed, as YYYY-MM-DD from git.
+ *
+ * Not the build clock: a rebuild that changed nothing would otherwise tell a crawler that
+ * every page did. Deliberately one date for every route rather than one per route —
+ * `lastmod` per URL would need to know which sources compose which page, and that is either
+ * a module graph or a hand-kept path-per-route table, which is exactly the second list this
+ * generator exists to avoid. One date over the whole authored tree is a weaker claim and a
+ * true one.
+ */
+function lastAuthoredChange() {
+  try {
+    const stamp = execFileSync(
+      "git",
+      ["log", "-1", "--format=%cs", "--", "src", "public", "index.html"],
+      { cwd: join(here, ".."), encoding: "utf8" },
+    ).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(stamp)) {
+      return stamp;
+    }
+  } catch {
+    // A tarball with no .git, or git not on PATH. A sitemap with no lastmod is valid and
+    // says nothing, which beats a date that is a guess.
+  }
+  return null;
+}
+
+const lastmod = lastAuthoredChange();
+const urls = ROUTE_META.map((meta) => {
+  const loc = `    <loc>${escapeHtml(canonicalUrl(meta.path))}</loc>`;
+  // No changefreq and no priority: the two fields the crawlers that read this file say
+  // outright that they ignore, and a hint nobody reads is a claim nobody checks.
+  return lastmod
+    ? `  <url>\n${loc}\n    <lastmod>${lastmod}</lastmod>\n  </url>`
+    : `  <url>\n${loc}\n  </url>`;
+});
+
+writeFileSync(
+  join(distDir, "sitemap.xml"),
+  '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + urls.join("\n")
+    + "\n</urlset>\n",
+);
+
+// Absolute, because that is what makes the sitemap discoverable without a submission — and
+// it carries the base prefix, so the rename that moves every route moves this too.
+const sitemapUrl = `${canonicalUrl("/")}sitemap.xml`;
+writeFileSync(
+  join(distDir, "robots.txt"),
+  `User-agent: *\nAllow: /\n\nSitemap: ${sitemapUrl}\n`,
+);
+
 console.log(
-  `prerender: ${ROUTE_META.length} route(s) + twins + manifest.json written to dist/`,
+  `prerender: ${ROUTE_META.length} route(s) + twins + manifest.json`
+    + `, sitemap.xml (lastmod ${lastmod ?? "omitted"}) and robots.txt written to dist/`,
 );

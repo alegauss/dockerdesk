@@ -35,8 +35,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 🛠 **DD84** (deps: —) **The published site serves no robots.txt and no sitemap.xml, and both answer 404 where the old folder had them** — Nothing tells a crawler which routes exist, so discovery rests on whatever links inward, and the sitemap the old folder published is gone rather than replaced. → §DD84
-
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

@@ -337,31 +337,3 @@ shape is not obviously better than the caller spelling it, and deleting it says 
 thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
-
-### §DD84 Generated from the route table, not committed
-
-Both files are build output and neither is committed to public. The reason is in the
-vite config, whose BASE comment already anticipated a sitemap entry carrying that
-prefix, and DD59 moves the prefix when the repository is renamed. A sitemap committed as
-a static file would survive that rename silently and keep publishing addresses nothing
-serves.
-
-The old one demonstrates the failure. It listed a single URL, correct for a site that
-was one scroll, and it stayed at one entry after DD48 split the page into routes.
-
-So the generator reads the route table, the same one the prerender loops over and the
-one already asserted against the component map, and emits both files into dist beside
-the social card. A route that exists appears and a deleted one disappears, with no
-second list to keep current.
-
-The robots file allows everything and names the sitemap absolutely, which is what makes
-it discoverable without a submission.
-
-The site test suite is where this is held. It already asserts the route pair and the
-social card, so it gains the matching claim: every route in the table appears exactly
-once, every URL carries the base prefix, and robots points at a sitemap that was
-actually written.
-
-The modified date comes from the commit that last touched each route rather than from
-build time, so a rebuild that changed nothing does not tell a crawler that everything
-did.

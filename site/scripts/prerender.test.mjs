@@ -70,6 +70,63 @@ test("the landing twin carries the hero session (the whole product an agent can 
   assert.ok(md.includes("freewilly read context"), "landing twin missing the session");
 });
 
+test("the sitemap lists every route exactly once, and nothing else (DD84)", () => {
+  const xml = readFileSync(join(distDir, "sitemap.xml"), "utf8");
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+
+  // Exactly once and in both directions: a route missing from the sitemap is one a crawler
+  // finds only if something links inward, and a URL with no route is an address that 404s.
+  assert.equal(locs.length, manifest.routes.length, "sitemap URL count differs from the routes");
+  assert.equal(new Set(locs).size, locs.length, "the sitemap lists a URL twice");
+  for (const r of manifest.routes) {
+    assert.ok(locs.includes(r.url), `sitemap missing ${r.url}`);
+  }
+});
+
+test("every sitemap URL carries the base prefix (DD84)", () => {
+  // The prefix GitHub Pages derives from the repository name. A sitemap that lost it would
+  // publish addresses nothing serves, which is the failure a committed file would have
+  // survived DD59 with.
+  const xml = readFileSync(join(distDir, "sitemap.xml"), "utf8");
+  for (const [, loc] of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+    assert.ok(
+      loc.startsWith(`https://alegauss.github.io${manifest.base}`),
+      `${loc} does not carry ${manifest.base}`,
+    );
+  }
+});
+
+test("the sitemap states no lastmod it cannot derive, and never the build clock (DD84)", () => {
+  const xml = readFileSync(join(distDir, "sitemap.xml"), "utf8");
+  const stamps = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+  for (const s of stamps) {
+    assert.match(s, /^\d{4}-\d{2}-\d{2}$/, `lastmod ${s} is not a plain date`);
+  }
+
+  // Either every URL carries one or none does — a sitemap where some routes look fresher
+  // for want of a source, rather than for having changed, is the misleading half.
+  assert.ok(
+    stamps.length === 0 || stamps.length === manifest.routes.length,
+    "lastmod is on some routes and not others",
+  );
+});
+
+test("robots allows everything and names a sitemap that was written (DD84)", () => {
+  const robots = readFileSync(join(distDir, "robots.txt"), "utf8");
+  assert.match(robots, /^User-agent: \*$/m);
+  assert.match(robots, /^Allow: \/$/m);
+
+  const named = robots.match(/^Sitemap: (\S+)$/m);
+  assert.ok(named, "robots.txt names no sitemap");
+
+  // Absolute, and the file it names is the one beside it — a Sitemap: line pointing at
+  // nothing is worse than no line, because it is a claim a crawler acts on.
+  const url = named[1];
+  assert.ok(url.startsWith("https://"), "the Sitemap: line is not absolute");
+  assert.equal(url, `https://alegauss.github.io${manifest.base}sitemap.xml`);
+  assert.ok(existsSync(join(distDir, "sitemap.xml")), "robots names a sitemap that is not there");
+});
+
 test("the social card is a 1200x630 PNG (DD49)", () => {
   const png = join(distDir, "og.png");
   assert.ok(existsSync(png), "dist/og.png missing");

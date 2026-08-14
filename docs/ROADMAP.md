@@ -14,8 +14,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD118** (deps: —) **Nothing says how far behind the vendored engine is, so a fix filed upstream is one this project keeps not having** — DD116 made the hooks run the copy at .roadkeep, which pins the version deliberately — and pinning without a read is a pin nobody revisits. → §DD118
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

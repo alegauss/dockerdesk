@@ -90,6 +90,7 @@
 - ✅ **DD115** **Committed agent configuration is rewritten by whatever session is open, and a trimmed entry ships inside another change** — A test reads the committed settings and fails the build where a trim takes a granted tool or unwires the guard owning the governed files, instead of it landing in another change.
 - ✅ **DD116** **ROADKEEP_HOME arrives unexpanded, so every hook runs a sibling checkout rather than the engine this repo vendors** — The launcher expands the variable it is handed and prefers the copy vendored here, so every hook runs this project's engine — and a build fails if resolution leaves it.
 - 🗑 **DD117** **A commit owns whatever the tree was holding, so a trimmed setting and a test's bytecode shipped inside other changes** — abandoned: Decided against: the fix touches a commit tool every repository shares, and both failures it was filed for are closed from the other side by DD115 and a .gitignore rule.
+- ✅ **DD118** **Nothing says how far behind the vendored engine is, so a fix filed upstream is one this project keeps not having** — The gate runs the vendored engine beside the action it floats on and prints both versions, so a rule one has and the other lacks is red on the push rather than on a developer's machine.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

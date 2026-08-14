@@ -17,3 +17,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: alegauss/roadkeep@main
+
+      # DD118. The action above floats on `main`; the engine that actually writes here is the copy
+      # vendored at `.roadkeep`, and DD116 made every hook run that one. So two different roadkeeps
+      # are in play — one gates and one writes — and nothing said how far apart they were.
+      #
+      # Running both over the same files is the read, and it is a gate rather than a notice: a rule
+      # `main` gained and the vendored copy has not is a file that lints clean on a developer's
+      # machine and red here, which is the shape this project has already been bitten by twice. It
+      # also states both versions, so "how far behind" is a number in the log of every push rather
+      # than something somebody has to go and ask for.
+      #
+      # No pin is possible: roadkeep publishes no tags, and the vendored copy reports its revision
+      # as `untracked` because it is a copy rather than a checkout. Agreement is therefore
+      # established by both engines answering the same question, not by naming one version twice.
+      - name: The engine that writes here agrees with the one that gates
+        run: |
+          echo "gate    alegauss/roadkeep@main (whatever that resolves to today)"
+          echo "writing $(python .roadkeep/scripts/roadkeep.py --version)"
+          python .roadkeep/scripts/roadkeep.py lint

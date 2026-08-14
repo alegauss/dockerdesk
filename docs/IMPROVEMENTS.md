@@ -180,6 +180,31 @@ task-for-task: the surface answers in fewer calls partly by answering a slightly
 different question, and the record should say so rather than let a ratio imply the two
 payloads are interchangeable.
 
+### §DD72 The session label is read back, so respelling it loses a session
+
+`SessionLabel.Key` is `"dockerdesk.session"`, the last name in the rename set that is
+state rather than spelling. It survived the sweep because changing it would have
+compiled and every test would still have passed.
+
+It is written onto containers and volumes and read back by `read changes --session` and
+`do reclaim --session`, which is how an agent asks what it made and removes exactly that
+and nothing else. A build that simply spells it `freewilly.session` stops seeing
+everything a previous build labelled: `read changes --session` answers empty on a
+machine full of the caller's own containers, and `do reclaim --session` finds nothing to
+remove — the worse of the two, because it reads as "there was nothing there" rather than
+as an error.
+
+That is DD55's shape exactly, and DD55's answer is the one to weigh first: resolve
+rather than rewrite. A read that matched either key would see both generations, and a
+write that used the new one would stop adding to the old. What that costs is a machine
+holding two label keys for a while, and what it buys is that nobody loses a session
+mid-migration.
+
+The alternative is to relabel on sight — rewriting a container's labels is not something
+the Engine API offers without recreating the container, which is exactly the thing this
+surface refuses to do to somebody's work. So it is probably read-both, write-new, with
+the old key spelled once beside the distribution's in `EnginePaths.Legacy`.
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ### §DD59 The published surface is a path, not just prose
@@ -228,3 +253,25 @@ prose names the project throughout. What does not change is `roadkeep.toml`'s `p
 "DD"`: renumbering the ids would rewrite every dependency, every section anchor and
 every pushed commit message that cites one, to say the same thing in two different
 letters.
+
+### §DD71 The public prose fell through the gap the rename set carved
+
+The rename set carved the tree up by ownership, and the public prose fell through the
+gap. DD60 covers the three files under `docs/` that the guard governs, DD59 covers the
+site's base path and waits on the GitHub rename, and DD58 covered the invocations inside
+`README.md` — which leaves the product's own name in the one file a visitor reads first.
+
+`README.md` opens with `# DockerDesk`, says the installer puts things in
+`%LOCALAPPDATA%\DockerDesk`, and lists the verbs as `DockerDesk.exe --preflight` and the
+rest. `site/src/lib/site-content.ts` carries the same name about fifty times, and
+`site/public/llms.txt` is the copy an agent reads.
+
+One line is not merely stale but wrong: "the engine lives in a WSL2 distribution called
+`dockerdesk`". After DD55 a fresh install creates `freewilly`, and `dockerdesk` is what
+an adopted install kept. A reader who runs `wsl --list` after installing sees a name the
+README says they should not have, and the uninstall paragraph names the same thing.
+
+So this is two different jobs wearing one heading. The product name is a sweep with no
+decisions in it. The distribution sentence needs rewriting rather than replacing,
+because the honest version has two names in it and has to say which one a reader will
+actually see — which is a paragraph somebody writes, not a string somebody swaps.

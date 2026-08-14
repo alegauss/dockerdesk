@@ -25,11 +25,13 @@
 - 📋 **DD63** (deps: DD29 ✅) **No verb on this surface creates anything, so the session stamp has nothing to stamp** — agent-budget.json already reserves a ceiling for do compose up, and DD29's label is reachable only from tests until a do verb creates something. → §DD63
 - ⏳ **DD64** (deps: —) **The test that gates every cost claim can go red for a reason that is not cost** — AgentBudgetTests went red once in a full run and never again in 23; the only non-deterministic assertion in it is the daemon's recorded request count. → §DD64
 - 📋 **DD65** (deps: DD30 ✅) **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — agent-budget.json sets surface.exists false and names read context, doctor, logs and verify as not existing; all four shipped and are now measurable. → §DD65
+- 📋 **DD72** (deps: —) **The session label key is the last name in the rename set that is state on a machine rather than spelling in a build** — read changes and do reclaim both answer from that label, so a build that simply respells it stops seeing every container a previous one created. → §DD72
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
 - 📋 **DD59** (deps: the GitHub repository rename) **The site is served from a base path containing the old name, so every published route moves at once** — GitHub Pages derives the base path from the repository name, so renaming the repo moves every published URL at once and nothing serves the old ones. → §DD59
 - 📋 **DD60** (deps: —) **Fifteen lines of governed prose name DockerDesk, and the guard denies the edit that would change them** — The guard denies the edit, so each one moves through the verb that owns it, and a ledger naming a product nobody can find is where a stale name actively misleads. → §DD60
+- 📋 **DD71** (deps: —) **README and the site still name the product and the distribution as they were before the rename** — One line is not merely stale but wrong: it says the distribution is called dockerdesk, which after DD55 is only true of an install that was adopted. → §DD71
 
 ## Non-goals
 

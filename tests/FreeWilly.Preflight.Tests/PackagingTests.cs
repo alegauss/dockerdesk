@@ -153,6 +153,61 @@ public sealed class PackagingTests
             Settings().GetProperty("env").GetProperty("ROADKEEP_HOME").GetString());
     }
 
+    [Fact]
+    public void The_engine_the_hooks_reach_is_the_one_this_repository_vendors()
+    {
+        // DD116, and it is asserted by running the launcher's own resolution rather than by reading
+        // it: the defect was invisible in the file. `settings.json` sets ROADKEEP_HOME to
+        // `${CLAUDE_PROJECT_DIR}/.roadkeep`, the harness passes env values through verbatim, and the
+        // first candidate therefore never existed — so every hook fell through to a sibling
+        // checkout, which is the neighbour's working tree that vendoring exists to stop depending
+        // on. Earlier in this project's history that tree was mid-refactor and did not import, and
+        // the guard denying hand-edits of the governed files was running a traceback.
+        var root = RepositoryRoot();
+        var launcher = Path.Combine(root, ".claude", "hooks", "roadkeep-launch.py");
+        Assert.True(File.Exists(launcher), $"{launcher} is missing, so no hook can reach an engine");
+
+        var probe = Path.Combine(Path.GetTempPath(), $"roadkeep-resolve-{Guid.NewGuid():N}.py");
+        File.WriteAllText(
+            probe,
+            $"""
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("rl", r"{launcher}")
+            m = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(m)
+            print(m._resolve())
+            """);
+
+        try
+        {
+            var run = new System.Diagnostics.ProcessStartInfo("python", probe)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                WorkingDirectory = root,
+            };
+
+            // Exactly what settings.json hands the hooks, so the test asks the question the harness
+            // asks and not an easier one.
+            run.Environment["CLAUDE_PROJECT_DIR"] = root;
+            run.Environment["ROADKEEP_HOME"] = "${CLAUDE_PROJECT_DIR}/.roadkeep";
+
+            using var process = System.Diagnostics.Process.Start(run);
+            Assert.NotNull(process);
+            var resolved = process!.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit(30000);
+
+            Assert.Equal(
+                Path.Combine(root, ".roadkeep", "scripts", "roadkeep.py"),
+                resolved);
+        }
+        finally
+        {
+            File.Delete(probe);
+        }
+    }
+
     /// <summary>Every script and workflow that could invoke the build, found rather than listed.</summary>
     private static IEnumerable<string> BuildScripts() =>
         new[] { "build", ".github/workflows", "scripts" }

@@ -140,11 +140,32 @@ def _cache_engine() -> Path | None:
     return _valid(Path(base) / "roadkeep-src" / "roadkeep")
 
 
+def _expanded(stated: str) -> str:
+    """``${CLAUDE_PROJECT_DIR}`` as a path rather than as four literal characters (DD116).
+
+    The harness passes ``env`` values through verbatim, so a ``ROADKEEP_HOME`` written the way
+    every hook ``command`` in the same file is written arrives with its braces intact. Nothing
+    said so: the first candidate simply never existed and resolution fell through to the sibling
+    checkout, which is the neighbour's working tree that vendoring exists to stop depending on.
+
+    Both spellings, because a settings file may carry either and being wrong here is silent.
+    """
+    root = str(_repo_root())
+    for form in ("${CLAUDE_PROJECT_DIR}", "$CLAUDE_PROJECT_DIR", "%CLAUDE_PROJECT_DIR%"):
+        stated = stated.replace(form, root)
+    return stated
+
+
 def _resolve() -> Path | None:
     """An engine to run, or None. Not the deferral check — that is asked first and separately."""
     home = os.environ.get("ROADKEEP_HOME")
     return (
-        (_valid(Path(home)) if home else None)
+        (_valid(Path(_expanded(home))) if home else None)
+        # A copy vendored inside the repository, which is what this project carries and what no
+        # environment variable should have been needed to reach (DD116). Ahead of the sibling on
+        # purpose: a checkout beside this one belongs to somebody else and is allowed to be
+        # mid-refactor, which is exactly the state that took the guard down.
+        or _valid(_repo_root() / ".roadkeep")
         or _valid(_repo_root().parent / "roadkeep")
         or _cache_engine()
     )

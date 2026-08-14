@@ -88,6 +88,7 @@
 - ✅ **DD102** **The installer script is compiled only by the release workflow, so a syntax error in it is found by the release** — `check.yml` compiles `build/installer.iss` on every push and asserts the installer came out, so Inno refuses a bad construct on the commit rather than on the tag.
 - ✅ **DD109** **A build after an interrupted one cannot pick a project, and build.cmd clears the cause only afterwards** — Every build command names the project file, so a leftover `_wpftmp.csproj` cannot leave MSBuild unable to choose, and `build.cmd` clears one before the publish rather than after it.
 - ✅ **DD115** **Committed agent configuration is rewritten by whatever session is open, and a trimmed entry ships inside another change** — A test reads the committed settings and fails the build where a trim takes a granted tool or unwires the guard owning the governed files, instead of it landing in another change.
+- ✅ **DD116** **ROADKEEP_HOME arrives unexpanded, so every hook runs a sibling checkout rather than the engine this repo vendors** — The launcher expands the variable it is handed and prefers the copy vendored here, so every hook runs this project's engine — and a build fails if resolution leaves it.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

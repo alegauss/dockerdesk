@@ -35,8 +35,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD94** (deps: —) **The site's own README lists eleven shipped tasks as work deliberately still to come** — It is the first thing a contributor reads about what exists, and it describes the workspace as it stood at DD40 with the prerender, the twins and the tests all ahead of it. → §DD94
-
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

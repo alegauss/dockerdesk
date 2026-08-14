@@ -337,28 +337,3 @@ shape is not obviously better than the caller spelling it, and deleting it says 
 thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
-
-### §DD94 A contributor's first read is the oldest one
-
-`site/README.md` closes with a section headed *What is DD40, and what is not*, listing
-DD41 through DD51 as "deliberately still to come": the prerender and the route table,
-the Markdown twins and `llms.txt`, the hero session, the ten laws, `/claude-code`,
-`/compare`, the five depth pages, the social card, the publish job and the site's own
-tests.
-
-Every one of them shipped. The file is describing the workspace on the day it was
-created, and it is the first thing a contributor opens to find out what is there — so
-the one document whose job is orientation is the one furthest out of date.
-
-DD91 amended its DD43 line, because that task was reversed and saying nothing would have
-been worse than saying it late. The rest was left, which is why this is a line rather
-than a leftover.
-
-The repair is not to tick eleven items off. A list of what does not exist yet dates
-itself by construction, and this is the second time it has needed hand-correction. What
-a contributor needs is where things live — which the table above it already gives — and
-what the workspace refuses, which the non-goals section below it already gives. The
-section between them can go, with whatever is genuinely still ahead moving to the
-roadmap where a tool keeps it honest.
-
-The same file still describes the build as reading roadkeep, which DD91 removed.

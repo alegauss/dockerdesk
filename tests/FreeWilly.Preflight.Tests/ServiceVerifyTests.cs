@@ -318,7 +318,7 @@ public sealed class ServiceVerifyTests
                     new PortAnswer(8080, "8080/tcp", true, 3, null),
                 ],
                 request: new RequestAnswer("http://127.0.0.1:8080/healthz", 502, 12, null))),
-            heading: "dockerdesk read verify shop-api-1",
+            heading: "freewilly read verify shop-api-1",
             summary: "Not answering: port, request, health, mounts. The remedy on each row is the action.");
 
         Assert.True(

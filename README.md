@@ -79,22 +79,22 @@ DockerDesk.exe --help          every verb
 DockerDesk's other operator is a coding agent, and the split that matters to one is in argv:
 
 ```
-dockerdesk read context       the whole machine in one budgeted payload
-dockerdesk read doctor <name> why one container is not answering
-dockerdesk read ps            every container, one line each — mutates nothing
-dockerdesk read logs <name>   --since --level --dedup --budget --out
-dockerdesk read ports [port]  what holds a host port, which Docker cannot say
-dockerdesk read verify <name> proof that it answers; --request --wait --timeout
-dockerdesk read changes       what moved; --since for a delta, --session for mine
-dockerdesk do   engine start  brings the engine up
-dockerdesk do   reclaim       remove exactly that, and nothing else
+freewilly read context       the whole machine in one budgeted payload
+freewilly read doctor <name> why one container is not answering
+freewilly read ps            every container, one line each — mutates nothing
+freewilly read logs <name>   --since --level --dedup --budget --out
+freewilly read ports [port]  what holds a host port, which Docker cannot say
+freewilly read verify <name> proof that it answers; --request --wait --timeout
+freewilly read changes       what moved; --since for a delta, --session for mine
+freewilly do   engine start  brings the engine up
+freewilly do   reclaim       remove exactly that, and nothing else
 ```
 
 `port is already allocated` is the refusal an agent cannot act on: the daemon knows a bind
 failed and no Docker command anywhere knows what holds the socket. A Windows process does:
 
 ```
-$ dockerdesk read ports 135
+$ freewilly read ports 135
 port 135 is already held on this machine
   heldBy    pid 2416  svchost.exe  (path not readable by this process)
   fix       Stop process 2416 (svchost.exe), or publish a different host port.
@@ -117,8 +117,8 @@ nothing about severity, and dropping them would leave you an error with no trace
 `--out <path>` is the argument that matters most and is the least obvious:
 
 ```
-dockerdesk read logs shop-api-1 --out .dockerdesk/logs/api.log
-  wrote D:\shop\.dockerdesk\logs\api.log  1284 line(s)  91043 bytes
+freewilly read logs shop-api-1 --out .freewilly/logs/api.log
+  wrote D:\shop\.freewilly\logs\api.log  1284 line(s)  91043 bytes
   Grep it: the matching lines cost tokens, the rest does not.
   cursor  t:2026-08-13T09:16:01.884Z
 ```
@@ -196,7 +196,7 @@ cheaper, which over a week is the larger number — a follow-up syncs on what mo
 of re-deriving the machine:
 
 ```
-$ dockerdesk read changes --since t:2026-08-13T11:45:00Z
+$ freewilly read changes --since t:2026-08-13T11:45:00Z
 shop-api-1              stopped
 shop-db-1               running
 shop-worker-1           restarted ×2, exited 137
@@ -224,7 +224,7 @@ command nobody delegates. Everything created through `do` is stamped
 timestamp, and the undo is scoped to it:
 
 ```
-$ dockerdesk do reclaim --session repro-17
+$ freewilly do reclaim --session repro-17
 session  repro-17
 would remove  2 container(s)
   container shop-api-1              exited  shop/api:latest
@@ -232,7 +232,7 @@ would remove  2 container(s)
 KEEPING  1 volume(s)  a container comes back from its image; a volume comes back from nothing
   volume    shop-data               not mounted
   --volumes takes them too, and changes the token below.
-confirm  dockerdesk do reclaim --session repro-17 --confirm k:6e80b8
+confirm  freewilly do reclaim --session repro-17 --confirm k:6e80b8
 ```
 
 The session is `DOCKERDESK_SESSION`, because every call is a separate process and an id
@@ -252,7 +252,7 @@ ask. Separating them makes the rule one line:
 
 ```jsonc
 // .claude/settings.json
-"allow": ["Bash(dockerdesk read:*)"]
+"allow": ["Bash(freewilly read:*)"]
 ```
 
 A surface nobody discovers is one nobody uses, so the install ships how it is found — and
@@ -268,7 +268,7 @@ drift, and the one loaded every session drifts unnoticed, so a test holds the sk
 list equal to the registry: a verb that ships without appearing there fails the build.
 
 ```
-dockerdesk read context --as brief --out .dockerdesk/brief.md
+freewilly read context --as brief --out .freewilly/brief.md
 ```
 
 writes what a session should start knowing, generated from the live machine rather than

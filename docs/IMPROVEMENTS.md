@@ -109,31 +109,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD58 The invocation name is quoted in a file this project does not own
-
-The surface an agent drives is invoked by name, and the name is quoted in a place this
-project does not own. `CommandLine.ExecutableName` is `"DockerDesk.exe"`, the published
-surface documents `dockerdesk read context`, `dockerdesk read doctor api`, `dockerdesk
-read logs api` and `dockerdesk do compose up`, and beside them stands the allowlist
-entry `Bash(dockerdesk read:*)` — a literal prefix match that a user pasted into their
-own `settings.json`.
-
-That is what separates this from a rename inside the tree. An allowlist pattern cannot
-be migrated from here, so a session whose entry says `dockerdesk` starts asking for
-approval on every read the moment the executable answers to something else — which is
-exactly the cost DD24 and DD32 exist to remove. The name therefore has to be settled
-before DD32 writes an install-time settings entry, or DD32 writes the wrong string into
-the one file the install was finally allowed to touch.
-
-The name is settled: `FreeWilly`, and `freewilly` wherever the spelling is lower-case —
-the WSL distribution and the invocation. It was weighed against a shorter head, since
-`freewilly read logs api --dedup --budget 1500` puts nine characters of prefix on a line
-an agent emits constantly and a user reads inside an approval prompt, and `willy` costs
-four fewer. A command that matches the product won.
-
-That one spelling serves the executable, the documented invocations and the allowlist
-pattern together, because a pattern that disagrees with the executable matches nothing.
-
 ### §DD63 A stamp with nothing to stamp is half a promise
 
 DD29 shipped the label, the plan and the confirm token, and every one of them is

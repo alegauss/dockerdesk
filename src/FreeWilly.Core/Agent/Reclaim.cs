@@ -173,7 +173,7 @@ public static class Reclaim
         {
             // The whole command, --volumes included where it applies: a confirm line that omitted the
             // flag would be copied, re-run without it, and refuse against a token it no longer matches.
-            text.Append("confirm  dockerdesk do reclaim --session ").Append(plan.Session)
+            text.Append("confirm  freewilly do reclaim --session ").Append(plan.Session)
                 .Append(plan.Removing.Any(i => string.Equals(i.Kind, Volume, StringComparison.Ordinal))
                     ? " --volumes --confirm "
                     : " --confirm ")
@@ -212,7 +212,7 @@ public static class Reclaim
                 .AppendLine(item.Detail);
         }
 
-        text.Append("undo  dockerdesk do reclaim --session ").AppendLine(plan.Session);
+        text.Append("undo  freewilly do reclaim --session ").AppendLine(plan.Session);
         return text.ToString();
     }
 
@@ -272,7 +272,7 @@ public static class Reclaim
                 ? "nothing here belongs to that session any more"
                 : "that token was computed over a different list",
             Fix: plan.Removing.Count == 0
-                ? "Nothing was removed. Run `dockerdesk read changes` to see what is there."
+                ? "Nothing was removed. Run `freewilly read changes` to see what is there."
                 : "Nothing was removed. Read the plan below and confirm it with " + plan.Token + ".",
             Facts: facts);
     }

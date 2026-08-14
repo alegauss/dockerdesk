@@ -78,7 +78,38 @@ public sealed class AgentDiscoveryTests
             Assert.DoesNotContain(verb.Summary, skill, StringComparison.Ordinal);
         }
 
-        Assert.Contains("dockerdesk --help", skill, StringComparison.Ordinal);
+        Assert.Contains("freewilly --help", skill, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_allowlist_pattern_is_the_name_the_executable_actually_answers_to()
+    {
+        // DD58, and the one guard that pays for itself. An allowlist entry is a literal prefix a
+        // user pasted into their own settings.json — this project cannot migrate it — so a pattern
+        // that disagrees with the executable matches nothing, and every read the split was built to
+        // make free starts asking for approval again. Derived from ExecutableName rather than
+        // written down, because a second copy of a name is where the two drift apart.
+        var invocation = System.IO.Path
+            .GetFileNameWithoutExtension(CommandLine.ExecutableName)
+            .ToLowerInvariant();
+
+        Assert.Equal(AgentBrief.AllowEntry, $"Bash({invocation} read:*)");
+
+        // And every place it is quoted says the same thing: the skill and the snippet the installer
+        // lays down beside the .exe, and the surface's own help.
+        Assert.Contains(AgentBrief.AllowEntry, Skill(), StringComparison.Ordinal);
+        Assert.Contains(
+            AgentBrief.AllowEntry,
+            File.ReadAllText(RepositoryFile(@"build\agent\settings-snippet.json")),
+            StringComparison.Ordinal);
+        Assert.Contains(AgentBrief.AllowEntry, AgentSurface.HelpText, StringComparison.Ordinal);
+
+        // The forwarder is what makes that prefix resolve at all: {app}\bin is on PATH and the .exe
+        // is one directory up, so a name change that missed this file would leave a pattern matching
+        // a command that is not there.
+        Assert.True(
+            File.Exists(RepositoryFile($@"build\{invocation}.cmd")),
+            $"build\\{invocation}.cmd is the forwarder the allowlist prefix resolves through");
     }
 
     [Fact]

@@ -92,7 +92,7 @@ public static class ChangeFeed
             // state — there is no moment inside it to ask the daemon about — and the caller is one
             // line away from the right one, which the pack prints beside it.
             why = $"{value} is a context cursor: it fingerprints the machine's state and carries no "
-                + $"moment. Run `dockerdesk read changes` with no cursor — it answers with a "
+                + $"moment. Run `freewilly read changes` with no cursor — it answers with a "
                 + $"{CursorPrefix} one to continue from.";
             return false;
         }
@@ -184,7 +184,7 @@ public static class ChangeFeed
                 "too old  the daemon keeps its last "
                 + DaemonRing.ToString(CultureInfo.InvariantCulture)
                 + " events and this cursor reaches past them");
-            text.AppendLine("         Re-read `dockerdesk read context`. What follows is not a complete delta.");
+            text.AppendLine("         Re-read `freewilly read context`. What follows is not a complete delta.");
         }
 
         if (delta.Rows.Count == 0)

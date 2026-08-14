@@ -26,7 +26,7 @@ namespace FreeWilly.Core.Agent;
 public static class AgentBrief
 {
     /// <summary>The allowlist line the whole read/do split exists to make grantable.</summary>
-    public const string AllowEntry = "Bash(dockerdesk read:*)";
+    public const string AllowEntry = "Bash(freewilly read:*)";
 
     /// <summary>Write the brief.</summary>
     /// <param name="facts">The machine, as the context pack gathered it.</param>
@@ -40,7 +40,7 @@ public static class AgentBrief
         var text = new StringBuilder();
         text.AppendLine("# Docker on this machine");
         text.AppendLine();
-        text.AppendLine("This machine runs Docker through FreeWilly. **Reach for `dockerdesk read`");
+        text.AppendLine("This machine runs Docker through FreeWilly. **Reach for `freewilly read`");
         text.AppendLine("before `docker`**: the read half mutates nothing and two guards in its build");
         text.AppendLine("hold that, so one allowlist line covers all of it.");
         text.AppendLine();
@@ -57,13 +57,13 @@ public static class AgentBrief
 
         text.AppendLine("```");
         text.AppendLine();
-        text.AppendLine("`dockerdesk --help` says what each does. Nothing is repeated here: two");
+        text.AppendLine("`freewilly --help` says what each does. Nothing is repeated here: two");
         text.AppendLine("descriptions of one surface drift, and this is the copy that would drift");
         text.AppendLine("unnoticed.");
         text.AppendLine();
         text.AppendLine("## What was here when this was generated");
         text.AppendLine();
-        text.AppendLine("Re-run `dockerdesk read context --as brief` to refresh it.");
+        text.AppendLine("Re-run `freewilly read context --as brief` to refresh it.");
         text.AppendLine();
         text.AppendLine("```");
 

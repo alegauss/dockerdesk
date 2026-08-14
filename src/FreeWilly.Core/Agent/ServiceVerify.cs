@@ -110,7 +110,7 @@ public static class ServiceVerify
                 Title = facts.Address.ToString(),
                 Verdict = Verdict.Fail,
                 Detail = "no such container on this engine",
-                Remedy = "Run `dockerdesk read context` to see what is there.",
+                Remedy = "Run `freewilly read context` to see what is there.",
                 Blocking = true,
             }]);
         }
@@ -130,7 +130,7 @@ public static class ServiceVerify
                 Verdict = Verdict.Fail,
                 Detail = (facts.Inspect?.State.Status ?? facts.Summary?.State ?? "unknown")
                     + ", so nothing was probed",
-                Remedy = $"Run `dockerdesk read doctor {facts.Address}` for why it is not running.",
+                Remedy = $"Run `freewilly read doctor {facts.Address}` for why it is not running.",
                 Blocking = true,
             }]);
         }

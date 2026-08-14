@@ -17,7 +17,7 @@
   ],
   "permissions": {
     "allow": [
-      "Bash(dockerdesk read:*)"
+      "Bash(freewilly read:*)"
     ]
   }
 }

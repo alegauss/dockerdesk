@@ -101,7 +101,7 @@ public static class CommandLine
         }
 
         // The agent surface, and it is a bare word rather than a flag on purpose: an allowlist matches
-        // the literal prefix `dockerdesk read`, and a flag would put the two halves in one namespace
+        // the literal prefix `freewilly read`, and a flag would put the two halves in one namespace
         // again — which is the whole thing DD24 exists to undo.
         if (string.Equals(first, AgentSurface.ReadVerb, StringComparison.Ordinal)
             || string.Equals(first, AgentSurface.DoVerb, StringComparison.Ordinal))

@@ -1,14 +1,14 @@
-DockerDesk is installed.
+FreeWilly is installed.
 
 One thing Windows does that is worth knowing before you go looking for it: a
 notification icon it has not seen before goes into the overflow, behind the
-chevron next to the clock. DockerDesk's icon is there now, and not on the
+chevron next to the clock. FreeWilly's icon is there now, and not on the
 taskbar.
 
 Nothing here changes that for you. Windows keeps that choice per user and per
 application, and six installers each deciding their own icon deserves the
 visible row is the reason it works that way at all. To keep the engine's state
-in sight, click the chevron and drag the DockerDesk icon onto the taskbar once
+in sight, click the chevron and drag the FreeWilly icon onto the taskbar once
 - Windows remembers it from then on.
 
 Until you do, nothing is missing: the state is in the icon's tooltip on hover,
@@ -17,7 +17,7 @@ and the window is one click away from its menu.
 
 If a coding agent uses this machine
 
-DockerDesk ships a surface built for one, and two files that make it findable
+FreeWilly ships a surface built for one, and two files that make it findable
 are now in the install directory. Neither has been copied anywhere: your agent
 configuration is yours, and an allowlist is the last file a tool should edit
 without asking.
@@ -27,17 +27,17 @@ without asking.
 
 To use them, copy the skill where your agent looks for one:
 
-  mkdir "%USERPROFILE%\.claude\skills\dockerdesk"
-  copy "%LOCALAPPDATA%\DockerDesk\agent\SKILL.md" ^
-       "%USERPROFILE%\.claude\skills\dockerdesk\"
+  mkdir "%USERPROFILE%\.claude\skills\freewilly"
+  copy "%LOCALAPPDATA%\FreeWilly\agent\SKILL.md" ^
+       "%USERPROFILE%\.claude\skills\freewilly\"
 
 and add this one line to the "allow" array in your .claude\settings.json:
 
-  "Bash(dockerdesk read:*)"
+  "Bash(freewilly read:*)"
 
-That grants every read verb and no write. `dockerdesk read` mutates nothing -
+That grants every read verb and no write. `freewilly read` mutates nothing -
 two guards in the build hold that - which is what makes one line safe to grant
 where a rule over `docker` would have permitted deleting a volume.
 
-Inside a project, `dockerdesk read context --as brief --out .dockerdesk\brief.md`
+Inside a project, `freewilly read context --as brief --out .freewilly\brief.md`
 writes what a session should start knowing, generated from the live machine.

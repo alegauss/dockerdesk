@@ -585,7 +585,7 @@ public static class AgentSurface
                     + Environment.NewLine
                 : Core.Preflight.ReportText.Render(
                     report,
-                    heading: $"dockerdesk read doctor {address}",
+                    heading: $"freewilly read doctor {address}",
                     summary: report.CanHostEngine
                         ? "Nothing here is wrong with this container."
                         : $"{report.Blockers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)} finding(s). The remedy on each row is the action."));
@@ -1148,7 +1148,7 @@ public static class AgentSurface
                     + Environment.NewLine
                 : Core.Preflight.ReportText.Render(
                     report,
-                    heading: $"dockerdesk read verify {address}",
+                    heading: $"freewilly read verify {address}",
                     summary: report.CanHostEngine
                         ? "It answers."
                         : (wait ? $"Still not answering after {Seconds(timeout)}: " : "Not answering: ")
@@ -1319,7 +1319,7 @@ public static class AgentSurface
             // cursor and a log cursor, and a caller that pasted one of those is one word from correct.
             return Refuse(
                 $"{confirm} is not a confirm token: they start with {Reclaim.TokenPrefix} and are "
-                + "printed by `dockerdesk do reclaim --session`");
+                + "printed by `freewilly do reclaim --session`");
         }
 
         session ??= SessionLabel.Resolve();
@@ -1446,7 +1446,7 @@ public static class AgentSurface
             text.AppendLine("The agent surface. Reads mutate nothing, which is what lets one");
             text.AppendLine("allowlist line cover all of them:");
             text.AppendLine();
-            text.AppendLine("  Bash(dockerdesk read:*)");
+            text.AppendLine("  Bash(freewilly read:*)");
             text.AppendLine();
             foreach (var half in new[] { AgentNamespace.Read, AgentNamespace.Do })
             {

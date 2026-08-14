@@ -196,8 +196,8 @@ public sealed record AgentProblem(
             Type: "engine-stopped",
             Status: 503,
             Title: "the engine is not running",
-            Fix: "Run `dockerdesk do engine start`.",
-            Example: "dockerdesk do engine start");
+            Fix: "Run `freewilly do engine start`.",
+            Example: "freewilly do engine start");
     }
 
     /// <summary>A name this surface does not have, with the closest one that it does.</summary>
@@ -215,7 +215,7 @@ public sealed record AgentProblem(
             Status: 404,
             Title: $"no {what} named {given}",
             Fix: nearest is null
-                ? "Run `dockerdesk read context` to see what is there."
+                ? "Run `freewilly read context` to see what is there."
                 : $"Did you mean {nearest}?",
             Allowed: known.Count == 0 ? "(none)" : string.Join(", ", known.Order(StringComparer.Ordinal)),
             NearestMatch: nearest);

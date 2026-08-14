@@ -444,7 +444,7 @@ public sealed class ContainerDoctorTests
                     "ERROR shop.api.Bootstrap - failed to bind :8080",
                     "java.net.BindException: Address already in use",
                 ])),
-            heading: "dockerdesk read doctor shop-api-1",
+            heading: "freewilly read doctor shop-api-1",
             summary: "6 finding(s). The remedy on each row is the action.");
 
         Assert.True(
@@ -467,8 +467,8 @@ public sealed class ContainerDoctorTests
         Assert.Contains("copied to disk", wrong, StringComparison.Ordinal);
 
         var right = ReportText.Render(
-            report, heading: "dockerdesk read doctor shop-api-1", summary: "1 finding(s).");
-        Assert.StartsWith("dockerdesk read doctor shop-api-1", right, StringComparison.Ordinal);
+            report, heading: "freewilly read doctor shop-api-1", summary: "1 finding(s).");
+        Assert.StartsWith("freewilly read doctor shop-api-1", right, StringComparison.Ordinal);
         Assert.DoesNotContain("this machine can host", right, StringComparison.Ordinal);
         Assert.DoesNotContain("copied to disk", right, StringComparison.Ordinal);
     }

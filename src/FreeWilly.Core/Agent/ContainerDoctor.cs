@@ -94,7 +94,7 @@ public static class ContainerDoctor
                 Title = facts.Address.ToString(),
                 Verdict = Verdict.Fail,
                 Detail = "no such container on this engine",
-                Remedy = "Run `dockerdesk read context` to see what is there. Addresses are names, "
+                Remedy = "Run `freewilly read context` to see what is there. Addresses are names, "
                     + "so a recreated container answers to the same one.",
                 Blocking = true,
             }]);

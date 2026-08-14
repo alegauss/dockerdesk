@@ -186,7 +186,7 @@ public sealed class AgentSurfaceTests
     [Fact]
     public void The_split_puts_the_two_halves_in_different_allowlist_strings()
     {
-        // The whole point: `dockerdesk read` and `dockerdesk do` are different literal prefixes, so a
+        // The whole point: `freewilly read` and `freewilly do` are different literal prefixes, so a
         // rule can grant one without the other. `docker ps` and `docker rm -f -v` cannot be told apart
         // that way, which is the defect DD24 answers.
         Assert.NotEqual(AgentSurface.ReadVerb, AgentSurface.DoVerb);
@@ -352,7 +352,7 @@ public sealed class AgentSurfaceTests
         }
 
         // The line a user actually has to write, spelled the way it has to be spelled.
-        Assert.Contains("Bash(dockerdesk read:*)", AgentSurface.HelpText, StringComparison.Ordinal);
+        Assert.Contains("Bash(freewilly read:*)", AgentSurface.HelpText, StringComparison.Ordinal);
     }
 
     // ---- addresses are names -------------------------------------------------------------------

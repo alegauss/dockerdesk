@@ -213,4 +213,41 @@ public sealed class TrayTests
         Assert.Equal(holder.EnginePath, launcher.Launched[0].File);
         Assert.Equal(holder.EnginePath, launcher.Launched[1].File);
     }
+
+    // ---- what the shell is told at add time (DD82) --------------------------------------------
+
+    [Fact]
+    public void The_icon_and_its_tooltip_are_set_before_the_entry_becomes_visible()
+    {
+        // Asserted on the source because that is where the fact lives: setting Visible is what emits
+        // the shell's notify-add, and Windows persists whatever that one call carried. Nothing on
+        // NotifyIcon reports what was sent, and the consequence — an overflow flyout entry with no
+        // name — is only visible in the registry of a machine that has run it.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+
+        var shown = source.IndexOf("Show(EngineState.Stopped);", StringComparison.Ordinal);
+        var visible = source.IndexOf("_icon.Visible = true;", StringComparison.Ordinal);
+
+        // Both have to be there, or this passes by finding neither.
+        Assert.True(shown >= 0, "the tray no longer draws an initial state");
+        Assert.True(visible >= 0, "the tray no longer makes its icon visible");
+        Assert.True(
+            shown < visible,
+            "the icon becomes visible before it has an image and a tooltip, so the shell persists "
+            + "an empty one and the overflow flyout names nothing (DD82)");
+    }
+
+    /// <summary>The repository root, found by walking up from the test binary.</summary>
+    private static string RepositoryRoot()
+    {
+        var here = new DirectoryInfo(AppContext.BaseDirectory);
+        while (here is not null && !File.Exists(Path.Combine(here.FullName, "FreeWilly.slnx")))
+        {
+            here = here.Parent;
+        }
+
+        Assert.True(here is not null, "the repository root was not found above the test binaries");
+        return here!.FullName;
+    }
 }

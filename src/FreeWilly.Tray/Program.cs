@@ -45,8 +45,20 @@ internal sealed class TrayApplication : ApplicationContext
         menu.Items.Add(new ToolStripMenuItem("&Quit", null, (_, _) => Quit()));
 
         _icon.ContextMenuStrip = menu;
-        _icon.Visible = true;
+
+        // The image and the tooltip BEFORE visibility, and the order is the whole of DD82. Setting
+        // Visible is what emits the shell's notify-add, and Windows persists what that call carried:
+        // with the holder still empty the add went out with no icon flag and an empty string, and
+        // although the very next line repaired the image with a modify, the tooltip Windows had
+        // already stored stayed empty. Measured — this executable's notify-icon settings entry held a
+        // zero-length tooltip beside an icon snapshot that decoded fine.
+        //
+        // It matters because of where the icon lives. DD21 established that Windows files a
+        // first-seen icon into the overflow and that nothing here can promote it out, and the
+        // overflow flyout labels each entry with exactly that persisted tooltip — so the one surface
+        // a user has to read to find this tool was the one naming nothing.
         Show(EngineState.Stopped);
+        _icon.Visible = true;
 
         // The indicator is the event loop's own connection state: connected exactly when the engine
         // is answering. No timer, and no second definition of "running".

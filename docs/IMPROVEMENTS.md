@@ -53,26 +53,6 @@ overflow makes finding the icon its own problem. Or the product could show its o
 behind a verb, the way `--capture-window` already renders on request, which keeps the
 driving inside the process that owns the menu and costs one more surface.
 
-### §DD82 Why the add goes out empty
-
-One construction in the wrong order. The visibility setter is what emits the shell
-notify add, and at that moment the icon holder carries neither an image nor a tip, so
-the add goes out without the icon flag and with an empty string. The state call on the
-very next line repairs the image with a modify, which is why an icon appears at all, but
-the tooltip Windows persisted at add time stays the empty one.
-
-Measured rather than inferred: the notify icon settings entry for this executable holds
-a tooltip of zero length beside an icon snapshot that decoded fine.
-
-It matters because of where the icon actually lives. DD21 established that Windows files
-a first seen icon into the overflow and that nothing here can promote it out, and the
-overflow flyout labels each entry with exactly that persisted tooltip. So the one
-surface a user has to read in order to find this tool is the one naming nothing at all.
-
-The repair is to build the image and the text first and set visibility last, so the add
-carries both. The state ring and its wording are unchanged; only the order of two
-statements moves.
-
 ### §DD83 The shape borrowed, and the mark that is not
 
 The reference screenshot is Docker Desktop's about dialog, and only its information

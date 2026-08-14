@@ -16,8 +16,10 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly EngineEvents _events;
     private readonly SynchronizationContext _ui;
     private readonly TrayScale _scale;
+    private readonly EnginePaths _paths = new();
     private Icon? _worn;
     private bool _startRequested;
+    private CancellationTokenSource? _landing;
     private EngineState _shown = EngineState.Stopped;
 
     /// <summary>Construct the tray.</summary>
@@ -126,9 +128,74 @@ internal sealed class TrayApplication : ApplicationContext
 
     private void StartEngine()
     {
+        // Asked before anything is shown (DD120). A machine with no distribution has a start that
+        // can only fail, and the failure used to be invisible: `--run` printed its refusal onto a
+        // hidden console and exited, leaving the dot breathing Starting until the tray was quit.
+        var refusal = TrayState.WhyAStartWouldNotLand(
+            _paths.DistributionRegistered, _paths.DistributionName);
+        if (refusal is not null)
+        {
+            Complain(refusal);
+            return;
+        }
+
         _startRequested = true;
         Show(EngineState.Starting);
-        Complain(_holder.Start());
+
+        var failure = _holder.Start();
+        if (failure is not null)
+        {
+            Complain(failure);
+            return;
+        }
+
+        WatchTheStart();
+    }
+
+    /// <summary>
+    /// Stop claiming a start is coming once it has had longer than the engine gives itself.
+    /// </summary>
+    /// <remarks>
+    /// The stream is still the only definition of running, and nothing here polls the engine — this
+    /// decides one thing the stream cannot, which is how long a request may outlive the evidence for
+    /// it. Every way a launched start dies quietly ends up here: the daemon exits, the pipe is taken
+    /// by something else, the distribution will not boot.
+    ///
+    /// <para>A timer that is cancelled rather than one that is checked, so a start that lands leaves
+    /// nothing running behind it. The continuation posts through the same context the event stream
+    /// uses, because <see cref="Show"/> touches the NotifyIcon and that is the UI thread's.</para>
+    /// </remarks>
+    private void WatchTheStart()
+    {
+        StopWatchingTheStart();
+
+        var watch = new CancellationTokenSource();
+        _landing = watch;
+        _ = Task.Delay(TrayState.StartBudget, watch.Token).ContinueWith(
+            _ => _ui.Post(_ => GiveUpOnTheStart(), null),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.Default);
+    }
+
+    private void StopWatchingTheStart()
+    {
+        _landing?.Cancel();
+        _landing?.Dispose();
+        _landing = null;
+    }
+
+    private void GiveUpOnTheStart()
+    {
+        // The engine may have landed between the delay elapsing and this reaching the UI thread, and
+        // a stop pressed in the same window is the same question. Either way the request is over and
+        // there is nothing to complain about.
+        if (!_startRequested)
+        {
+            return;
+        }
+
+        Complain(TrayState.StartDidNotLand(TrayState.StartBudget, _paths.DistributionName));
     }
 
     /// <summary>
@@ -148,6 +215,7 @@ internal sealed class TrayApplication : ApplicationContext
         }
 
         _startRequested = false;
+        StopWatchingTheStart();
         Show(_shown);
         _icon.BalloonTipTitle = "FreeWilly";
         _icon.BalloonTipText = failure;
@@ -157,6 +225,7 @@ internal sealed class TrayApplication : ApplicationContext
     private void StopEngine()
     {
         _startRequested = false;
+        StopWatchingTheStart();
         Show(EngineState.Stopped);
         Complain(_holder.Stop());
     }
@@ -166,6 +235,11 @@ internal sealed class TrayApplication : ApplicationContext
         if (state is EngineState.Running)
         {
             _startRequested = false;
+
+            // It landed, so the budget has nothing left to decide. Cancelled rather than left to
+            // elapse into a check that finds nothing: a tray left open all day would otherwise hold
+            // one of these per start it ever made.
+            StopWatchingTheStart();
         }
 
         var changed = _shown != state;
@@ -208,6 +282,7 @@ internal sealed class TrayApplication : ApplicationContext
     {
         if (disposing)
         {
+            StopWatchingTheStart();
             _events.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
             // SystemEvents is static and holds its subscribers alive, so leaving this attached is a

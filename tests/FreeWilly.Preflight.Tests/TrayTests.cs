@@ -323,6 +323,58 @@ public sealed class TrayTests
     public void A_start_that_landed_is_Running_and_not_still_Starting() =>
         Assert.Equal(EngineState.Running, TrayState.For(EventStreamState.Watching, startRequested: true));
 
+    // ---- a start that cannot land (DD120) -------------------------------------------------------
+
+    [Fact]
+    public void A_machine_with_no_distribution_is_told_so_rather_than_shown_Starting()
+    {
+        // The failure itself. `--run` refuses this case already and prints why, onto a hidden
+        // console — so the tray showed Starting and kept showing it. The remedy is in the sentence
+        // because "not installed" on its own is the same dead end one step later.
+        var refusal = TrayState.WhyAStartWouldNotLand(
+            engineInstalled: false, EnginePaths.CurrentDistribution);
+
+        Assert.NotNull(refusal);
+        Assert.Contains("freewilly", refusal, StringComparison.Ordinal);
+        Assert.Contains("--provision", refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_machine_that_has_the_distribution_is_not_stopped_from_trying() =>
+        Assert.Null(TrayState.WhyAStartWouldNotLand(
+            engineInstalled: true, EnginePaths.CurrentDistribution));
+
+    [Fact]
+    public void The_trays_budget_outlasts_the_one_the_engine_gives_itself()
+    {
+        // The ordering is the claim. StartAsync gives the daemon 60 seconds inside `--run`; a tray
+        // that gave up first would report a failure over a start that was still going, which is the
+        // same lie as Starting forever, told the other way round.
+        Assert.True(
+            TrayState.StartBudget > TimeSpan.FromSeconds(60),
+            $"the tray gives up after {TrayState.StartBudget.TotalSeconds:0}s, before the engine does");
+    }
+
+    [Fact]
+    public void A_start_that_never_answers_is_reported_against_the_log_that_holds_the_reason()
+    {
+        // Every silent death that is not a missing distribution ends here, and there is one useful
+        // thing to say about all of them rather than a guess at which one it was.
+        var said = TrayState.StartDidNotLand(
+            TrayState.StartBudget, EnginePaths.CurrentDistribution);
+
+        Assert.Contains(EngineLifecycle.LogPath, said, StringComparison.Ordinal);
+        Assert.Contains(EnginePaths.CurrentDistribution, said, StringComparison.Ordinal);
+        Assert.Contains("75s", said, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_distribution_no_machine_owns_never_reads_as_installed() =>
+        // The branch that matters, and the only one a test machine can assert: the tray must not
+        // launch a start on the strength of a name WSL has never heard of.
+        Assert.False(
+            new EnginePaths(@"C:\nowhere", $"freewilly-{Guid.NewGuid():N}").DistributionRegistered);
+
     // ---- the lifetime -------------------------------------------------------------------------
 
     [Fact]

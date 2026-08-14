@@ -121,4 +121,46 @@ public static class TrayState
         // is depends on whether anybody asked for it to come up, and only the tray knows that.
         return startRequested ? EngineState.Starting : EngineState.Stopped;
     }
+
+    /// <summary>
+    /// How long a requested start may outlive the evidence for it before the tray stops claiming it.
+    /// </summary>
+    /// <remarks>
+    /// Longer than the 60 seconds <see cref="EngineLifecycle.StartAsync"/> gives the daemon inside
+    /// <c>--run</c>, and that ordering is the whole value: a tray that gave up first would report a
+    /// failure over a start that is still going, which is the same lie as Starting forever told the
+    /// other way round.
+    /// </remarks>
+    public static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(75);
+
+    /// <summary>
+    /// Why a start cannot be attempted at all, or <see langword="null"/> where it can (DD120).
+    /// </summary>
+    /// <param name="engineInstalled">Whether the owned distribution is registered with WSL.</param>
+    /// <param name="distribution">The distribution this install owns, so the answer names it.</param>
+    /// <returns>What to say instead of starting, or <see langword="null"/>.</returns>
+    /// <remarks>
+    /// Asked before the launch rather than diagnosed after it. <c>--run</c> already refuses this
+    /// case and says so, but it says it on a hidden console nobody is reading — so the tray showed
+    /// Starting and the one fact the user needed went nowhere. The remedy is in the sentence,
+    /// because "not installed" without it is the same dead end one step later.
+    /// </remarks>
+    public static string? WhyAStartWouldNotLand(bool engineInstalled, string distribution) =>
+        engineInstalled
+            ? null
+            : $"the engine is not installed — no WSL distribution named {distribution} is "
+              + "registered. Run `freewilly --provision` to download and install it.";
+
+    /// <summary>What to say about a start that was launched and never answered.</summary>
+    /// <param name="budget">How long it was given.</param>
+    /// <param name="distribution">Where the daemon's own log is.</param>
+    /// <returns>The sentence.</returns>
+    /// <remarks>
+    /// Every silent death that is not a missing distribution lands here, and there is exactly one
+    /// useful thing to say about all of them: the daemon wrote down why. Naming the log rather than
+    /// guessing at a cause is the same rule the lifecycle follows when its own budget runs out.
+    /// </remarks>
+    public static string StartDidNotLand(TimeSpan budget, string distribution) =>
+        $"the engine did not answer within {budget.TotalSeconds:0}s. Its own log is "
+        + $"{EngineLifecycle.LogPath} inside {distribution}.";
 }

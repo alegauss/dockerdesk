@@ -72,6 +72,27 @@ public sealed class EnginePaths
     /// <summary>The WSL2 distribution this install owns.</summary>
     public string DistributionName { get; }
 
+    /// <summary>Whether that distribution is registered with WSL on this machine (DD120).</summary>
+    /// <remarks>
+    /// The one question that separates "the engine is not running" from "there is no engine", and
+    /// the tray has to answer it on a click: before DD120 it launched a start that could only fail,
+    /// and then showed Starting for as long as the icon lived.
+    ///
+    /// <para>Through the registry, which is what <see cref="Wsl.RegisteredDistributions"/> reads and
+    /// why it reads it — a click cannot afford a subprocess, and <c>wsl --list</c>'s UTF-16LE output
+    /// is the decoding wart this project has already been bitten by. <see cref="EngineLifecycle"/>
+    /// and <see cref="EngineProvisioner"/> ask the same question of their <see cref="IWsl"/> seam
+    /// instead, deliberately: both are constructed with one so a test can answer them, and neither
+    /// is on a path where the cost matters.</para>
+    ///
+    /// <para>False is the honest answer where the key cannot be read. Reporting an engine that is
+    /// not there sends the user back to the state this exists to remove; reporting none where one
+    /// exists costs a start attempt that says so.</para>
+    /// </remarks>
+    public bool DistributionRegistered =>
+        Wsl.RegisteredDistributions()
+            .Any(name => name.Equals(DistributionName, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Verified artefacts, kept so a repeated install does not download again.</summary>
     public string Downloads => Path.Combine(Root, "downloads");
 

@@ -22,6 +22,7 @@
 - ✅ **DD95** **DD75 shipped its bind translation with no test, and left the two helpers it replaced behind as dead code** — An edit that silently did not apply took three guards and one deletion with it, so the new behaviour was verified by hand and by nothing the build runs.
 - ✅ **DD96** **A bind source only compose up can respell, so every other route to the daemon still mounts an empty directory** — `read doctor`'s mounts row says an unreachable bind source is created empty rather than refused, and gives the spelling this engine needs.
 - ✅ **DD101** **A bind source that looks like a distribution path and is not there stays unchecked, and it is the expensive failure** — `read doctor` asks the engine's distribution whether a bind source it cannot settle from the string is there, and warns without claiming which of empty and unreachable it is.
+- ✅ **DD120** **A start that cannot work leaves the tray breathing Starting until it is quit, and never says what went wrong** — The tray refuses a start with no distribution and names the verb that fixes it, and gives up on one that outlasts the engine's own budget.
 
 ## Block B — The daemon client (talk to the engine)
 

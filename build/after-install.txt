@@ -1,5 +1,16 @@
 FreeWilly is installed.
 
+Two things are true whichever boxes you ticked.
+
+Nothing here starts the engine, and nothing will: no service was registered and
+no engine runs at logon unless you ask for one. When you want containers, open
+the tray menu or the window and press Start engine. Quitting the tray afterwards
+leaves them running - only Stop engine stops them.
+
+And `docker` resolves in a terminal opened after this install, not in one that
+was already open. A terminal keeps the PATH it started with.
+
+
 One thing Windows does that is worth knowing before you go looking for it: a
 notification icon it has not seen before goes into the overflow, behind the
 chevron next to the clock. FreeWilly's icon is there now, and not on the

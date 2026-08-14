@@ -465,6 +465,104 @@ public sealed class PackagingTests
     }
 
     [Fact]
+    public void The_install_provisions_the_engine_and_only_where_the_preflight_cleared_it()
+    {
+        // DD119. Setup used to lay down one executable, print a preflight and stop, which left the
+        // engine to a verb the wizard never named: `docker` was not a command, Start engine had no
+        // distribution to boot, and the install looked finished.
+        //
+        // The order is the whole assertion. `RunPreflight` answers whether this machine can host an
+        // engine, and the provision is behind that answer — unpacking one onto a machine that cannot
+        // host it is the failure the preflight exists to prevent, and it costs a quarter of a
+        // gigabyte to discover the hard way.
+        var script = InstallerScript();
+
+        Assert.Contains("if not RunPreflight then", script, StringComparison.Ordinal);
+        Assert.Contains("WizardIsTaskSelected('engine')", script, StringComparison.Ordinal);
+        Assert.Contains("'--provision'", script, StringComparison.Ordinal);
+
+        var guard = script.IndexOf("if not RunPreflight then", StringComparison.Ordinal);
+        var provision = script.IndexOf(
+            "WizardIsTaskSelected('engine')", StringComparison.Ordinal);
+        Assert.True(guard < provision, "the provision is no longer behind the preflight");
+    }
+
+    [Fact]
+    public void The_engine_task_is_offered_ticked_so_a_default_install_has_an_engine()
+    {
+        // Unticking is the whole point of it being a task: a quarter of a gigabyte over somebody's
+        // tethered connection is theirs to decline. Shipping it unticked is a different product —
+        // one whose default install is the empty one DD119 was filed about.
+        var task = Assert.Single(
+            InstallerScript().Split('\n'),
+            line => line.StartsWith("Name: \"engine\";", StringComparison.Ordinal));
+
+        Assert.DoesNotContain("unchecked", task, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_bar_the_installer_draws_has_one_notch_for_every_step_the_provisioner_runs()
+    {
+        // The installer counts step lines to move its progress bar and needs a total to divide by.
+        // A step added to ProvisioningStep without this number moving leaves a successful install
+        // with a bar that stops short of the end, which is what a failure looks like.
+        var declared = Assert.Single(
+            InstallerScript().Split('\n'),
+            line => line.TrimStart().StartsWith("ProvisioningSteps = ", StringComparison.Ordinal));
+
+        Assert.Equal(
+            Enum.GetValues<Core.Engine.ProvisioningStep>().Length,
+            int.Parse(
+                declared.Trim()["ProvisioningSteps = ".Length..].TrimEnd(';'),
+                System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void The_verdict_the_installer_matches_is_the_one_the_verb_prints()
+    {
+        // A format string in C# and a Pos() call in Pascal, agreeing about six characters. Nothing
+        // but this notices them drifting: the install would still succeed, and the bar would simply
+        // never move — the least legible way for a download to look broken.
+        var ok = Tray.Cli.EngineCommand.StepLine(
+            new Core.Engine.StepResult(Core.Engine.ProvisioningStep.PlaceCli, true, "done"));
+        var failed = Tray.Cli.EngineCommand.StepLine(
+            new Core.Engine.StepResult(Core.Engine.ProvisioningStep.PlaceCli, false, "not done"));
+
+        // Position 1 of the trimmed line, which is what the Pascal side matches on.
+        Assert.StartsWith("[ok  ]", ok.Trim(), StringComparison.Ordinal);
+        Assert.StartsWith("[FAIL]", failed.Trim(), StringComparison.Ordinal);
+
+        var script = InstallerScript();
+        Assert.Contains("Pos('[ok  ]', Line) = 1", script, StringComparison.Ordinal);
+        Assert.Contains("Pos('[FAIL]', Line) = 1", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_uninstall_takes_back_every_file_the_provision_placed_under_the_root()
+    {
+        // Inno removes what Inno installed, and the provision writes four things it did not: the
+        // CLI, the plugin directory, and the two reports. Left behind, they are what keeps {app} on
+        // disk after an uninstall that took everything else — and they are this product's own files,
+        // not anybody's data, so they go without being asked about.
+        //
+        // The question that remains is about images and volumes, and it is the only one.
+        var script = InstallerScript();
+        var removal = script.IndexOf("RemovePathEntry;", StringComparison.Ordinal);
+        var question = script.IndexOf("if not OwnedDataExists then", StringComparison.Ordinal);
+        Assert.True(removal > 0 && question > removal);
+
+        var unconditional = script[removal..question];
+        foreach (var path in new[]
+                 {
+                     @"{app}\preflight.txt", @"{app}\provision.log",
+                     @"{app}\bin", @"{app}\cli-plugins",
+                 })
+        {
+            Assert.Contains($"'{path}'", unconditional, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void The_version_the_assembly_states_is_the_one_the_installer_would_read() =>
         // GetStringFileInfo(PRODUCT_VERSION) reads the informational version, which is what
         // BuildVersion prints. Two ways to ask, and they have to agree or the installed version and

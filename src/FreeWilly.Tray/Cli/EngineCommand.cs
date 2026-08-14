@@ -340,14 +340,13 @@ internal static class EngineCommand
             new Wsl(),
             paths);
 
+        // Printed as each step lands rather than gathered and printed at the end (DD119). The lines
+        // are identical either way; what changes is that the installer's page, which reads this
+        // stream a line at a time, has something on it while a quarter of a gigabyte comes down.
+        // Console.Out flushes on every write even when redirected, so no line waits on a buffer.
         var outcome = acquireOnly
-            ? provisioner.AcquireAsync().GetAwaiter().GetResult()
-            : provisioner.ProvisionAsync().GetAwaiter().GetResult();
-
-        foreach (var step in outcome.Steps)
-        {
-            Console.WriteLine($"  [{(step.Ok ? "ok  " : "FAIL")}]  {step.Step,-19} {step.Detail}");
-        }
+            ? provisioner.AcquireAsync(Say).GetAwaiter().GetResult()
+            : provisioner.ProvisionAsync(Say).GetAwaiter().GetResult();
 
         Console.WriteLine();
         if (outcome.Succeeded)
@@ -360,6 +359,27 @@ internal static class EngineCommand
 
         Console.Error.WriteLine($"Stopped at {outcome.Failure!.Step}: {outcome.Failure.Detail}");
         return Failed;
+    }
+
+    /// <summary>Print one provisioning step, the moment it lands.</summary>
+    private static void Say(StepResult step) => Console.WriteLine(StepLine(step));
+
+    /// <summary>
+    /// How one provisioning step is written, and the whole of what the installer parses (DD119).
+    /// </summary>
+    /// <param name="step">The step that just landed.</param>
+    /// <returns>The line.</returns>
+    /// <remarks>
+    /// A method rather than an interpolation inside the loop, because installer.iss counts these
+    /// lines to move its progress bar and matches the two verdicts at position 1 of the trimmed
+    /// line. That makes the leading marker a contract between a C# format string and a Pascal
+    /// <c>Pos</c> call, which nothing but a test would notice drifting — so there is one, and it
+    /// asserts against this.
+    /// </remarks>
+    internal static string StepLine(StepResult step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        return $"  [{(step.Ok ? "ok  " : "FAIL")}]  {step.Step,-19} {step.Detail}";
     }
 
     private static int Complain(string problem)

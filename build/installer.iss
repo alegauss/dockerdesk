@@ -98,8 +98,19 @@ Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortugue
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startupicon"; Description: "Start {#MyAppName} with Windows"; GroupDescription: "Startup:"
-; The engine is not started by installing. A resident background service is a stated non-goal, and
-; an installer that leaves a container engine running is the weight this project is an answer to.
+
+; DD119. Ticked by default, because an install that leaves the engine out is an install of nothing:
+; `docker` is not a command, Start engine has no distribution to boot, and the only thing that
+; changes either is a verb the wizard never named. Unticking leaves exactly that install, on purpose
+; — a quarter of a gigabyte over somebody's tethered connection is theirs to decline, and
+; `FreeWilly.exe --provision` does the same work later.
+;
+; Downloading is not starting. The engine is still not running when Setup closes, and no service is
+; registered: a resident background service is a stated non-goal, and an installer that leaves a
+; container engine running is the weight this project is an answer to.
+Name: "engine"; Description: "Download and install the container engine (about 250 MB)"; \
+    GroupDescription: "Container engine:"
+
 Name: "pathentry"; Description: "Put docker and freewilly on my PATH"; GroupDescription: "Command line:"
 
 [Files]
@@ -167,6 +178,26 @@ const
   // knows about.
   DistroName = 'freewilly';
 
+  // Every step EngineProvisioner runs, so the bar below is a count rather than a guess. A test holds
+  // this equal to ProvisioningStep's member count: a step added there and not here leaves a
+  // successful install with a bar that never reaches the end, which reads as a failure.
+  ProvisioningSteps = 11;
+
+var
+  // Built in InitializeWizard and shown from CurStepChanged, which is the only order Setup supports
+  // — a custom page cannot be created once the wizard is running.
+  ProvisionPage: TOutputProgressWizardPage;
+  ProvisionLogPath: string;
+  ProvisionStepsSeen: Integer;
+  ProvisionLastLine: string;
+
+procedure InitializeWizard;
+begin
+  ProvisionPage := CreateOutputProgressPage(
+    'Container engine',
+    'Setup is putting the engine on this machine. Nothing is started by this.');
+end;
+
 // ---------------------------------------------------------------------------------------------
 // PATH
 // ---------------------------------------------------------------------------------------------
@@ -213,7 +244,7 @@ end;
 // The preflight, run by the product rather than restated here
 // ---------------------------------------------------------------------------------------------
 
-procedure ShowPreflight;
+function RunPreflight: Boolean;
 var
   Code: Integer;
   ReportPath: string;
@@ -230,10 +261,16 @@ begin
               '/C ""' + ExpandConstant('{app}\{#MyAppExeName}') + '" --preflight > "'
               + ReportPath + '" 2>&1"',
               '', SW_HIDE, ewWaitUntilTerminated, Code) then
+  begin
+    // It never ran, so there is no verdict. Treated as a block: the caller's next move would be to
+    // download a quarter of a gigabyte on the strength of a check that did not happen.
+    Result := False;
     Exit;
+  end;
 
   // Exit code 0 means every blocking row is green, and there is nothing to interrupt anybody with.
-  if Code = 0 then
+  Result := Code = 0;
+  if Result then
     Exit;
 
   // The report is written either way, and the dialog only happens when somebody is there to read it.
@@ -254,10 +291,97 @@ begin
     ShellExec('open', ReportPath, '', '', SW_SHOWNORMAL, ewNoWait, Code);
 end;
 
+// ---------------------------------------------------------------------------------------------
+// The engine itself (DD119)
+// ---------------------------------------------------------------------------------------------
+
+procedure ProvisionSaid(const S: String; const Error, FirstLine: Boolean);
+var
+  Line: string;
+begin
+  Line := Trim(S);
+  if Line = '' then
+    Exit;
+
+  // Kept whatever happens, and beside the preflight report for the same reason: this is the file
+  // somebody opens after Setup has closed, so {tmp} — which Setup deletes on its way out — is the
+  // one place it must not be.
+  SaveStringToFile(ProvisionLogPath, Line + #13#10, True);
+
+  // `--provision` prints exactly one of these per step, pass or fail, and nothing else it writes
+  // opens with either. Counting them is what moves the bar.
+  if (Pos('[ok  ]', Line) = 1) or (Pos('[FAIL]', Line) = 1) then
+  begin
+    ProvisionStepsSeen := ProvisionStepsSeen + 1;
+    ProvisionPage.SetProgress(ProvisionStepsSeen, ProvisioningSteps);
+    ProvisionLastLine := Line;
+  end;
+
+  // The step line goes on the page, so a run that stops leaves the step it stopped at on screen
+  // rather than a bar that has already moved past it.
+  ProvisionPage.SetText(
+    'Downloading and installing the engine. This can take several minutes.', ProvisionLastLine);
+end;
+
+function ProvisionEngine: Boolean;
+var
+  Code: Integer;
+  Ran: Boolean;
+begin
+  ProvisionStepsSeen := 0;
+  ProvisionLastLine := '';
+  ProvisionLogPath := ExpandConstant('{app}\provision.log');
+
+  // Truncated rather than appended to: a reinstall's log is about this run, and two runs in one
+  // file is a reader guessing which failure is the live one.
+  DeleteFile(ProvisionLogPath);
+
+  ProvisionPage.SetText('Contacting dl-cdn.alpinelinux.org and download.docker.com.', '');
+  ProvisionPage.SetProgress(0, ProvisioningSteps);
+  ProvisionPage.Show;
+  try
+    // ExecAndLogOutput and not Exec: the child's output is what fills the page above, a line at a
+    // time as each step lands. The working directory is {app} so a relative path in any error the
+    // verb prints resolves where the reader would look for it.
+    Ran := ExecAndLogOutput(
+      ExpandConstant('{app}\{#MyAppExeName}'), '--provision', ExpandConstant('{app}'),
+      SW_HIDE, ewWaitUntilTerminated, Code, @ProvisionSaid);
+  finally
+    ProvisionPage.Hide;
+  end;
+
+  Result := Ran and (Code = 0);
+  if Result or WizardSilent then
+    Exit;
+
+  if MsgBox('FreeWilly is installed, but the engine is not.' + #13#10#13#10
+          + 'This machine passed the preflight, so the download or the WSL2 import is what '
+          + 'stopped — a connection that dropped, a proxy, or a checksum that did not match. '
+          + 'Nothing is half-installed: every step is repeatable, and what is already verified '
+          + 'on disk is not fetched again.' + #13#10#13#10
+          + 'To try again, open a terminal and run:' + #13#10
+          + '    freewilly --provision' + #13#10#13#10
+          + 'The step it stopped at is the last line of:' + #13#10
+          + ProvisionLogPath + #13#10#13#10
+          + 'Open it now?',
+            mbError, MB_YESNO) = IDYES then
+    ShellExec('open', ProvisionLogPath, '', '', SW_SHOWNORMAL, ewNoWait, Code);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep = ssPostInstall then
-    ShowPreflight;
+  if CurStep <> ssPostInstall then
+    Exit;
+
+  // The order is the argument. The preflight decides whether this machine can host an engine at
+  // all, and unpacking one onto a machine that cannot is the failure it exists to prevent — so a
+  // red row skips the download rather than spending it. `RunPreflight` has already shown the user
+  // its report by the time it answers False.
+  if not RunPreflight then
+    Exit;
+
+  if WizardIsTaskSelected('engine') then
+    ProvisionEngine;
 end;
 
 // ---------------------------------------------------------------------------------------------
@@ -282,6 +406,17 @@ begin
 
   RemovePathEntry;
 
+  // Everything this install put in {app} that Inno did not, and therefore does not know to take
+  // back: the two reports, the CLI the provision extracted, and the plugin directory it filled.
+  // None of it is anybody's data — it is this product's own files under this product's own root,
+  // and left behind it is what keeps {app} on disk after an uninstall that removed everything
+  // else. DD119 made that universal by provisioning during the install, so it is settled here
+  // rather than left to the question below, which is about images and volumes and nothing else.
+  DeleteFile(ExpandConstant('{app}\preflight.txt'));
+  DeleteFile(ExpandConstant('{app}\provision.log'));
+  DelTree(ExpandConstant('{app}\bin'), True, True, True);
+  DelTree(ExpandConstant('{app}\cli-plugins'), True, True, True);
+
   if not OwnedDataExists then
     Exit;
 
@@ -304,5 +439,4 @@ begin
        '', SW_HIDE, ewWaitUntilTerminated, Code);
   DelTree(ExpandConstant('{app}\distro'), True, True, True);
   DelTree(ExpandConstant('{app}\downloads'), True, True, True);
-  DelTree(ExpandConstant('{app}\bin'), True, True, True);
 end;

@@ -422,6 +422,59 @@ public sealed class EngineProvisioningTests : IDisposable
         Assert.Contains("docker/docker.exe", outcome.Failure.Detail, StringComparison.Ordinal);
     }
 
+    // ---- what a watcher is told, and when (DD119) ---------------------------------------------
+
+    [Fact]
+    public async Task Every_step_reaches_a_watcher_in_the_order_the_outcome_records_it()
+    {
+        // The installer draws a page off these, so a step that reaches the outcome without reaching
+        // the watcher is a bar that stops short of the end on a run that worked. Asserted against
+        // the outcome rather than against a written-out list: the two cannot drift apart if the
+        // claim is that they are the same steps in the same order.
+        var wsl = new FakeWsl();
+        wsl.Answer(0, "Ubuntu\n");
+        var provisioner = Provisioner(wsl, out _, WithRealArtefacts());
+        var watched = new List<StepResult>();
+
+        var outcome = await provisioner.ProvisionAsync(watched.Add);
+
+        Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
+        Assert.Equal(outcome.Steps, watched);
+    }
+
+    [Fact]
+    public async Task A_run_that_stops_hands_the_failing_step_over_before_it_returns()
+    {
+        // The line the installer leaves on screen. Reported at the moment it is decided, so the page
+        // is showing the step that stopped rather than the last one that worked.
+        var wsl = new FakeWsl();
+        var provisioner = Provisioner(wsl, out _, WithRealArtefacts(engineDropping: "dockerd"));
+        var watched = new List<StepResult>();
+
+        var outcome = await provisioner.ProvisionAsync(watched.Add);
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(outcome.Steps, watched);
+        Assert.Equal(ProvisioningStep.InspectEngine, watched[^1].Step);
+        Assert.False(watched[^1].Ok);
+    }
+
+    [Fact]
+    public async Task An_artefact_that_never_verifies_is_reported_and_not_only_returned()
+    {
+        // The acquisition steps record themselves through a second path, and it used to be the one
+        // that appended straight to the list. A watcher told about nine steps out of ten is the
+        // failure this covers, and a download that cannot be verified is the likeliest tenth.
+        var provisioner = Provisioner(new FakeWsl(), out _);
+        var watched = new List<StepResult>();
+
+        var outcome = await provisioner.AcquireAsync(watched.Add);
+
+        Assert.False(outcome.Succeeded);
+        Assert.Equal(outcome.Steps, watched);
+        Assert.Equal(ProvisioningStep.AcquireRootfs, Assert.Single(watched).Step);
+    }
+
     // ---- wiring -----------------------------------------------------------------------------
 
     /// <summary>

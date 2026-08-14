@@ -99,25 +99,42 @@ public sealed class EngineProvisioner
     /// Download and verify every artefact, and stop. The half that needs no WSL2 and changes
     /// nothing outside this tool's own directory.
     /// </summary>
+    /// <param name="report">Called with each step as it lands, or <see langword="null"/>.</param>
     /// <param name="cancellation">Cancellation.</param>
     /// <returns>The three acquisition steps.</returns>
-    public Task<ProvisioningOutcome> AcquireAsync(CancellationToken cancellation = default) =>
-        RunAsync(installing: false, cancellation);
+    public Task<ProvisioningOutcome> AcquireAsync(
+        Action<StepResult>? report = null, CancellationToken cancellation = default) =>
+        RunAsync(installing: false, report, cancellation);
 
     /// <summary>Acquire, import the distribution, install the engine and place the CLI.</summary>
+    /// <param name="report">Called with each step as it lands, or <see langword="null"/>.</param>
     /// <param name="cancellation">Cancellation.</param>
     /// <returns>Every step attempted.</returns>
-    public Task<ProvisioningOutcome> ProvisionAsync(CancellationToken cancellation = default) =>
-        RunAsync(installing: true, cancellation);
+    /// <remarks>
+    /// <paramref name="report"/> hands over the same records the outcome carries, at the moment each
+    /// one is decided rather than at the end (DD119). Nothing here needs it — the outcome is still
+    /// the whole story — but a caller drawing a window does: the download alone is a quarter of a
+    /// gigabyte, and a wizard page with nothing on it for minutes reads as a hang.
+    ///
+    /// <para>A delegate and not <see cref="IProgress{T}"/>, which is the type this looks like it
+    /// wants. <c>Progress&lt;T&gt;</c> posts to the synchronization context it was constructed on and
+    /// falls back to the thread pool where there is none — so from a console verb, which has none,
+    /// the reports arrive in whatever order the pool runs them. An ordered list of steps that can be
+    /// printed out of order is worse than no reporting at all. This is called inline, on the thread
+    /// the step ran on, and the order is therefore the step order.</para>
+    /// </remarks>
+    public Task<ProvisioningOutcome> ProvisionAsync(
+        Action<StepResult>? report = null, CancellationToken cancellation = default) =>
+        RunAsync(installing: true, report, cancellation);
 
     private async Task<ProvisioningOutcome> RunAsync(
-        bool installing, CancellationToken cancellation)
+        bool installing, Action<StepResult>? report, CancellationToken cancellation)
     {
         var steps = new List<StepResult>();
         _paths.Create();
 
         var rootfs = await Acquire(
-            steps, ProvisioningStep.AcquireRootfs, _manifest.Rootfs, cancellation)
+            steps, report, ProvisioningStep.AcquireRootfs, _manifest.Rootfs, cancellation)
             .ConfigureAwait(false);
         if (rootfs is null)
         {
@@ -125,19 +142,20 @@ public sealed class EngineProvisioner
         }
 
         var engine = await Acquire(
-            steps, ProvisioningStep.AcquireEngine, _manifest.Engine, cancellation)
+            steps, report, ProvisioningStep.AcquireEngine, _manifest.Engine, cancellation)
             .ConfigureAwait(false);
         if (engine is null)
         {
             return new ProvisioningOutcome(steps);
         }
 
-        if (!Record(steps, InspectEngine(engine)))
+        if (!Record(steps, report, InspectEngine(engine)))
         {
             return new ProvisioningOutcome(steps);
         }
 
-        var cli = await Acquire(steps, ProvisioningStep.AcquireCli, _manifest.Cli, cancellation)
+        var cli = await Acquire(
+            steps, report, ProvisioningStep.AcquireCli, _manifest.Cli, cancellation)
             .ConfigureAwait(false);
         if (cli is null)
         {
@@ -145,7 +163,7 @@ public sealed class EngineProvisioner
         }
 
         var compose = await Acquire(
-            steps, ProvisioningStep.AcquireCompose, _manifest.Compose, cancellation)
+            steps, report, ProvisioningStep.AcquireCompose, _manifest.Compose, cancellation)
             .ConfigureAwait(false);
         if (compose is null)
         {
@@ -153,48 +171,56 @@ public sealed class EngineProvisioner
         }
 
         var buildx = await Acquire(
-            steps, ProvisioningStep.AcquireBuildx, _manifest.Buildx, cancellation)
+            steps, report, ProvisioningStep.AcquireBuildx, _manifest.Buildx, cancellation)
             .ConfigureAwait(false);
         if (buildx is null || !installing)
         {
             return new ProvisioningOutcome(steps);
         }
 
-        if (!Record(steps, ImportDistribution(rootfs)))
+        if (!Record(steps, report, ImportDistribution(rootfs)))
         {
             return new ProvisioningOutcome(steps);
         }
 
-        if (!Record(steps, InstallEngine(engine)))
+        if (!Record(steps, report, InstallEngine(engine)))
         {
             return new ProvisioningOutcome(steps);
         }
 
-        if (!Record(steps, PlaceCli(cli)))
+        if (!Record(steps, report, PlaceCli(cli)))
         {
             return new ProvisioningOutcome(steps);
         }
 
-        if (!Record(steps, PlacePlugin(
+        if (!Record(steps, report, PlacePlugin(
             ProvisioningStep.PlaceCompose, _manifest.Compose, compose, _paths.ComposePlugin)))
         {
             return new ProvisioningOutcome(steps);
         }
 
-        Record(steps, PlacePlugin(
+        Record(steps, report, PlacePlugin(
             ProvisioningStep.PlaceBuildx, _manifest.Buildx, buildx, _paths.BuildxPlugin));
         return new ProvisioningOutcome(steps);
     }
 
-    /// <summary>Append a step and say whether the run continues.</summary>
-    private static bool Record(List<StepResult> steps, StepResult result)
+    /// <summary>Append a step, report it, and say whether the run continues.</summary>
+    /// <remarks>
+    /// One place, so a step cannot reach the outcome without also reaching whoever is watching. The
+    /// alternative — reporting at each call site — is a step that lands silently the first time
+    /// somebody adds one.
+    /// </remarks>
+    private static bool Record(
+        List<StepResult> steps, Action<StepResult>? report, StepResult result)
     {
         steps.Add(result);
+        report?.Invoke(result);
         return result.Ok;
     }
 
     private async Task<string?> Acquire(
         List<StepResult> steps,
+        Action<StepResult>? report,
         ProvisioningStep step,
         Artefact artefact,
         CancellationToken cancellation)
@@ -202,12 +228,13 @@ public sealed class EngineProvisioner
         var acquired = await _store.AcquireAsync(artefact, cancellation).ConfigureAwait(false);
         if (!acquired.Verified)
         {
-            steps.Add(new StepResult(step, false, acquired.Failure ?? "no file and no reason"));
+            Record(steps, report,
+                new StepResult(step, false, acquired.Failure ?? "no file and no reason"));
             return null;
         }
 
         var how = acquired.Cached ? "already verified on disk" : "downloaded and verified";
-        steps.Add(new StepResult(
+        Record(steps, report, new StepResult(
             step, true, $"{artefact.Id} {artefact.Version}, {how}: {acquired.Path}"));
         return acquired.Path;
     }

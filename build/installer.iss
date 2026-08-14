@@ -134,6 +134,17 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     ValueData: """{app}\{#MyAppExeName}"" --tray"; \
     Flags: uninsdeletevalue; Tasks: startupicon
 
+; The engine's own Run value, which this installer never writes — `freewilly --autostart on` does,
+; and only if the user asks (DD97). It is named here so the uninstaller takes it: two settings mean
+; two values, and leaving one behind is an entry pointing at an executable that has been deleted.
+;
+; ValueType: none is what makes that "delete on uninstall, touch nothing on install". Writing it
+; here instead would turn the engine autostart ON for everyone, and off-by-default is not a
+; preference in this product — it is the whole complaint about Docker Desktop.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: none; ValueName: "FreeWilly Engine"; \
+    Flags: uninsdeletevalue
+
 ; EnginePaths says putting the CLI folder on PATH is the installer's job, and this is it. HKCU, so
 ; no elevation; expandsz, because that is what Windows keeps Path as and rewriting it as a plain
 ; string would flatten every %VAR% already in it.

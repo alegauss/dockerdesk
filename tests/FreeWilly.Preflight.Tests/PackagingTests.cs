@@ -91,17 +91,86 @@ public sealed class PackagingTests
     }
 
     [Fact]
-    public void The_autostart_value_is_one_name_the_installer_and_the_runtime_agree_on()
+    public void The_tray_and_the_engine_start_at_logon_under_names_that_differ()
     {
-        // DD57 removed a second Run value an older install had left, so logon could not start an
-        // executable this build no longer produces while the window reported autostart as off.
-        // DD86 removed the second value itself: nothing was ever released to leave one.
+        // DD97, and the assertion is inverted from what stood here. It used to require the two to
+        // be spelled the SAME, reasoning that one value keeps the window and the uninstaller from
+        // touching two entries. That holds for one feature and is exactly backwards for two: the
+        // installer's checkbox writes `--tray` and `--autostart on` wrote `--run` over it, so
+        // whichever ran last won. Ticking the box then turning the engine on stopped the tray
+        // appearing, and turning the engine off deleted the box's entry outright.
         var script = InstallerScript();
 
-        // One Run value, and the installer and the runtime spell it the same way — or turning
-        // autostart on from the window and off from the uninstaller would touch two entries.
         Assert.DoesNotContain("LegacyRunValue", script, StringComparison.Ordinal);
-        Assert.Equal("FreeWilly", Core.Engine.Autostart.EntryName);
+        Assert.NotEqual(
+            Core.Engine.Autostart.TrayEntryName,
+            Core.Engine.Autostart.EngineEntryName);
+
+        // Each name is spelled in both files, which is the drift nothing else would notice.
+        Assert.Contains(
+            $"ValueName: \"{Core.Engine.Autostart.EngineEntryName}\"",
+            script,
+            StringComparison.Ordinal);
+        Assert.Equal("FreeWilly", Core.Engine.Autostart.TrayEntryName);
+    }
+
+    [Fact]
+    public void The_uninstaller_takes_the_engine_entry_without_the_installer_ever_writing_it()
+    {
+        // Two settings mean two values, and only one of them is the installer's to create. Leaving
+        // the other behind is a Run entry pointing at an executable that has been deleted — the
+        // exact state DD57 had to clean up once already.
+        //
+        // `ValueType: none` is what makes it delete-on-uninstall and touch nothing on install.
+        // Writing it properly would turn the engine autostart on for everyone, and off-by-default
+        // is not a preference here: it is the complaint about Docker Desktop that this answers.
+        var engineValue = Assert.Single(
+            InstallerScript().Split('\n'),
+            line => line.Contains(
+                $"ValueName: \"{Core.Engine.Autostart.EngineEntryName}\"", StringComparison.Ordinal));
+
+        Assert.Contains("ValueType: none", engineValue, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValueData:", engineValue, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Turning_the_engine_autostart_off_leaves_the_trays_entry_alone()
+    {
+        // The failure itself, driven rather than restated. `Disable` removes rather than blanks,
+        // deliberately, so before DD97 turning the engine off silently undid a box somebody had
+        // ticked in the installer — and turning it ON overwrote it with `--run`, so the tray
+        // stopped appearing at logon.
+        //
+        // A scratch key, never the real Run: this writes and deletes, and the machine running the
+        // suite must not be what it experiments on.
+        var scratch = $@"Software\FreeWilly\Tests\{Guid.NewGuid():N}";
+        try
+        {
+            var tray = new Core.Engine.Autostart(
+                @"""C:\x\FreeWilly.exe"" --tray", Core.Engine.Autostart.TrayEntryName, scratch);
+            var engine = new Core.Engine.Autostart(
+                @"""C:\x\FreeWilly.exe"" --run", Core.Engine.Autostart.EngineEntryName, scratch);
+
+            tray.Enable();
+            engine.Enable();
+
+            // Both, at once, which is the state that was unreachable before: one value could only
+            // hold one of the two commands.
+            Assert.True(tray.Enabled);
+            Assert.True(engine.Enabled);
+            Assert.EndsWith("--tray", tray.Registered!, StringComparison.Ordinal);
+            Assert.EndsWith("--run", engine.Registered!, StringComparison.Ordinal);
+
+            engine.Disable();
+
+            Assert.False(engine.Enabled);
+            Assert.True(tray.Enabled, "turning the engine off took the tray's entry with it");
+            Assert.EndsWith("--tray", tray.Registered!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(scratch, throwOnMissingSubKey: false);
+        }
     }
 
     [Fact]

@@ -88,32 +88,6 @@ judgement about the help's shape rather than about the router's.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD97 One registry value, two meanings
-
-`HKCU\Software\Microsoft\Windows\CurrentVersion\Run\FreeWilly` is written by two things
-that mean different things by it.
-
-The installer's *Start FreeWilly with Windows* task writes `"<exe>" --tray` — the tray
-icon at logon. `freewilly --autostart on` writes `"<exe>" --run` through
-`Autostart.EntryName`, which is the engine serving the pipe until it is stopped. Same
-key, same value name.
-
-So they overwrite each other in whichever order they happen. Tick the box at install and
-later run `--autostart on`, and the tray stops appearing at logon. Run `--autostart off`
-afterwards and the value is deleted outright, which silently undoes the installer's box
-— `Autostart.Disable` removes rather than blanks, on purpose, and it cannot know it is
-removing somebody else's entry.
-
-`PackagingTests` currently asserts the two spell the name identically, with a comment
-saying that is what keeps the window and the uninstaller from touching two entries. That
-reasoning holds for one feature and is exactly backwards for two.
-
-Two Run values under two names is the obvious repair and probably the right one: they
-are independent settings and a user may want either, both or neither. What has to be
-decided with it is what `--autostart status` reports, since today it reads a value it
-may not have written, and what the uninstaller removes — it should take its own and
-leave one this product did not put there, which it cannot currently tell apart.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ### §DD98 The seam DD78 opened is held by nothing but memory

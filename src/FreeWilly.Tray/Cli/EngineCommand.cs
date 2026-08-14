@@ -243,6 +243,18 @@ internal static class EngineCommand
                 Console.WriteLine(autostart.Enabled
                     ? $"  autostart {(autostart.Current ? "on " : "stale")}  {autostart.Registered}"
                     : "  autostart off  nothing is registered");
+
+                // The tray's entry is a different setting under a different name (DD97), and it is
+                // named here because the split would otherwise read as a bug: somebody who ticked
+                // "Start FreeWilly with Windows" in the installer asks this verb, is told off, and
+                // concludes the box did nothing. This says what is true — the tray starts, the
+                // engine does not — and it is the only place both facts are visible at once.
+                var tray = new Autostart(exe, Autostart.TrayEntryName);
+                if (tray.Registered is { } atLogon)
+                {
+                    Console.WriteLine($"  tray      on   {atLogon}");
+                }
+
                 return Ok;
             default:
                 return Complain($"--autostart takes on, off or status, not {mode}");

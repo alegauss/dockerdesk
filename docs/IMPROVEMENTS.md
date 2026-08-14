@@ -82,11 +82,63 @@ hand and merely checked against it. The text carries grouping, blank lines and p
 table has no place for, so checking is likely to beat generating — but that is a
 judgement about the help's shape rather than about the router's.
 
+### §DD103 The suite cannot be run where the product is
+
+`SingleTrayTests` claims the real named objects, deliberately: the names are the
+product's, and parameterising them would test a different thing from the one that ships.
+That reasoning is right and it has a consequence nobody wrote down — the suite cannot be
+run on a machine where the product is running, which is every machine that uses it.
+
+Three tests fail, and none of them says why.
+`The_first_claim_wins_and_the_second_is_told_to_step _aside` reports that a claim
+succeeded when it should not have; the actual cause is a tray in the notification area.
+Hit while shipping DD97: a tray left over from a smoke test failed three tests that had
+nothing to do with the change, and the message pointed at none of it.
+
+What it should do is a decision rather than an obvious fix, and both options are
+defensible. **Say so and skip**: detect at the start that something else already holds
+`FreeWilly.tray`, and skip with "a tray is running on this session — quit it and
+re-run". Honest, and a skipped test is one nobody reads. **Say so and fail**: keep the
+failure but name the holder, so the message is the remedy. Neither hides that the
+assertion was not made.
+
+Worth knowing before starting. The mutex is unprefixed and therefore session-local, so
+this is not about other users. `SingleTray.TryClaim` already answers false in exactly
+this case, which is the detection — what is missing is a test-side reading of it before
+the assertions run, and xUnit's `Assert.Skip` is the door.
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)
+
+### §DD102 Nothing on the ordinary path reads installer.iss
+
+`release.yml` runs `ISCC.exe` over `build/installer.iss`, and it triggers on `push:
+tags: ["v*"]` alone. `check.yml` runs on every push and pull request and never compiles
+it. So the first thing that reads the installer script is the release, and a syntax
+error in it stops the release rather than the commit that caused it — with the tag
+already pushed.
+
+This is DD88's defect in a second file. The site build was broken for 21 commits because
+its workflow was `workflow_dispatch` only, and it was invisible for exactly this reason:
+nothing on the ordinary path read it.
+
+`PackagingTests` is not the answer and should not be mistaken for one. It asserts over
+the script as *text* — that a line says `ValueType: none`, that an AppId is spelled a
+certain way — so it proves the file says what the author meant and cannot say whether
+Inno accepts it. DD97 shipped `ValueType: none` with `uninsdeletevalue` on that evidence
+alone.
+
+The obvious repair is compiling the script in `check.yml`. What has to be decided with
+it is the cost: the runner has no Inno by default and `choco install innosetup` on every
+push is minutes. `release.yml` already carries the three-path probe and the install, so
+the step exists to be copied; caching it, or running it only when `build/` changed, are
+judgements about how often that file moves.
+
+Worth knowing: the compile needs the published `.exe` to exist, because `[Files]` names
+it. A check that builds anyway has already paid for that.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

@@ -212,6 +212,38 @@ public sealed class AgentProblemTests
             $"lines {TokenEstimate.Of(problem.ToText())} vs json {TokenEstimate.Of(problem.ToJson())}");
     }
 
+    /// <summary>
+    /// A machine that answers from fixtures and reads nothing (DD98).
+    /// </summary>
+    /// <remarks>
+    /// These drive the refusal path, and until DD98 that path built a `WindowsMachineFacts` inside the
+    /// verb — so a test about a port fixture walked the registry for rival engines and opened this
+    /// user's `.docker/config.json`. Nothing failed, and that is the point: a machine read nothing
+    /// hands over is one nothing can substitute for.
+    /// </remarks>
+    private static MachineReads Fixed(IPortOwners owners) => new()
+    {
+        Owners = owners,
+        Rivals = new NoRivals(),
+        Client = new NoContext(),
+        Ports = new NoListeners(),
+    };
+
+    private sealed class NoRivals : IRivalEngines
+    {
+        public IReadOnlyList<Core.Preflight.RivalEngine> Found() => [];
+    }
+
+    private sealed class NoContext : IContextProbe
+    {
+        public Core.Preflight.DockerClientTarget Read() => new();
+    }
+
+    private sealed class NoListeners : IHostPorts
+    {
+        public IReadOnlySet<int> Listening() => new HashSet<int>();
+    }
+
     // ---- read ports ------------------------------------------------------------------------------
 
     [Fact]
@@ -224,7 +256,7 @@ public sealed class AgentProblemTests
 
         var code = AgentSurface.ReadPorts(
             new ThrowingEngine(), ["8080"], output,
-            new FakeOwners((8080, new PortHolder(14032, "node.exe", @"d:\Git\other"))));
+            Fixed(new FakeOwners((8080, new PortHolder(14032, "node.exe", @"d:\Git\other")))));
 
         Assert.Equal(0, code);
         Assert.Contains("14032", output.ToString(), StringComparison.Ordinal);
@@ -236,7 +268,7 @@ public sealed class AgentProblemTests
     {
         var output = new StringWriter();
 
-        AgentSurface.ReadPorts(new ThrowingEngine(), ["9999"], output, new FakeOwners());
+        AgentSurface.ReadPorts(new ThrowingEngine(), ["9999"], output, Fixed(new FakeOwners()));
 
         Assert.Contains("free", output.ToString(), StringComparison.Ordinal);
     }
@@ -246,7 +278,7 @@ public sealed class AgentProblemTests
     {
         var output = new StringWriter();
 
-        AgentSurface.ReadPorts(new ThrowingEngine(), ["9999", "--json"], output, new FakeOwners());
+        AgentSurface.ReadPorts(new ThrowingEngine(), ["9999", "--json"], output, Fixed(new FakeOwners()));
 
         using var json = JsonDocument.Parse(output.ToString());
         Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("heldBy").ValueKind);
@@ -263,7 +295,7 @@ public sealed class AgentProblemTests
         {
             Console.SetError(new StringWriter());
             Assert.Equal(2, AgentSurface.ReadPorts(
-                new ThrowingEngine(), [argument], new StringWriter(), new FakeOwners()));
+                new ThrowingEngine(), [argument], new StringWriter(), Fixed(new FakeOwners())));
         }
         finally
         {

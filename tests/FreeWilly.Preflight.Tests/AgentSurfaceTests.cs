@@ -413,4 +413,88 @@ public sealed class AgentSurfaceTests
     [Fact]
     public void Parse_throws_where_TryParse_refuses() =>
         Assert.Throws<ArgumentException>(() => Address.Parse(new string('f', 64)));
+
+    // ---- the seam DD78 opened, held by something other than memory (DD98) ----------------------
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null
+            && !File.Exists(System.IO.Path.Combine(directory.FullName, "FreeWilly.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.True(directory is not null, "the repository root was not found above the test binaries");
+        return directory!.FullName;
+    }
+
+    [Fact]
+    public void No_verb_on_this_surface_builds_its_own_machine_read()
+    {
+        // DD78 made the shaped token figure exact by routing what the verbs read off Windows through
+        // `MachineReads`. Exact is a property of the code rather than of the number: a verb that
+        // writes `new HostPorts()` in its own body compiles, passes, and quietly makes the measured
+        // figure this machine's again — invisibly, because the number still looks precise. That is
+        // worse than the 15% band it replaced, which at least said what it was.
+        //
+        // Asserted on the source, like the hex-colour guard over the markup and the size guard over
+        // the shell, and for the same reason: the rule is one a reviewer forgets.
+        var source = File.ReadAllText(
+            System.IO.Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Cli/AgentSurface.cs"));
+
+        // Derived and never listed. A seam added to `MachineReads` is guarded without this test
+        // being edited — which matters because the hand-written list is the failure mode DD100
+        // describes in the help-text test, where two verbs had already gone missing unnoticed.
+        var seams = typeof(MachineReads)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(property => property.PropertyType)
+            .Where(type => type.IsInterface)
+            .ToList();
+
+        var readers = typeof(MachineReads).Assembly.GetTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false, IsPublic: true })
+            .Where(type => seams.Exists(seam => seam.IsAssignableFrom(type)))
+            .Select(type => type.Name)
+            .ToList();
+
+        // Both, or the loop below asserts nothing at all — which is how a guard becomes a comment.
+        Assert.NotEmpty(seams);
+        Assert.NotEmpty(readers);
+
+        foreach (var reader in readers)
+        {
+            Assert.DoesNotContain($"new {reader}(", source, StringComparison.Ordinal);
+        }
+
+        // The two the interfaces do not cover, because nothing on this surface should reach them at
+        // all: `WindowsMachineFacts` walks the machine for rival engines, and `DockerContextProbe`
+        // opens this user's config. `ReachesThisEngine` is a pure function of a host string and is
+        // deliberately still allowed — the name below is the read, not the whole class.
+        Assert.DoesNotContain("new WindowsMachineFacts(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("DockerContextProbe.Read(", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_machine_a_measurement_hands_over_is_the_one_the_verbs_use()
+    {
+        // The other half of the guard. Forbidding construction is worth nothing if the seam is not
+        // reachable: every property has to be settable by a caller, or a measurement cannot
+        // substitute for it and the verbs would have to build their own after all.
+        var settable = typeof(MachineReads)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .ToList();
+
+        Assert.NotEmpty(settable);
+        foreach (var property in settable)
+        {
+            Assert.True(
+                property.CanWrite,
+                $"MachineReads.{property.Name} cannot be set, so nothing can stand in for it");
+            Assert.True(
+                property.PropertyType.IsInterface,
+                $"MachineReads.{property.Name} is a concrete {property.PropertyType.Name}, "
+                + "so a measurement gets the real machine whatever it passes");
+        }
+    }
 }

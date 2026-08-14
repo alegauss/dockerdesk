@@ -190,13 +190,13 @@ public static class AgentSurface
 
         return verb.Name switch
         {
-            "changes" => ReadChanges(engine, rest, output),
-            "context" => ReadContext(engine, rest, output, machine.Client),
-            "doctor" => ReadDoctor(engine, rest, output, machine.Ports),
+            "changes" => ReadChanges(engine, rest, output, machine),
+            "context" => ReadContext(engine, rest, output, machine),
+            "doctor" => ReadDoctor(engine, rest, output, machine),
             "logs" => ReadLogs(engine, rest, output),
-            "ports" => ReadPorts(engine, rest, output, new PortOwners()),
+            "ports" => ReadPorts(engine, rest, output, machine),
             "ps" => ReadPs(engine, rest, output),
-            "verify" => ReadVerify(engine, rest, output, machine.Service),
+            "verify" => ReadVerify(engine, rest, output, machine),
             _ => Refuse($"{verb} is registered and not implemented"),
         };
     }
@@ -222,10 +222,15 @@ public static class AgentSurface
     /// <param name="engine">The read-only half of the engine.</param>
     /// <param name="rest">Everything after the two words.</param>
     /// <param name="output">Where the payload goes.</param>
+    /// <param name="machine">What it reads off Windows to say why the engine is silent.</param>
     /// <param name="now">When this ran, so a test's window is a fixed one.</param>
     /// <returns>The process exit code.</returns>
     internal static int ReadChanges(
-        IEngineReads engine, string[] rest, TextWriter output, DateTimeOffset? now = null)
+        IEngineReads engine,
+        string[] rest,
+        TextWriter output,
+        MachineReads machine,
+        DateTimeOffset? now = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(rest);
@@ -277,7 +282,7 @@ public static class AgentSurface
         {
             if (!engine.PingAsync().GetAwaiter().GetResult())
             {
-                return RefuseWith(CannotConnect(), json, output);
+                return RefuseWith(CannotConnect(machine), json, output);
             }
 
             // Asked only about this session, with no window: the label answers it from state, which
@@ -317,7 +322,7 @@ public static class AgentSurface
         }
         catch (DockerApiException)
         {
-            return RefuseWith(CannotConnect(), json, output);
+            return RefuseWith(CannotConnect(machine), json, output);
         }
     }
 
@@ -331,7 +336,7 @@ public static class AgentSurface
     /// are the only ones an inspect tells you anything the list did not.
     /// </remarks>
     private static int ReadContext(
-        IEngineReads engine, string[] rest, TextWriter output, IContextProbe client)
+        IEngineReads engine, string[] rest, TextWriter output, MachineReads machine)
     {
         var json = false;
         var brief = false;
@@ -429,7 +434,7 @@ public static class AgentSurface
                 }
             }
 
-            var target = client.Read();
+            var target = machine.Client.Read();
             var facts = new ContextFacts(
                 EngineState: "running",
                 Distribution: new EnginePaths().DistributionName,
@@ -533,7 +538,7 @@ public static class AgentSurface
     /// preflight already established and the renderer is the one it already has.
     /// </remarks>
     private static int ReadDoctor(
-        IEngineReads engine, string[] rest, TextWriter output, IHostPorts ports)
+        IEngineReads engine, string[] rest, TextWriter output, MachineReads machine)
     {
         var json = false;
         string? target = null;
@@ -591,7 +596,7 @@ public static class AgentSurface
                 Address: address,
                 Summary: summary,
                 Inspect: inspect,
-                ListeningHostPorts: ports.Listening(),
+                ListeningHostPorts: machine.Ports.Listening(),
                 StandardError: summary is null ? [] : StandardErrorTail(engine, summary.Id),
                 Now: DateTimeOffset.UtcNow));
 
@@ -779,9 +784,10 @@ public static class AgentSurface
     /// published it or not, which is exactly the case the daemon has nothing to say about.
     /// </remarks>
     internal static int ReadPorts(
-        IEngineReads engine, string[] rest, TextWriter output, IPortOwners owners)
+        IEngineReads engine, string[] rest, TextWriter output, MachineReads machine)
     {
-        ArgumentNullException.ThrowIfNull(owners);
+        ArgumentNullException.ThrowIfNull(machine);
+        var owners = machine.Owners;
 
         var json = false;
         int? single = null;
@@ -825,7 +831,7 @@ public static class AgentSurface
         {
             if (!engine.PingAsync().GetAwaiter().GetResult())
             {
-                return RefuseWith(CannotConnect(), json, output);
+                return RefuseWith(CannotConnect(machine), json, output);
             }
 
             var containers = engine.ContainersAsync().GetAwaiter().GetResult();
@@ -858,7 +864,7 @@ public static class AgentSurface
         }
         catch (DockerApiException)
         {
-            return RefuseWith(CannotConnect(), json, output);
+            return RefuseWith(CannotConnect(machine), json, output);
         }
     }
 
@@ -869,12 +875,9 @@ public static class AgentSurface
     /// DD16 already reads what owns the docker command and DD20 already reads where the CLI points, and
     /// both facts were being thrown away at the moment somebody needed them.
     /// </remarks>
-    private static AgentProblem CannotConnect()
-    {
-        var facts = new Core.Preflight.Windows.WindowsMachineFacts();
-        return AgentProblem.CannotConnect(
-            facts.RivalEngines, facts.DockerClient, DockerApi.DefaultPipeName);
-    }
+    private static AgentProblem CannotConnect(MachineReads machine) =>
+        AgentProblem.CannotConnect(
+            machine.Rivals.Found(), machine.Client.Read(), DockerApi.DefaultPipeName);
 
     /// <summary>Print a refusal in whichever form was asked for, and return its exit code.</summary>
     private static int RefuseWith(AgentProblem problem, bool json, TextWriter output)
@@ -1027,16 +1030,21 @@ public static class AgentSurface
     /// <param name="engine">The read-only half of the engine.</param>
     /// <param name="rest">Everything after the two words.</param>
     /// <param name="output">Where the report goes.</param>
-    /// <param name="probe">What reaches the port from Windows.</param>
+    /// <param name="machine">What it reads off Windows, the port probe included.</param>
     /// <param name="gap">How long to sleep between attempts, so a test does not.</param>
     /// <returns>The process exit code.</returns>
     internal static int ReadVerify(
-        IEngineReads engine, string[] rest, TextWriter output, IServiceProbe probe, TimeSpan? gap = null)
+        IEngineReads engine,
+        string[] rest,
+        TextWriter output,
+        MachineReads machine,
+        TimeSpan? gap = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(rest);
         ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(probe);
+        ArgumentNullException.ThrowIfNull(machine);
+        var probe = machine.Service;
 
         var json = false;
         var wait = false;
@@ -1469,11 +1477,16 @@ public static class AgentSurface
     /// <param name="rest">Everything after the two words.</param>
     /// <param name="output">Where the plan goes.</param>
     /// <returns>The process exit code.</returns>
-    internal static int DoReclaim(IEngineRemovals engine, string[] rest, TextWriter output)
+    /// <param name="machine">
+    /// What it reads off Windows to say why the engine is not answering, defaulted to this one.
+    /// </param>
+    internal static int DoReclaim(
+        IEngineRemovals engine, string[] rest, TextWriter output, MachineReads? machine = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(rest);
         ArgumentNullException.ThrowIfNull(output);
+        machine ??= MachineReads.OfThisMachine;
 
         var json = false;
         var volumes = false;
@@ -1528,7 +1541,7 @@ public static class AgentSurface
         {
             if (!engine.PingAsync().GetAwaiter().GetResult())
             {
-                return RefuseWith(CannotConnect(), json, output);
+                return RefuseWith(CannotConnect(machine), json, output);
             }
 
             var plan = Reclaim.Plan(
@@ -1587,7 +1600,7 @@ public static class AgentSurface
         }
         catch (DockerApiException)
         {
-            return RefuseWith(CannotConnect(), json, output);
+            return RefuseWith(CannotConnect(machine), json, output);
         }
     }
 

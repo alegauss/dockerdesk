@@ -93,6 +93,7 @@
 - 🗑 **DD77** **Nothing says a machine still carries objects labelled the way the build before the rename wrote them** — superseded by DD86: DD86 deletes the legacy label key outright rather than migrating off it, so there is no dual read left for this to make visible.
 - ✅ **DD79** **SessionLabel.For reads as the one place a label is stamped and nothing in the product stamps through it** — `ComposeUp` renders every pair `SessionLabel.For` returns, so a second label is a change to one method, and a test drives off `For` rather than the key the old assertion named.
 - ✅ **DD78** **The shaped token figure is banded because two of its inputs are read from the machine and not a fixture** — The context read and the host-port read arrive through `MachineReads`, defaulted to this machine, so the shaped token figure is asserted exactly at 771 instead of banded at 15%.
+- ✅ **DD98** **Nothing stops a read verb constructing a machine read inside itself and re-widening the token gate** — A guard over `AgentSurface.cs` derived from `MachineReads`' own seams fails the build on a verb that constructs one, and `WindowsMachineFacts` left the file entirely.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

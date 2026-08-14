@@ -24,6 +24,26 @@ public sealed class ContextProbe : IContextProbe
     public DockerClientTarget Read() => DockerContextProbe.Read();
 }
 
+/// <summary>What other container engines are on this machine.</summary>
+/// <remarks>
+/// One member of <see cref="IMachineFacts"/> rather than the whole of it (DD98). The surface needs
+/// this to say which of the three causes of "cannot connect" a machine has, and a fake standing in
+/// for the whole interface would have to answer eight questions to be handed back one.
+/// </remarks>
+public interface IRivalEngines
+{
+    /// <summary>The engines found. Empty is the state an install wants.</summary>
+    /// <returns>Them.</returns>
+    IReadOnlyList<RivalEngine> Found();
+}
+
+/// <summary>The real read, which walks this machine.</summary>
+public sealed class RivalEngines : IRivalEngines
+{
+    /// <inheritdoc/>
+    public IReadOnlyList<RivalEngine> Found() => new WindowsMachineFacts().RivalEngines;
+}
+
 /// <summary>
 /// What a read verb learns from Windows rather than from the engine (DD78).
 /// </summary>
@@ -60,4 +80,21 @@ public sealed class MachineReads
 
     /// <summary>What reaches a published port from Windows.</summary>
     public IServiceProbe Service { get; init; } = new ServiceProbe();
+
+    /// <summary>What process on Windows holds a port.</summary>
+    /// <remarks>
+    /// The fourth, and DD98 is how it was found: it was constructed in the dispatcher exactly as the
+    /// probe was, and the design that named the seams did not name it. Off the measured task only
+    /// because <c>read ports</c> is not one of the four verbs the benchmark drives — which is a fact
+    /// about the benchmark and not about this being safe.
+    /// </remarks>
+    public IPortOwners Owners { get; init; } = new PortOwners();
+
+    /// <summary>What other container engines are on this machine.</summary>
+    /// <remarks>
+    /// Reached only on the refusal path, where the surface says which of the three causes of "cannot
+    /// connect" this machine has. That path is off the measurement because the benchmark's daemon
+    /// answers — so it is here for the reason the others are, and one step ahead of needing to be.
+    /// </remarks>
+    public IRivalEngines Rivals { get; init; } = new RivalEngines();
 }

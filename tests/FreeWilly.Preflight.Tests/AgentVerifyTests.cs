@@ -85,7 +85,8 @@ public sealed class AgentVerifyTests
         FakeDockerDaemon daemon, IServiceProbe probe, string[] arguments, TextWriter output)
     {
         using var api = new DockerApi(daemon.PipeName);
-        return AgentSurface.ReadVerify(api, arguments, output, probe, gap: TimeSpan.Zero);
+        return AgentSurface.ReadVerify(
+            api, arguments, output, new MachineReads { Service = probe }, gap: TimeSpan.Zero);
     }
 
     [Fact]

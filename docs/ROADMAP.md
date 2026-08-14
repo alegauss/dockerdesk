@@ -24,8 +24,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD98** (deps: —) **Nothing stops a read verb constructing a machine read inside itself and re-widening the token gate** — DD78 threaded three of them through a seam by hand, so the fourth lands inside a verb where no measurement can reach it, and the figure it loosens is what the build is gated on. → §DD98
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ## Non-goals

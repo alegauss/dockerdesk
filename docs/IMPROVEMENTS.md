@@ -142,29 +142,4 @@ it. A check that builds anyway has already paid for that.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD98 The seam DD78 opened is held by nothing but memory
-
-DD78 gave the read verbs a `MachineReads`, so the two inputs that forced the shaped
-token figure into a 15% band arrive from the measurement instead of from Windows. The
-figure is asserted exactly now, and it stays exact only while every future read verb
-remembers to ask for its machine reads rather than construct them.
-
-Nothing enforces that. A verb that writes `new HostPorts()` or `new
-WindowsMachineFacts()` in its own body compiles, passes, and quietly makes the measured
-figure this machine's again — and the failure is invisible, because the number still
-looks precise. That is worse than the band, which at least said what it was.
-
-The shape to copy is already here. `PaletteTests` fails the build on a hex colour
-anywhere in the markup, and a guard holds `MainWindow.xaml.cs` under 300 lines; both
-read source text, and both exist because the rule they hold is one a reviewer forgets.
-The same guard over `AgentSurface.cs` — no direct construction of a machine read outside
-the dispatcher — is the missing one.
-
-One decision belongs to whoever takes this, because a guard written today goes red on
-it. `CannotConnect` builds a `WindowsMachineFacts` to say which of the three causes of
-"cannot connect" this machine has. It is off the measured path only because the
-benchmark's daemon answers, and a measurement of the refusal path would want it seamed
-too. Either it moves behind `MachineReads` or the guard names it as the one exception
-and says why.
-
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -37,7 +37,7 @@ public sealed class AgentChangesTests
     private static int Changes(FakeDockerDaemon daemon, string[] arguments, TextWriter output)
     {
         using var api = new DockerApi(daemon.PipeName);
-        return AgentSurface.ReadChanges(api, arguments, output, Now);
+        return AgentSurface.ReadChanges(api, arguments, output, MachineReads.OfThisMachine, Now);
     }
 
     [Fact]

@@ -9,6 +9,33 @@ namespace FreeWilly.Core.Preflight;
 /// </remarks>
 public static class ReportText
 {
+    /// <summary>
+    /// The column an evidence line and a wrapped remedy line both start at.
+    /// </summary>
+    /// <remarks>
+    /// One column for both on purpose, so a reader sees one block under a row rather than two
+    /// indents. It also makes the two textually indistinguishable, which is why anything measuring
+    /// a remedy has to find it by the arrow above it and not by how far it is indented.
+    /// </remarks>
+    public const int ContinuationColumn = 14;
+
+    /// <summary>
+    /// How much of a remedy fits on a line before it wraps.
+    /// </summary>
+    /// <remarks>
+    /// This is the only length rule the renderer has, and it is deliberately not a rule about every
+    /// line it emits (DD68). An evidence line is a path, a pipe or a distribution name — atomic, and
+    /// allowed to be as long as the thing it names, because a line a terminal folds can still be
+    /// copied and one this renderer broke on a space cannot.
+    /// </remarks>
+    public const int RemedyWidth = 74;
+
+    /// <summary>The longest line the remedy rule permits, indent included.</summary>
+    public const int RemedyLineLimit = ContinuationColumn + RemedyWidth;
+
+    /// <summary>What marks a remedy, once, however many lines it takes to say.</summary>
+    public const string RemedyArrow = "-> ";
+
     /// <summary>What is printed in the verdict column, widest first for alignment.</summary>
     private static string Tag(Verdict verdict) => verdict switch
     {
@@ -64,7 +91,7 @@ public static class ReportText
             // terminal rather than the width left over after a title.
             foreach (var item in check.Evidence)
             {
-                text.Append(' ', 14).AppendLine(item);
+                text.Append(' ', ContinuationColumn).AppendLine(item);
             }
 
             if (check.Remedy is { } remedy && check.Verdict is not Verdict.Pass)
@@ -72,9 +99,11 @@ public static class ReportText
                 // The arrow marks the remedy once. Repeating it on every wrapped line reads as
                 // several actions where there is one, which is the opposite of the point.
                 var first = true;
-                foreach (var line in Wrap(remedy, 74))
+                foreach (var line in Wrap(remedy, RemedyWidth))
                 {
-                    text.Append(' ', 11).Append(first ? "-> " : "   ").AppendLine(line);
+                    text.Append(' ', ContinuationColumn - RemedyArrow.Length)
+                        .Append(first ? RemedyArrow : new string(' ', RemedyArrow.Length))
+                        .AppendLine(line);
                     first = false;
                 }
             }

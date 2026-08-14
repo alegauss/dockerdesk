@@ -81,23 +81,85 @@ public sealed class ReportTextTests
         Assert.Contains("[warn]", ReportText.Render(report), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The remedy block of a rendered report: the arrow line and everything wrapped under it.
+    /// </summary>
+    /// <remarks>
+    /// Found by the arrow rather than by the indent, because a remedy continuation and an evidence
+    /// line sit in the same column on purpose. Evidence is rendered above the remedy within a check
+    /// and the next check starts back at the left margin, so what follows the arrow at that column
+    /// is the remedy and nothing else.
+    /// </remarks>
+    private static IReadOnlyList<string> RemedyBlock(string[] lines)
+    {
+        var arrow = Array.FindIndex(
+            lines, line => line.Contains(ReportText.RemedyArrow, StringComparison.Ordinal));
+        Assert.True(arrow >= 0, "the report carries no remedy, so there is nothing to measure");
+
+        var block = new List<string> { lines[arrow] };
+        for (var i = arrow + 1;
+            i < lines.Length && lines[i].StartsWith(
+                new string(' ', ReportText.ContinuationColumn), StringComparison.Ordinal);
+            i++)
+        {
+            block.Add(lines[i]);
+        }
+
+        return block;
+    }
+
     [Fact]
     public void A_long_remedy_wraps_rather_than_running_off_the_console()
     {
+        // The path is the one this was measured against on a real machine, at 113 characters. The
+        // fixture used to be `C:\Program Files\Docker\x.exe` at 58, and that shortness was the only
+        // thing keeping this test from contradicting DD52 (DD68): the assertion was about every line
+        // the renderer emits, so making the fixture realistic turned it red and argued for wrapping
+        // the evidence — which is the defect DD52's first attempt was reverted over.
+        const string Resolved =
+            @"docker resolves to C:\Users\someone\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe";
+
         var text = ReportText.Render(PreflightInspection.Run(new FakeMachine
         {
-            RivalEngines = [new RivalEngine("Docker Desktop", @"C:\Program Files\Docker\x.exe")],
+            RivalEngines = [new RivalEngine("Docker Desktop", Resolved)],
         }));
 
         var lines = text.Split(Environment.NewLine);
 
         // One remedy, one arrow, however many lines it takes to say.
-        Assert.Equal(1, lines.Count(line => line.Contains("->", StringComparison.Ordinal)));
-        Assert.Contains(lines, line =>
-            line.StartsWith("              ", StringComparison.Ordinal)
-            && line.TrimStart().StartsWith("leaves neither", StringComparison.Ordinal));
-        Assert.All(lines, line => Assert.True(
-            line.Length <= 100, $"line is {line.Length} characters: {line}"));
+        Assert.Equal(
+            1, lines.Count(line => line.Contains(ReportText.RemedyArrow, StringComparison.Ordinal)));
+
+        var remedy = RemedyBlock(lines);
+        Assert.True(remedy.Count > 1, "the remedy did not wrap, so this measures nothing");
+        Assert.All(remedy, line => Assert.True(
+            line.Length <= ReportText.RemedyLineLimit,
+            $"remedy line is {line.Length} characters against a limit of "
+            + $"{ReportText.RemedyLineLimit}: {line}"));
+    }
+
+    [Fact]
+    public void The_length_rule_is_the_remedys_alone_and_an_evidence_line_may_break_it()
+    {
+        // The other half of the same decision, stated out loud rather than left as an exception
+        // somebody rediscovers (DD68). A guard that asked every line to be short could be satisfied
+        // by wrapping a path, so this is what makes that repair fail instead of pass.
+        const string Resolved =
+            @"docker resolves to C:\Users\someone\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe";
+
+        var lines = ReportText.Render(PreflightInspection.Run(new FakeMachine
+        {
+            RivalEngines = [new RivalEngine("Docker Desktop", Resolved)],
+        })).Split(Environment.NewLine);
+
+        var evidence = Assert.Single(
+            lines, line => line.EndsWith(Resolved, StringComparison.Ordinal));
+
+        Assert.True(
+            evidence.Length > ReportText.RemedyLineLimit,
+            $"the evidence line is {evidence.Length} characters, which is inside the remedy's "
+            + $"{ReportText.RemedyLineLimit} — so this fixture no longer proves that an evidence "
+            + "line is allowed to be as long as the path it names. Lengthen the path.");
     }
 
     [Fact]

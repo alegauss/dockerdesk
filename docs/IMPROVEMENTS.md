@@ -2,29 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD68 A guard that can be satisfied by undoing a shipped fix
-
-`A_long_remedy_wraps_rather_than_running_off_the_console` ends with `Assert.All(lines,
-line => line.Length <= 100)`, and it means it about every line in the report. DD52 then
-shipped a row whose evidence lines must not be wrapped at all: a path is atomic, and
-breaking one at a space is the defect that made the first attempt at DD52 get reverted.
-
-The two rules now contradict each other, and the only reason the suite is green is the
-fixture. That test builds its report from `C:\Program Files\Docker\x.exe`, which lands
-at 58 characters. The real machine this was measured on renders `docker resolves to
-C:\Users\alexa\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe` at 113.
-
-So the next contributor who makes that fixture realistic gets a red test that names a
-line length, and the obvious repair is to wrap the line — which reintroduces the split
-path DD52 exists to prevent, with a test now demanding it. A guard that can be satisfied
-by undoing a shipped fix is worse than no guard, because it argues for the defect.
-
-The assertion is about the remedy and should say so: it belongs to the wrapped block,
-not to every line the renderer emits. Whatever replaces it should also state the other
-half out loud — that an evidence line is allowed to be as long as the thing it names —
-so the two rules read as one decision rather than as an exception somebody has to
-rediscover.
-
 ### §DD73 Compose is a plugin nobody placed
 
 The manifest pins three artefacts and the Windows zip carries one binary: docker.exe.
@@ -177,6 +154,67 @@ The constraints are §DD69's, and for the same reasons. Under `ClientAreaAnimati
 or `RenderCapability.Tier` 0, both moves must resolve to their end state immediately
 rather than to a slower version of themselves. And `--capture-window` must still produce
 a byte-identical PNG, which a row mid-fade at the one-second settle would break.
+
+### §DD80 Why the default inverts instead of the shortcuts
+
+The launch contract is inverted here rather than in the shortcuts, because the shortcuts
+are not the only way in: a developer who installs by building runs the executable
+straight out of the publish folder, and that path carries no arguments either.
+
+So a bare argv becomes tray plus window, and the silent start becomes the thing that has
+to ask for itself. Only one caller wants silence, the Run key the installer writes for
+the start with Windows task, and a window in the face at every logon would be the
+regression this change could otherwise cause. That value gains an explicit flag and
+nothing else moves.
+
+The window verb stays accepted as a synonym that does nothing, because shortcuts already
+created carry it and a user edits one of those by hand.
+
+What this buys over DD21 is a remedy that does not depend on somebody reading an
+after-install page. DD21 measured that the icon lands in the overflow and that nothing
+here can promote it out of one; the window is the feedback channel that needs no
+promoting, and the taskbar button it raises already carries the mark. Identity arrives
+without the tray icon giving up shape as its way of stating engine state.
+
+### §DD81 One tray, and what the second launch does instead
+
+One mutex, held only by the tray surface. The console verbs stay concurrent: an agent
+running the read verb while the tray is open must not be refused, so the guard sits
+inside the tray branch of Main and never around the whole of it.
+
+Local rather than global, so two logins on one machine each get a tray, and a handle
+abandoned by a crashed process is claimed rather than read as a live holder.
+
+The second instance does not report an error. A double click from Explorer has no
+console to print to, and a message box on every accidental double click would be worse
+than the silence being fixed here. It signals the live instance, which raises and
+activates its window, then exits zero. That is the message, and it is what every Windows
+application does. Where a console is attached the second instance also writes one line
+to standard error, because there the caller typed a command and expects prose back.
+
+The two states then look identical from outside: launching shows a window, and launching
+again shows the same window. Somebody who clicks four times ends with one process and
+one window, which is the failure that produced this line.
+
+### §DD82 Why the add goes out empty
+
+One construction in the wrong order. The visibility setter is what emits the shell
+notify add, and at that moment the icon holder carries neither an image nor a tip, so
+the add goes out without the icon flag and with an empty string. The state call on the
+very next line repairs the image with a modify, which is why an icon appears at all, but
+the tooltip Windows persisted at add time stays the empty one.
+
+Measured rather than inferred: the notify icon settings entry for this executable holds
+a tooltip of zero length beside an icon snapshot that decoded fine.
+
+It matters because of where the icon actually lives. DD21 established that Windows files
+a first seen icon into the overflow and that nothing here can promote it out, and the
+overflow flyout labels each entry with exactly that persisted tooltip. So the one
+surface a user has to read in order to find this tool is the one naming nothing at all.
+
+The repair is to build the image and the text first and set visibility last, so the add
+carries both. The state ring and its wording are unchanged; only the order of two
+statements moves.
 
 ## Block D — Container operations (what a user came to do)
 

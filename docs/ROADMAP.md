@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD68** (deps: —) **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — Only a short fixture path keeps the two rules from colliding, and the repair a red line-length assertion argues for is the split path DD52 was reverted over. → §DD68
 - 📋 **DD73** (deps: DD63 ✅) **docker compose is not a command on a clean install, and the do compose verb shells into exactly that** — PlaceCli extracts only docker.exe and nothing lands in a plugins directory, so DD63 and every compose file a user already has fail on a machine that never had Docker Desktop. → §DD73
 - 📋 **DD74** (deps: DD73) **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Without the plugin docker build falls back to the classic builder at best, and BuildKit syntax a modern Dockerfile assumes fails on a line the error blames on the file. → §DD74
 - 📋 **DD75** (deps: —) **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose. → §DD75
@@ -17,6 +16,9 @@
 - 💭 **DD67** (deps: —) **No popup this product draws has ever been photographed, and the one path that could is not reachable** — DD61 made the screen copy refuse the shell, which is right, and left the script with nothing it can find: a menu exists only while open, and nothing opens one. → §DD67
 - 📋 **DD69** (deps: —) **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The site closes its hero into water and opens its footer out of it, so a window with no trace of that reads as a different product from the one the mark introduces. → §DD69
 - 📋 **DD70** (deps: DD69) **A list that changed under a refresh and an engine that is still starting both arrive with no transition** — Motion is what tells a reader that a thing changed rather than that they misread it, and this window redraws rows and holds a pending engine with none at all. → §DD70
+- 📋 **DD80** (deps: —) **Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb** — CommandLine reads a bare argv as tray-only, so Explorer, the Start menu and the desktop icon all land in silence, and a user with no feedback clicks again. → §DD80
+- 📋 **DD81** (deps: DD80) **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — Nothing holds a mutex, so each extra click is another process polling the daemon; raising the first window and exiting is the answer, not an error a click cannot show. → §DD81
+- 📋 **DD82** (deps: —) **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The add carries no icon flag and no text, and the overflow flyout is exactly where that empty tooltip is read, so the place the icon lands names nothing. → §DD82
 
 ## Block D — Container operations (what a user came to do)
 

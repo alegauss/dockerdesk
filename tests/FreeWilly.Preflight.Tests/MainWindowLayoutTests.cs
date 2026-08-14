@@ -31,6 +31,34 @@ public sealed class MainWindowLayoutTests
         return Path.Combine(directory!.FullName, relative);
     }
 
+    [Fact]
+    public void A_page_projects_each_container_once_per_refresh()
+    {
+        // DD110, and it is a guard rather than a measurement because the cost was never the point.
+        // DD107 needed each container's project label for the prune and reached for
+        // `ContainerRow.From` to get it, three lines above the loop that built the same rows for
+        // real — so every row was made twice on every engine event, and this window redraws on every
+        // engine event by design (DD70).
+        //
+        // Asserted on the source like the machine-read guard on the agent surface, and for its
+        // reason: the second call compiles, passes, and looks from the outside exactly like the
+        // first one was for something else.
+        // Comments stripped first, or the guard counts the paragraph explaining itself — and a
+        // guard a comment can trip is one the next author satisfies by rewording rather than by
+        // fixing anything.
+        var page = string.Join(
+            '\n',
+            File.ReadAllLines(RepositoryFile("src/FreeWilly.Tray/Ui/Pages/ContainersPage.xaml.cs"))
+                .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+        var projections = Regex.Matches(page, @"ContainerRow\.From\b").Count;
+
+        Assert.True(
+            projections == 1,
+            $"ContainersPage calls ContainerRow.From {projections} times; one refresh is one "
+            + "projection, and anything else needing a row's fields reads them off the list it made");
+    }
+
     /// <summary>Every page that draws a list, found rather than listed.</summary>
     private static IEnumerable<string> Pages() =>
         Directory.EnumerateFiles(

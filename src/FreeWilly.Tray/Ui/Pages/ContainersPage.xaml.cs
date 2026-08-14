@@ -65,14 +65,21 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             {
                 var containers = await _api.ContainersAsync().ConfigureAwait(true);
 
-                // The project headers' ids too (DD107): a header carries its own pending state and
-                // its own count of refusals, and the daemon has never heard of `compose:shop`, so
-                // pruning against container ids alone would forget both on the very next event.
+                // Projected once, and the order is the whole of DD110: the prune used to reach for
+                // `ContainerRow.From` to read each container's project label and then this line
+                // built the same rows again three lines below, so every row was made twice per
+                // refresh and half of them discarded after one property was read.
+                var projected = containers.Select(ContainerRow.From).ToList();
+
+                // Before the dressing and never after, because `Dress` reads exactly the state this
+                // is about to drop. The project headers' ids go in too (DD107): a header carries its
+                // own count of refusals and the daemon has never heard of `compose:shop`, so pruning
+                // against container ids alone would forget it on the very next event.
                 _activity.Prune(
                 [
-                    .. containers.Select(container => container.Id),
-                    .. containers
-                        .Select(container => ContainerRow.From(container).Project)
+                    .. projected.Select(row => row.Id),
+                    .. projected
+                        .Select(row => row.Project)
                         .Where(project => project is not null)
                         .Distinct(StringComparer.Ordinal)
                         .Select(project => ContainerRow.ProjectId(project!)),
@@ -81,17 +88,16 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
                 // Resolved once for the whole render rather than per row: this list is rebuilt on
                 // every engine event, and a FindResource per row is a dictionary walk per row.
                 var style = RowStyle.For(this);
-                rows =
-                [
-                    .. containers.Select(ContainerRow.From)
-                        .Select(_activity.Dress)
-                        .Select(row => row.WithChip(style)),
-                ];
+                rows = [.. projected.Select(_activity.Dress).Select(row => row.WithChip(style))];
             }
             catch (DockerApiException)
             {
                 // The engine went away between the event and this call. The empty state below says
                 // so, which is more use than a dialog about a race the user did not cause.
+                //
+                // Deliberately no prune on this path: there is no list, so nothing here is evidence
+                // that a container went away — and pruning against nothing would forget every wait
+                // and every failure in hand on the strength of one refused call.
                 rows = [];
             }
         }

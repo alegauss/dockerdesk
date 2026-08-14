@@ -6,30 +6,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD110 One projection, called twice
-
-`RefreshAsync` calls `ContainerRow.From` on every container to read its project label,
-so that `RowActivity.Prune` can be handed the header ids alongside the container ids —
-and then calls it again, three lines below, on the same containers, to build the rows it
-actually draws. Every row is projected twice per refresh, and half of those projections
-are thrown away after one property is read off them.
-
-It is not free and it is not expensive. `From` deduplicates ports through a `HashSet`
-and allocates a row and a list; on forty containers that is forty of each, discarded, on
-every engine event — and this window redraws on every engine event by design (DD70), so
-the waste is proportional to how busy the machine is rather than to anything the user
-did.
-
-The reason it is worth a line is not the allocations. It is that two calls to the same
-projection in one method is the shape a reader trips over: the second one looks like the
-first was for something else.
-
-The repair is ordering rather than new code — build the rows first, prune from those,
-and the label is already on them. What has to hold is that pruning still happens before
-the rows are dressed, since `Dress` reads the state `Prune` is about to drop. The
-failure path is worth a look too: that branch leaves the rows empty, and whether a prune
-should run when the engine just went away is its own question.
-
 ### §DD111 Two rows behind one type
 
 DD106 chose one row type and one template with a trigger, and that choice was right: two

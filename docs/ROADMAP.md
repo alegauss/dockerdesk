@@ -8,7 +8,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD110** (deps: —) **The containers page builds every row twice on each refresh, once only to read the project label off it** — DD107's prune needs each container's project and reaches for ContainerRow.From to get it, three lines above the loop that builds those rows for real. → §DD110
 - 📋 **DD111** (deps: —) **One row type describes a container and a project header, and nothing says which members a header answers** — DD106 was right that the template is one with a trigger; the type behind it grew by accretion, so three guards were written one at a time as each was found wrong on a header. → §DD111
 
 ## Block D — Container operations (what a user came to do)

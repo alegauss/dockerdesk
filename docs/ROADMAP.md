@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD74** (deps: DD73 ✅) **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Without the plugin docker build falls back to the classic builder at best, and BuildKit syntax a modern Dockerfile assumes fails on a line the error blames on the file. → §DD74
 - 📋 **DD75** (deps: —) **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — Docker Desktop rewrites a drive path into a host mount inside its VM and nothing here does, so a compose file with a relative volume arrives as a source the daemon never chose. → §DD75
 - 💭 **DD76** (deps: —) **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all. → §DD76
 
@@ -19,6 +18,7 @@
 - 📋 **DD81** (deps: DD80) **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — Nothing holds a mutex, so each extra click is another process polling the daemon; raising the first window and exiting is the answer, not an error a click cannot show. → §DD81
 - 📋 **DD82** (deps: —) **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The add carries no icon flag and no text, and the overflow flyout is exactly where that empty tooltip is read, so the place the icon lands names nothing. → §DD82
 - 📋 **DD83** (deps: DD69) **Nothing in the window names the build, the engine version behind it, or the API version the client speaks** — A version is the first thing a bug report asks for and the only way to tell a stale install from a fresh one, and the console verb answers where a window user never looks. → §DD83
+- 📋 **DD85** (deps: —) **The tray icon is three abstract rings, so the one surface always on screen carries none of the product mark** — The mark is the only thing a user recognises at a glance, and a ring says nothing about which product is running while three of them sit in one overflow. → §DD85
 
 ## Block D — Container operations (what a user came to do)
 

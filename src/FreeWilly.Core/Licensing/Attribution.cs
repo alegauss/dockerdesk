@@ -103,6 +103,16 @@ public static class Attribution
                 + "does not carry it. Installed as a CLI plugin under this install's own config "
                 + "directory rather than the user's, which is what makes docker compose a command "
                 + "on a machine that never had Docker Desktop."),
+
+            new BundledComponent(
+                manifest.Buildx.Id,
+                "Docker Buildx CLI plugin for Windows",
+                manifest.Buildx.Version,
+                "Apache-2.0",
+                manifest.Buildx.Url,
+                "The BuildKit builder, placed beside Compose. Without it the CLI falls back to the "
+                + "legacy builder, which cannot parse a cache mount, a heredoc or a secret mount — "
+                + "so a Dockerfile that builds anywhere else fails here."),
         ];
     }
 

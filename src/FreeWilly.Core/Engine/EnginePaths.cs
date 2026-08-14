@@ -216,6 +216,13 @@ public sealed class EnginePaths
     /// </remarks>
     public string ComposePlugin => Path.Combine(PluginsDirectory, "docker-compose.exe");
 
+    /// <summary>The Buildx plugin, named the same way (DD74).</summary>
+    /// <remarks>
+    /// Placing this is also what makes plain <c>docker build</c> use BuildKit: the CLI routes the
+    /// build to buildx when the plugin is there and falls back to the legacy builder when it is not.
+    /// </remarks>
+    public string BuildxPlugin => Path.Combine(PluginsDirectory, "docker-buildx.exe");
+
     /// <summary>
     /// The handful of values the window remembers between runs — where it was, and what was being
     /// read (DD39).

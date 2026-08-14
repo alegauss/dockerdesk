@@ -62,11 +62,25 @@ public sealed record EngineManifest
     [JsonPropertyName("compose")]
     public required Artefact Compose { get; init; }
 
+    /// <summary>
+    /// The Buildx CLI plugin, which is what makes <c>docker build</c> BuildKit (DD74).
+    /// </summary>
+    /// <remarks>
+    /// Measured on the pinned CLI with no plugin present: <c>docker build</c> falls back to the
+    /// legacy builder and prints "DEPRECATED: The legacy builder is deprecated and will be removed
+    /// in a future release". So it is a limited path today rather than a dead one — and limited is
+    /// enough, because a <c>RUN --mount=type=cache</c> fails there with "the --mount option
+    /// requires BuildKit", after the base image has already been pulled and on a line the message
+    /// blames on the Dockerfile rather than on a missing plugin.
+    /// </remarks>
+    [JsonPropertyName("buildx")]
+    public required Artefact Buildx { get; init; }
+
     /// <summary>The manifest compiled into this assembly.</summary>
     public static EngineManifest Current => Embedded.Value;
 
     /// <summary>Every artefact, in the order they are acquired.</summary>
-    public IReadOnlyList<Artefact> Artefacts => [Rootfs, Engine, Cli, Compose];
+    public IReadOnlyList<Artefact> Artefacts => [Rootfs, Engine, Cli, Compose, Buildx];
 
     private static EngineManifest Load()
     {

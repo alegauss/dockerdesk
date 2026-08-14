@@ -2,24 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD74 Build without BuildKit is build without most Dockerfiles
-
-BuildKit is not an option a modern Dockerfile takes: a cache mount, a heredoc, a secret
-mount and a multi-platform build are all syntax the classic builder cannot parse, and
-the classic builder is what a CLI with no buildx plugin falls back to — with a
-deprecation notice, on the versions that still have it at all.
-
-So the gap is not that builds are slower. It is that a Dockerfile a developer already
-has, which builds on any machine with a current Docker, fails here on a line the error
-message blames on the file rather than on the missing plugin. That reads as this tool
-being unable to build, which is the impression the whole project exists to avoid.
-
-The mechanics are the compose task's mechanics — a pinned upstream release, a digest,
-and a plugins directory — so whichever placement that one settles on, this one follows
-it and adds no new decision. What is worth measuring first is what docker build actually
-does on the pinned CLI with no plugin present, because a version that removed the
-classic builder turns a slow path into a dead one.
-
 ### §DD75 A bind source is a path the daemon reads, and the daemon is Linux
 
 A bind source is a path the daemon resolves, and the daemon is Linux. Docker Desktop
@@ -223,6 +205,31 @@ returns them. Rows for components this install does not place yet are absent rat
 blank, so the grid grows as they land.
 
 There is no Kubernetes row.
+
+### §DD85 Amending L8, and what stays testable
+
+This amends a law rather than fixing a defect, and L8 exists so that cannot happen
+quietly: it states that shape carries state and colour only reinforces it, and
+InkedPixels makes that testable. Under the requested scheme all three states share one
+silhouette, so that test asserts nothing and the constitution changes in the same
+commit.
+
+Luminance replaces shape. Running is the mark in full colour, starting the mark in one
+yellow tone, stopped the mark desaturated and dimmed. Those differ in brightness as well
+as in hue, so the states stay separable in a black and white screenshot, which was the
+bar L8 set, and the assertion becomes mean luminance ordering.
+
+The artwork exists. icon.svg is already the mark at tray sizes, one wave tone and a
+widened eye, and icon.mjs already rasterises it at every size Windows asks for. Three
+variants come off that same script, committed like the ico for the reason that script
+gives: a build needing Node to produce a Windows resource fails on a machine carrying
+only the .NET SDK.
+
+Rasterised rather than drawn, so each state ships every size instead of one Windows
+stretches.
+
+The tooltip already names the engine state and is asserted on all three. Only the first
+one is empty, which DD82 owns.
 
 ## Block D — Container operations (what a user came to do)
 

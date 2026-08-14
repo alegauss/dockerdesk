@@ -26,6 +26,9 @@ public enum ProvisioningStep
     /// <summary>Download and verify the Compose CLI plugin.</summary>
     AcquireCompose,
 
+    /// <summary>Download and verify the Buildx CLI plugin.</summary>
+    AcquireBuildx,
+
     /// <summary>Import the owned WSL2 distribution from the root filesystem.</summary>
     ImportDistribution,
 
@@ -37,6 +40,9 @@ public enum ProvisioningStep
 
     /// <summary>Put the Compose plugin where the CLI looks for one.</summary>
     PlaceCompose,
+
+    /// <summary>Put the Buildx plugin where the CLI looks for one.</summary>
+    PlaceBuildx,
 }
 
 /// <summary>What one step did.</summary>
@@ -141,7 +147,15 @@ public sealed class EngineProvisioner
         var compose = await Acquire(
             steps, ProvisioningStep.AcquireCompose, _manifest.Compose, cancellation)
             .ConfigureAwait(false);
-        if (compose is null || !installing)
+        if (compose is null)
+        {
+            return new ProvisioningOutcome(steps);
+        }
+
+        var buildx = await Acquire(
+            steps, ProvisioningStep.AcquireBuildx, _manifest.Buildx, cancellation)
+            .ConfigureAwait(false);
+        if (buildx is null || !installing)
         {
             return new ProvisioningOutcome(steps);
         }
@@ -161,7 +175,14 @@ public sealed class EngineProvisioner
             return new ProvisioningOutcome(steps);
         }
 
-        Record(steps, PlaceCompose(compose));
+        if (!Record(steps, PlacePlugin(
+            ProvisioningStep.PlaceCompose, _manifest.Compose, compose, _paths.ComposePlugin)))
+        {
+            return new ProvisioningOutcome(steps);
+        }
+
+        Record(steps, PlacePlugin(
+            ProvisioningStep.PlaceBuildx, _manifest.Buildx, buildx, _paths.BuildxPlugin));
         return new ProvisioningOutcome(steps);
     }
 
@@ -332,33 +353,41 @@ public sealed class EngineProvisioner
     }
 
     /// <summary>
-    /// Copy the Compose plugin under this install's own config directory (DD73).
+    /// Copy one CLI plugin under this install's own config directory (DD73, DD74).
     /// </summary>
     /// <remarks>
-    /// A copy and not an extraction: upstream publishes the plugin as a bare executable, so there is
-    /// no archive to open and the only thing this does that <see cref="PlaceCli"/> does not is
-    /// rename it. The name is the contract — the CLI derives the subcommand from it.
+    /// A copy and not an extraction: upstream publishes both plugins as bare executables, so there
+    /// is no archive to open and the only thing this does that <see cref="PlaceCli"/> does not is
+    /// rename. The name is the contract — the CLI derives the subcommand from it, and placing
+    /// <c>docker-buildx.exe</c> is also what makes plain <c>docker build</c> use BuildKit.
     ///
     /// <para>Here rather than in <c>%USERPROFILE%\.docker\cli-plugins</c>, which is the user's own
     /// directory and the one this project has refused to write since DD32. The cost is stated rather
     /// than hidden: a plain <c>docker compose</c> in a shell still finds nothing, and what closes
     /// that is a <c>DOCKER_CONFIG</c> the user sets themselves.</para>
+    ///
+    /// <para>One method for both, because the second plugin introduced no decision — where a plugin
+    /// goes was settled by the first, and a copy of this per plugin is where the two would drift.</para>
     /// </remarks>
-    private StepResult PlaceCompose(string composePath)
+    /// <param name="step">Which step this is, so a failure names it.</param>
+    /// <param name="artefact">The manifest entry, for its version.</param>
+    /// <param name="downloaded">The verified file on disk.</param>
+    /// <param name="target">Where it goes, named for the subcommand it becomes.</param>
+    private StepResult PlacePlugin(
+        ProvisioningStep step, Artefact artefact, string downloaded, string target)
     {
         try
         {
             Directory.CreateDirectory(_paths.PluginsDirectory);
-            File.Copy(composePath, _paths.ComposePlugin, overwrite: true);
+            File.Copy(downloaded, target, overwrite: true);
 
-            return new StepResult(ProvisioningStep.PlaceCompose, true,
-                $"compose {_manifest.Compose.Version} at {_paths.ComposePlugin}");
+            return new StepResult(step, true, $"{artefact.Id} {artefact.Version} at {target}");
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException or NotSupportedException)
         {
-            return new StepResult(ProvisioningStep.PlaceCompose, false,
-                $"placing the Compose plugin failed: {exception.Message}");
+            return new StepResult(
+                step, false, $"placing the {artefact.Id} plugin failed: {exception.Message}");
         }
     }
 

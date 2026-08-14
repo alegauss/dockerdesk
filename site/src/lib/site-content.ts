@@ -576,7 +576,7 @@ export const notResident = {
       " the value rather than setting it to zero.",
     ] as Rich,
     [
-      "Nothing is uploaded, there is no account, and there is nothing to log into. The only network traffic this project makes is downloading the four pinned artefacts, from ",
+      "Nothing is uploaded, there is no account, and there is nothing to log into. The only network traffic this project makes is downloading the five pinned artefacts, from ",
       { code: "dl-cdn.alpinelinux.org" },
       ", ",
       { code: "download.docker.com" },

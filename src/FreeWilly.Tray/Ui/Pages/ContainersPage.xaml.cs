@@ -117,10 +117,16 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     private void Show()
     {
         // The headers are made by the grouping, so they are dressed after it rather than with the
-        // containers: a project waiting on its fan-out, or carrying the count that came back
-        // refused, is state about the header and there is no header until here (DD107).
+        // containers: the count that came back refused is state about the header, and there is no
+        // header until here (DD107). Its wait is not stored beside that count — it is read off the
+        // containers, which end their own waits on the events that end them (DD108).
         var shown = ContainerRow.Grouped(_rows, _shape, _collapsed);
-        shown = [.. shown.Select(row => row.IsProject ? _activity.Dress(row) : row)];
+        shown =
+        [
+            .. shown.Select(row => row.IsProject
+                ? ContainerRow.WithProjectWait(_activity.Dress(row), _rows)
+                : row),
+        ];
 
         _live.Show(shown);
         NameHeading.Content = ContainerRow.Columns.Name + _shape.GlyphFor(ContainerRow.Columns.Name);
@@ -457,7 +463,10 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             ? ComposeOrder.ToStart(children)
             : ComposeOrder.ToStop(children);
 
-        _activity.Began(header.Id, verb);
+        // The header's own last refusal count goes, because pressing the button is how somebody
+        // says they have read it — but nothing marks the header pending here. Its wait is the
+        // children's, and they are about to have one (DD108).
+        _activity.Acknowledged(header.Id);
         foreach (var child in ordered)
         {
             _activity.Began(child.Id, verb);
@@ -489,11 +498,7 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             }
         }
 
-        if (refused == 0)
-        {
-            _activity.Settled(headerId);
-        }
-        else
+        if (refused > 0)
         {
             // A count and a pointer, never a sentence borrowed from one child.
             var some = refused.ToString(System.Globalization.CultureInfo.InvariantCulture);

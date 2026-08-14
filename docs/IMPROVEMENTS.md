@@ -57,29 +57,6 @@ actually missing.
 
 ## Block D — Container operations (what a user came to do)
 
-### §DD108 The wait a header cannot end
-
-DD8 established the rule the rest of the window follows: a 204 from `/stop` means the
-daemon accepted the call, not that the container is down, so the `die` event is what
-ends a row's wait. Every container row obeys it. The project header does not, and cannot
-as written — it has no event of its own, and `SendProject` settles it when the last HTTP
-call has been answered.
-
-What that looks like. Press Stop on a four-service project: the four calls return in
-milliseconds, the header stops saying `Stopping…`, and the four rows under it go on
-saying it for the daemon's full ten-second grace period. The one row that exists to
-report on the group is the row that reports first and is wrong.
-
-Settling it on the children is the obvious repair and has a trap in it: a container that
-will never emit an event would leave the header spinning forever, which is worse than
-early. So the condition is that no child is still pending, evaluated where the rows are
-dressed rather than inside the fan-out, which keeps only the refusal count it carries
-now.
-
-Worth knowing. `RowActivity` is keyed by id and knows nothing about projects; the page
-is where a header's children are known. And the header is dressed after `Grouped`, which
-is already the one place that has both the header and the rows under it.
-
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)

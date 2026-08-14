@@ -13,8 +13,6 @@
 
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD108** (deps: —) **A project's row stops waiting when the last call was answered, not when its containers are down** — DD8's rule is that the event confirms an action, and the header has no event of its own — so the one row reporting on four containers is the row that reports early. → §DD108
-
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)

@@ -187,6 +187,143 @@ public sealed class ContainerGroupTests
             ContainerAction.RemovalPrompt(Grouped(Rows(Summary("only-1", project: "shop")))[0]),
             StringComparison.Ordinal);
 
+    // ---- the wait a header borrows from its containers (DD108) ---------------------------------
+
+    [Fact]
+    public void A_header_waits_for_as_long_as_something_under_it_is_waiting()
+    {
+        // DD8's rule: a 204 from /stop means the daemon took the call, not that the container is
+        // down. DD107 ended the header's wait when the last call was answered, so it stopped saying
+        // Stopping… while every row under it went on saying it for the daemon's grace period.
+        var activity = new RowActivity();
+        var rows = Rows(
+            Summary("shop-api-1", project: "shop"),
+            Summary("shop-db-1", project: "shop"));
+
+        activity.Began("shop-api-1-id", ContainerVerb.Stop);
+        var dressed = rows.Select(activity.Dress).ToList();
+        var header = ContainerRow.WithProjectWait(
+            Grouped(dressed)[0],
+            dressed);
+
+        Assert.True(header.IsPending);
+        Assert.Equal(ContainerAction.PendingLabel(ContainerVerb.Stop), header.Pending);
+    }
+
+    [Fact]
+    public void A_header_stops_waiting_when_its_last_container_does()
+    {
+        var activity = new RowActivity();
+        var rows = Rows(Summary("shop-api-1", project: "shop"));
+
+        activity.Began("shop-api-1-id", ContainerVerb.Stop);
+
+        // The event the daemon sends when the container is actually down, which is the one thing
+        // that ends a wait anywhere in this window.
+        activity.Settled("shop-api-1-id");
+
+        var dressed = rows.Select(activity.Dress).ToList();
+
+        Assert.False(ContainerRow.WithProjectWait(Grouped(dressed)[0], dressed).IsPending);
+    }
+
+    [Fact]
+    public void Two_different_things_under_one_header_are_not_named_as_either()
+    {
+        // A container clicked on its own while the project is stopping is a second verb under one
+        // header, and naming either of them would be picking one at random.
+        var activity = new RowActivity();
+        var rows = Rows(
+            Summary("shop-api-1", project: "shop"),
+            Summary("shop-db-1", project: "shop"));
+
+        activity.Began("shop-api-1-id", ContainerVerb.Stop);
+        activity.Began("shop-db-1-id", ContainerVerb.Restart);
+        var dressed = rows.Select(activity.Dress).ToList();
+
+        Assert.Equal(
+            ContainerAction.MixedLabel,
+            ContainerRow.WithProjectWait(Grouped(dressed)[0], dressed).Pending);
+    }
+
+    [Fact]
+    public void Another_projects_wait_is_not_this_ones()
+    {
+        var activity = new RowActivity();
+        var rows = Rows(Summary("a-1", project: "aa"), Summary("b-1", project: "bb"));
+
+        activity.Began("b-1-id", ContainerVerb.Stop);
+        var dressed = rows.Select(activity.Dress).ToList();
+        var shown = Grouped(dressed);
+
+        var aa = ContainerRow.WithProjectWait(shown.First(row => row.Name == "aa"), dressed);
+        var bb = ContainerRow.WithProjectWait(shown.First(row => row.Name == "bb"), dressed);
+
+        Assert.False(aa.IsPending);
+        Assert.True(bb.IsPending);
+    }
+
+    [Fact]
+    public void A_loose_container_waiting_is_nobodys_project()
+    {
+        var activity = new RowActivity();
+        var rows = Rows(Summary("loose-1"), Summary("shop-api-1", project: "shop"));
+
+        activity.Began("loose-1-id", ContainerVerb.Stop);
+        var dressed = rows.Select(activity.Dress).ToList();
+        var header = Grouped(dressed).First(row => row.IsProject);
+
+        Assert.False(ContainerRow.WithProjectWait(header, dressed).IsPending);
+    }
+
+    [Fact]
+    public void A_container_row_is_handed_back_untouched()
+    {
+        // The derivation is about headers. A container already carries its own wait and reading its
+        // siblings' onto it would be the defect this fixes, pointed the other way.
+        var row = ContainerRow.From(Summary("shop-api-1", project: "shop"));
+
+        Assert.Same(row, ContainerRow.WithProjectWait(row, [row]));
+    }
+
+    [Fact]
+    public void A_refusal_the_reader_has_not_answered_for_survives_the_wait_ending()
+    {
+        // The two are independent on a header: some containers can still be stopping while another
+        // has already come back refused, and the row says both.
+        var activity = new RowActivity();
+        var rows = Rows(
+            Summary("shop-api-1", project: "shop"),
+            Summary("shop-db-1", project: "shop"));
+
+        activity.Began("shop-api-1-id", ContainerVerb.Stop);
+        activity.Failed(ContainerRow.ProjectId("shop"), "1 of 2 were refused — the row that failed says why.");
+
+        var dressed = rows.Select(activity.Dress).ToList();
+        var header = ContainerRow.WithProjectWait(activity.Dress(Grouped(dressed)[0]), dressed);
+
+        Assert.True(header.IsPending);
+        Assert.True(header.HasFailure);
+        Assert.Contains("1 of 2", header.Failure!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pressing_the_button_again_clears_the_count_without_claiming_a_wait()
+    {
+        // Acknowledged, not Began: the header's wait is the children's, and marking it pending here
+        // would put a second, staler answer beside the one that is actually correct.
+        var activity = new RowActivity();
+        var id = ContainerRow.ProjectId("shop");
+
+        activity.Failed(id, "1 of 2 were refused — the row that failed says why.");
+        activity.Acknowledged(id);
+
+        var header = activity.Dress(Grouped(Rows(Summary("shop-api-1", project: "shop")))[0]);
+
+        Assert.False(header.HasFailure);
+        Assert.False(header.IsPending);
+    }
+
     [Fact]
     public void A_container_is_still_asked_about_exactly_as_it_was()
     {

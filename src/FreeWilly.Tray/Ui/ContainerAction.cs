@@ -45,8 +45,19 @@ public static class ContainerAction
         ContainerVerb.Restart => "Restarting…",
         ContainerVerb.Remove => "Removing…",
         ContainerVerb.Shell => "Opening…",
-        _ => "Working…",
+        _ => MixedLabel,
     };
+
+    /// <summary>
+    /// What a row reads while more than one different thing is in flight under it (DD108).
+    /// </summary>
+    /// <remarks>
+    /// A project header borrows its wait from its containers, and they are usually all doing the
+    /// same thing because the fan-out sent one verb. Usually is not always: a container clicked on
+    /// its own while the project is stopping is a second verb under one header, and naming either
+    /// of them would be picking one at random.
+    /// </remarks>
+    public const string MixedLabel = "Working…";
 
     /// <summary>
     /// Whether removing <paramref name="row"/> asks first.
@@ -160,6 +171,18 @@ public sealed class RowActivity
     /// </remarks>
     /// <param name="id">The container.</param>
     public void Settled(string id) => _pending.Remove(id);
+
+    /// <summary>
+    /// Forget this row's last failure without claiming anything is in flight (DD108).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Began"/> does this too, and says so — pressing a button is how somebody says they
+    /// have read the last failure. A project header needs the clearing without the claim: its wait
+    /// is derived from its containers rather than stored here, so marking it pending would put a
+    /// second, staler answer beside the one that is actually correct.
+    /// </remarks>
+    /// <param name="id">The row.</param>
+    public void Acknowledged(string id) => _failures.Remove(id);
 
     /// <summary>The engine refused. The row stops waiting and says why, where it was clicked.</summary>
     /// <param name="id">The container.</param>

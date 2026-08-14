@@ -455,6 +455,55 @@ public sealed record ContainerRow(
         ];
     }
 
+    /// <summary>
+    /// Give a project header the wait its containers are actually under (DD108).
+    /// </summary>
+    /// <param name="header">The header, already carrying whatever is known about it by id.</param>
+    /// <param name="rows">Every container in hand, dressed.</param>
+    /// <returns>The header, waiting exactly as long as something under it is.</returns>
+    /// <remarks>
+    /// DD8's rule is that the event confirms an action — a 204 from <c>/stop</c> means the daemon
+    /// took the call, not that the container is down. Every container row obeys it and the header
+    /// could not: it has no event of its own, so DD107 ended its wait when the last call was
+    /// answered and the header stopped saying <c>Stopping…</c> while all four rows under it went on
+    /// saying it for the daemon's grace period.
+    ///
+    /// <para><b>Derived rather than stored</b>, which is what makes it right without a timer and
+    /// without the header needing an event: the children already end their own waits on the events
+    /// that end them, so a header that simply reads them is correct whenever they are. It also
+    /// cannot hang — a container that will never emit an event is one whose own row is stuck too,
+    /// and that is a defect with one cause rather than two symptoms.</para>
+    ///
+    /// <para><b>One container clicked on its own counts.</b> The header reports on the group, and
+    /// something in the group is in flight — so it says so, in that child's own word.</para>
+    /// </remarks>
+    public static ContainerRow WithProjectWait(ContainerRow header, IEnumerable<ContainerRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(header);
+        ArgumentNullException.ThrowIfNull(rows);
+
+        if (!header.IsProject)
+        {
+            return header;
+        }
+
+        var waits = rows
+            .Where(row => row.IsContainer
+                && string.Equals(row.Project, header.Project, StringComparison.Ordinal))
+            .Select(row => row.Pending)
+            .Where(pending => pending is not null)
+            .Distinct(StringComparer.Ordinal)
+            .Take(2)
+            .ToList();
+
+        return waits.Count switch
+        {
+            0 => header,
+            1 => header with { Pending = waits[0] },
+            _ => header with { Pending = ContainerAction.MixedLabel },
+        };
+    }
+
     /// <summary>Narrow a list to what the filter keeps.</summary>
     private static IEnumerable<ContainerRow> Kept(IEnumerable<ContainerRow> rows, ListShape shape) =>
         rows.Where(row => shape.Keeps(

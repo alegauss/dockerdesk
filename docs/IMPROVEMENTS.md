@@ -55,27 +55,28 @@ driving inside the process that owns the menu and costs one more surface.
 
 ### §DD70 §DD70 Motion that explains a change, which is the only motion Fluent asks for
 
-Fluent's motion exists to answer one question: did that change, or did I misread it?
-Nothing in this window answers it. A refresh from the event stream replaces the rows
-under the cursor with no transition, so a container that appeared and one that was
-always there are drawn identically. The engine dot is amber while `Starting` and then
-green, and that is the only thing saying a wait is in progress.
+Fluent's motion exists to answer one question: did that change, or did I misread it? The
+engine dot now answers half of it — it breathes while `Starting` and stops the moment
+the engine is running or stopped, which is the one state here that is a wait rather than
+a settled answer.
 
-Two moves, both of the kind that ends: a dot that breathes while the engine is starting
-and stops the moment it is running or stopped, and a row that fades in as it joins the
-list and out as it leaves. Neither invents information. The dot restates `Starting`,
-which the label beside it already says in words; the fade says only where the eye should
-look, which is the change.
+**What is left is the list.** A refresh from the event stream replaces the rows under
+the cursor with no transition, so a container that appeared and one that was always
+there are drawn identically. The fade should say only where the eye should look, which
+is the change.
 
-This is ranked above the water at the window's foot on interface quality and below it on
-identity, so it is a second task rather than a rider on the first.
+That is larger than it reads, and the reason is in `Show()`: every page assigns
+`ItemsSource` wholesale, so every row is new on every refresh. Fading on that signal
+would flash the whole list on every poll — louder than no motion at all. It needs the
+rows reconciled against what is shown, keyed by id, so only what joined fades in; and a
+row that left has to outlive its removal to fade out. Three pages do this, so the
+reconcile is shared.
 
-The constraints are the ones DD69 shipped, and `Ui/Waves.cs` is the worked example.
-Under `ClientAreaAnimation` off or `RenderCapability.Tier` 0 both moves must resolve to
-their end state rather than to a slower version of themselves, and `--capture-window`
-must still produce a byte-identical PNG — which a row mid-fade at the settle would
-break, and which DD69 found the hard way: it holds the water still through a flag the
-capture sets before the window exists.
+The constraints are the ones DD69 and the dot have met. `Ui/Motion.cs` is the one gate —
+`ClientAreaAnimation` off, no render tier, or a capture running — and a row mid-fade at
+the capture's settle would break the byte-identical PNG the review harness rests on.
+`Ui/Breathing.cs` is the worked example: it restores its end state rather than leaving
+the value wherever the animation reached.
 
 ### §DD80 Why the default inverts instead of the shortcuts
 

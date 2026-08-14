@@ -81,10 +81,10 @@ internal static class WindowCapture
         IEngineClient api = fixture ? new SampleMachine() : new DockerApi();
 
         // Before the window exists, because the water starts drifting the moment it is told the
-        // engine is up and this verb's fixture says exactly that (DD69). A picture that caught a
+        // engine is up and this verb's fixture says exactly that (DD69, DD70). A picture that caught a
         // random phase would make every capture differ from the last, which is the one property
         // this whole verb is for.
-        Ui.Waves.Still = true;
+        Ui.Motion.Still = true;
 
         var window = new Ui.MainWindow(
             api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { })

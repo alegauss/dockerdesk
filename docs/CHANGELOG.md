@@ -41,6 +41,7 @@
 - ✅ **DD39** **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — The window opens where it was left, at the size it was left, on the tab that was being read - and a rectangle that no longer lands on a monitor is refused rather than opened off-screen.
 - ✅ **DD61** **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — Capture-Window.ps1 asks DWM for the window's system backdrop and refuses to copy one that has it, with no flag to waive it - so the leak is a refusal rather than a printed warning.
 - ✅ **DD69** **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The window's foot is the mark's own water, in the site's three blues and geometry, drifting only while the engine runs and held at phase zero for a capture.
+- ✅ **DD70 (the dot)** **A list that changed under a refresh and an engine that is still starting both arrive with no transition** — The engine dot breathes while the engine is starting and stops the moment it is not, behind one motion gate the water now shares.
 
 ## Block D — Container operations (what a user came to do)
 

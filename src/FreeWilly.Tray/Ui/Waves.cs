@@ -167,37 +167,13 @@ internal sealed class Waves : Grid
         Apply();
     }
 
-    /// <summary>
-    /// Held still for a capture, which has to be the same bytes every time.
-    /// </summary>
+    /// <summary>Whether the water may drift.</summary>
     /// <remarks>
-    /// Set by <c>--capture-window</c> before the window exists, and static because that is what the
-    /// timing needs: the capture shows a window whose fixture reports the engine running, so by the
-    /// time anything holds a reference to this the animation would already have started and the
-    /// picture would catch a random phase. Measured — two captures of one build differed until this
-    /// existed, and the whole review harness rests on them not differing.
-    ///
-    /// <para>The window being off-screen is not enough on its own: it is shown at -32000 rather than
-    /// hidden, so <see cref="UIElement.IsVisible"/> is true and every other switch-off below reads a
-    /// perfectly ordinary session.</para>
+    /// The engine and this window's own visibility are this control's to ask; the rest is
+    /// <see cref="Motion"/>, which DD70 shares with the engine dot. A window nobody can see has no
+    /// reason to animate.
     /// </remarks>
-    internal static bool Still { get; set; }
-
-    /// <summary>
-    /// Whether motion is allowed at all.
-    /// </summary>
-    /// <remarks>
-    /// Three refusals besides the capture, and none of them is a preference. A window nobody can see
-    /// has no reason to animate; <c>ClientAreaAnimation</c> is the accessibility setting Windows
-    /// already asks the question with, so asking it again here would be a second answer; and a render
-    /// tier of 0 has no hardware behind it, which is where a perpetual animation stops being free.
-    /// </remarks>
-    private bool MayMove =>
-        _running
-        && !Still
-        && IsVisible
-        && SystemParameters.ClientAreaAnimation
-        && (RenderCapability.Tier >> 16) > 0;
+    private bool MayMove => _running && IsVisible && Motion.Allowed;
 
     private void Resize()
     {

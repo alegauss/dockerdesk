@@ -253,6 +253,7 @@ internal partial class MainWindow : Window
     private void ShowEngine(EngineState engine)
     {
         EngineDot.Fill = Palette.EngineBrush(engine);
+        Breathing.Set(EngineDot, engine is EngineState.Starting);
 
         // The water is the same fact the dot and the word carry, read a third way (DD69). Running
         // only, not starting: a state that is still resolving is exactly what a moving thing would

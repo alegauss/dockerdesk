@@ -14,6 +14,8 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- 📋 **DD116** (deps: —) **The only roadkeep that answers a verb here is named in a permission entry, and the skill names one that refuses them all** — The engine is vendored at .roadkeep and the hook reports the wired copies as drifted every turn, so a session finds a door by hunting rather than reading. → §DD116
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -75,7 +75,13 @@ it.
   forwarded TCP port, since the Engine API is equivalent to root on the machine and any
   local process can reach a port. Because the pipe name is the standard one, the CLI,
   Compose, Testcontainers and IDE plugins find the engine with no `DOCKER_HOST` and no
-  configuration.
+  configuration. **On the Windows side.** A Linux client inside the user's own WSL2
+  distribution cannot dial a Windows pipe and reaches nothing; the Windows `docker.exe`
+  invoked from a Linux shell does work, through WSL interop, but it is a Windows process
+  and reads every path it is handed as a Windows path. There is no per-distribution
+  integration and it is a stated non-goal: writing a CLI and a socket into a user's own
+  distribution is what this project refuses, and it would hand the Engine API to every
+  distribution when the pipe's ACL exists to hold it to one account.
 - **Engine API client with zero dependencies**: HTTP and JSON over the named pipe, pinned to
   Engine API `v1.43` (an unversioned path is answered with the daemon's newest version, so a
   daemon upgrade could change a response shape under a client that asked for nothing). It is

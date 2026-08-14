@@ -4,8 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 💭 **DD76** (deps: —) **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — The socket lives in the owned distribution and its only way out is a pipe a Linux client cannot dial, so a developer whose shell is Ubuntu has no engine at all. → §DD76
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

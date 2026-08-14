@@ -2,25 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD76 The other side of the pipe, and what it would cost
-
-A developer whose shell is Ubuntu under WSL2 has no engine here. The daemon listens on a
-unix socket inside the owned distribution, the only way out is a Windows named pipe, and
-a Linux client cannot dial one. Docker Desktop answers this with a per-distribution
-toggle that mounts its own Linux CLI and a socket into each distribution the user ticks.
-
-That answer is in tension with two things this project has already decided. The owned
-distribution exists so that nothing of the user's is touched, and the same instinct kept
-the install out of a .claude directory; writing a CLI and a socket into somebody's
-Ubuntu is the largest version of exactly that. And the pipe is a pipe rather than a port
-because its ACL restricts the Engine API to one account, which a socket reachable from
-any distribution starts to give away.
-
-So this is filed as an idea and not as a design. The cheap intermediate is to say the
-true thing in the after-install page and in the doctor rows a WSL shell would reach: the
-engine is on the Windows side, docker.exe is what reaches it, and a bind mount typed in
-a WSL shell carries a path the daemon reads differently.
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

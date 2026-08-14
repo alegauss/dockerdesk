@@ -282,6 +282,24 @@ internal static class EngineCommand
             $"    setx {Core.Agent.BundledComposeCli.ConfigVariable} \"{paths.ConfigDirectory}\"");
         Console.WriteLine("  Not set for you: it is your environment, and it changes every docker");
         Console.WriteLine("  command in it. `freewilly do compose up` needs none of this.");
+
+        // DD76. A developer whose shell is their own WSL2 distribution finds nothing: the daemon's
+        // socket is inside the distribution this tool owns, and a Linux client cannot dial the
+        // Windows pipe that carries it out. Docker Desktop answers that by writing a CLI and a
+        // socket into each distribution the user ticks, which is the largest version of the thing
+        // this project has refused to do since DD32 — and it hands the Engine API to every
+        // distribution, which is what the pipe's single-account ACL exists to prevent.
+        //
+        // So the integration is not built and the fact is stated instead, here and in the README,
+        // with the one thing that does work. Measured: WSL interop is on by default, and the
+        // Windows docker.exe invoked from a Linux shell reaches the engine.
+        Console.WriteLine();
+        Console.WriteLine("  From a WSL shell of your own, the Linux `docker` reaches nothing —");
+        Console.WriteLine("  the engine is on the Windows side of a named pipe. Run the Windows");
+        Console.WriteLine("  binary instead, which WSL's interop makes work:");
+        Console.WriteLine($"    {Wsl.ToDistributionPath(paths.DockerCli)} ps");
+        Console.WriteLine("  It is a Windows process, so every path you hand it is read as a");
+        Console.WriteLine("  Windows path: `-v $(pwd):/data` in a Linux shell mounts nothing.");
         return Ok;
     }
 

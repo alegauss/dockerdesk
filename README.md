@@ -61,6 +61,19 @@ Uninstalling removes what was installed and **asks about what was created**. The
 `freewilly` WSL2 distribution holds every image, container and volume you have, so it is
 never deleted without a question, and an unattended uninstall keeps it.
 
+**If your shell is your own WSL2 distribution**, the Linux `docker` in it reaches nothing:
+the daemon's socket lives inside the distribution this tool owns, and its only way out is
+a Windows named pipe a Linux client cannot dial. Run the Windows binary instead — WSL's
+interop makes `/mnt/c/Users/you/AppData/Local/FreeWilly/bin/docker.exe ps` work from a
+Linux shell. It is a Windows process, so **every path you hand it is read as a Windows
+path**: `-v $(pwd):/data` typed in a Linux shell mounts an empty directory rather than your
+project. `freewilly do compose up` is the exception — it respells bind sources for you.
+
+There is deliberately no per-distribution integration. Docker Desktop's is a toggle that
+writes a CLI and a socket into each distribution you tick, which is both the largest
+version of touching your machine that this project refuses, and a way of handing the
+Engine API to every distribution when the pipe's ACL exists to hold it to one account.
+
 The same executable is every verb — there is no second tool to find:
 
 ```

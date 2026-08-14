@@ -18,6 +18,7 @@
 - ✅ **DD74** **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Buildx is a fifth pinned artefact placed beside Compose, so docker build is BuildKit and a cache mount stops failing on the mount option.
 - ✅ **DD86** **The old name survives as adoption code and an agent skill, for a product that has no installed base to adopt** — The old name is gone from the paths, the label, the probe, the installer and the agent files, and every guard for a state that cannot occur went with it.
 - ✅ **DD75** **A bind mount spelled the Windows way is sent to a Linux daemon that resolves only its own paths** — The generated override respells every Windows bind source the distribution's way, read from compose config as JSON, and refuses the ones no drive letter can reach.
+- ✅ **DD76** **docker inside a user WSL2 distribution reaches nothing, the toggle Docker Desktop calls WSL integration** — A WSL shell is told the engine is on the Windows side, that docker.exe reaches it through interop, and that it reads every path it is handed as a Windows one.
 
 ## Block B — The daemon client (talk to the engine)
 

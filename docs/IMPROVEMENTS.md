@@ -363,3 +363,57 @@ reader the backlog answers.
 
 `surface.test.mjs` asserts every id the content names is still on the roadmap. That
 loses its subject here, and is deleted with the ids.
+
+### §DD91 DD91 - the published surface stops tracking the backlog
+
+DD43 built the board against a real defect: the hand-written page listed five shipped
+tasks as open, and nothing failed when the roadmap moved under it. Generating every
+figure from `roadkeep export --json` fixed it, and S2 — a status is derived, never typed
+— has held.
+
+What changed is the subject, not the mechanism. With 74 of 89 tasks shipped and every
+basic capability landed, a page organised around how much is left measures what matters
+least. A reader asking whether they can have Docker without the licence is handed a
+burndown, and the fifteen open lines are window polish, a bind-mount spelling and a
+benchmark seam.
+
+So the apparatus goes, not the honesty it protected. Removed: the `/status` route and
+its metadata row, `StatusBoard`, the landing progress section, `lib/roadmap.ts` and its
+generated module, `scripts/roadmap.mjs` and its test, the `generate` step, the Status
+and Roadmap links in nav and footer, and the status figures in CSS.
+`scripts/surface.mjs` stays: measured token costs are claims about the product, not the
+backlog.
+
+S2 is amended in `docs/specs/DD40-site-constitution.md`, not deleted, because the
+corollary survives — a figure about this project the build cannot derive does not go on
+the page. The conclusion moves from generate the progress to publish none. That
+document's own page map loses its `/status` row, and its reversals section records DD43,
+so nobody rebuilds a page removed on purpose.
+
+DD90 removes the last content naming a task id, so it lands first or in the same commit.
+
+### §DD92 DD92 - the in-development framing outlives the condition it was written for
+
+S10 names its own expiry: the site says there is no release, in the badge and in a
+section of its own — and keeps saying so until DD15 ships. DD15 has shipped, and so has
+DD14. The installer exists and CI builds the release, so the copy is no longer honesty;
+it is a claim the project has moved past.
+
+Removed: the development wording in the hero badge, the `#status` call to action beside
+View on GitHub, and the honest-status section — heading, intro and the whole `status`
+export.
+
+**The risk, recorded because it was raised and accepted.** No tag and no published
+release exist yet: DD15 built the pipeline and nothing has run it. A visitor still
+cannot download anything, and removing every availability statement leaves the site not
+saying so. It goes anyway, because the build-from-source section carries that truth in a
+form a reader can act on: install instructions beginning with `git clone` and a .NET SDK
+are not read as an offer to download.
+
+That makes the build section load-bearing, so it stays where it is and is not shortened.
+The follow-up belongs to whoever publishes the first release: the moment a tag exists,
+that section stops being the whole truth. Filed then, against an artefact that exists —
+the reasoning DD40 used to keep an `/install` page off the map.
+
+S10 is amended rather than struck. The half about the comparison matrix is what makes
+`/compare` believable, and nothing here touches it.

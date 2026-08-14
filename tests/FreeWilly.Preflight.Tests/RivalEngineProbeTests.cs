@@ -136,11 +136,44 @@ public sealed class RivalEngineProbeTests
         }));
 
     [Fact]
-    public void Our_own_distribution_is_not_read_as_Docker_Desktops()
+    public void Neither_of_this_project_s_own_distributions_is_a_rival()
     {
-        // `dockerdesk` and `docker-desktop` are one substring rule apart, and that rule would make
-        // this product report itself. Matched exactly, on purpose.
+        // This assertion used to be about a spelling accident — `dockerdesk` and `docker-desktop`
+        // being one substring rule apart — and `freewilly` retires that collision entirely. What it
+        // asserts now is a real machine (DD56): DD55 adopts an install made before the rename where
+        // it stands, so a user upgrading is still driving a distribution called `dockerdesk`. A row
+        // that read it as an unidentified engine would tell them to uninstall what they are running,
+        // on the one row this project says must never be wrongly red.
+        Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["freewilly"] }));
         Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["dockerdesk"] }));
+
+        // However WSL happens to report it.
+        Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["  DockerDesk  "] }));
+    }
+
+    [Fact]
+    public void An_adopted_machine_still_sees_the_rival_beside_it()
+    {
+        // The other half of the same rule: skipping our own name must not skip anybody else's. A
+        // machine mid-migration is exactly where both are present.
+        var found = RivalEngineProbe.Judge(new RivalSignals
+        {
+            Distributions = ["dockerdesk", "docker-desktop"],
+        });
+
+        Assert.Equal("Docker Desktop", Assert.Single(found).Name);
+    }
+
+    [Fact]
+    public void Ownership_is_by_name_rather_than_by_what_Known_happens_to_list()
+    {
+        // Stated rather than left to the accident that no entry in Known spells our name. Adding a
+        // product whose distribution list did would otherwise make this engine report itself, and
+        // the row that must never be wrongly red is the worst place to rely on a coincidence.
+        Assert.True(RivalEngineProbe.IsOurDistribution("freewilly"));
+        Assert.True(RivalEngineProbe.IsOurDistribution("dockerdesk"));
+        Assert.False(RivalEngineProbe.IsOurDistribution("docker-desktop"));
+        Assert.False(RivalEngineProbe.IsOurDistribution("Ubuntu"));
     }
 
     // ---- naming what it found -----------------------------------------------------------------

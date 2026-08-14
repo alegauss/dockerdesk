@@ -58,12 +58,31 @@ internal static class RivalEngineProbe
     private const string LxssKey = @"Software\Microsoft\Windows\CurrentVersion\Lxss";
 
     /// <summary>
+    /// Every distribution this project has ever owned, and therefore never a rival (DD56).
+    /// </summary>
+    /// <remarks>
+    /// The reason this list exists changed with the rename, and the new reason is the sharper one.
+    /// It used to be a spelling accident: the distribution was <c>dockerdesk</c>, which contains
+    /// "docker", so any substring rule would have made this product report itself. <c>freewilly</c>
+    /// contains no "docker", so that collision is gone.
+    ///
+    /// <para>What replaced it is a real machine. DD55 adopts an install made before the rename where
+    /// it stands, so a user upgrading from an older build has a <c>dockerdesk</c> distribution that
+    /// this tool is still driving — and a probe that read it as an unidentified engine would tell
+    /// them to uninstall the thing they are running, on the one row that must never be wrongly red.
+    /// So the old name stays known here as this project's former distribution rather than being
+    /// deleted along with the collision it was written against.</para>
+    /// </remarks>
+    private static readonly string[] Ours =
+        [Engine.EnginePaths.CurrentDistribution, Engine.EnginePaths.Legacy.Distribution];
+
+    /// <summary>
     /// What a product is called, and how it is recognised.
     /// </summary>
     /// <remarks>
-    /// <c>Distributions</c> is matched exactly rather than by substring, and that is load-bearing:
-    /// this tool's own distribution is <c>dockerdesk</c>, and a substring rule looking for "docker"
-    /// would report this product as a rival to itself.
+    /// <c>Distributions</c> is matched exactly rather than by substring. That is still worth doing —
+    /// <c>docker-desktop</c> and <c>docker-desktop-data</c> are two names one rule should not blur —
+    /// but it is no longer what keeps this product from reporting itself. <see cref="Ours"/> is.
     /// </remarks>
     private static readonly (string Name, string[] PathMarkers, string[] Distributions)[] Known =
     [
@@ -118,13 +137,17 @@ internal static class RivalEngineProbe
         }
 
         // 2. A registered distribution, which survives the app being shut down — the state the
-        //    original probe read as an empty machine.
+        //    original probe read as an empty machine. This project's own are removed first and by
+        //    name (DD56), so no entry added to Known later can make the engine report itself: an
+        //    adopted install is still driving a distribution called dockerdesk, and the user must
+        //    never be told to uninstall the thing they are running.
+        var foreign = signals.Distributions.Where(registered => !IsOurDistribution(registered));
         foreach (var (name, _, distributions) in Known)
         {
             foreach (var distribution in distributions)
             {
-                if (signals.Distributions.Any(registered =>
-                        registered.Equals(distribution, StringComparison.OrdinalIgnoreCase)))
+                if (foreign.Any(registered =>
+                        registered.Trim().Equals(distribution, StringComparison.OrdinalIgnoreCase)))
                 {
                     Note(name, $"a registered {distribution} WSL distribution");
                 }
@@ -273,6 +296,12 @@ internal static class RivalEngineProbe
     /// for one of four signals, and the other three still answer — which is why there are four.
     /// </remarks>
     internal static IReadOnlyList<string> ReadDistributions() => Wsl.RegisteredDistributions();
+
+    /// <summary>Whether a registered distribution is one this project owns, now or before (DD56).</summary>
+    /// <param name="registered">A name as WSL reports it.</param>
+    /// <returns><see langword="true"/> where this tool owns it.</returns>
+    internal static bool IsOurDistribution(string registered) =>
+        Ours.Any(name => registered.Trim().Equals(name, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Whether a resolved docker command is this tool's own.</summary>
     private static bool IsOurs(string docker, RivalSignals signals)

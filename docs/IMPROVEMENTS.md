@@ -2,28 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD56 The rival probe loses the collision it was written against and gains a real one
-
-`RivalEngineProbe` carries a rule that exists for one reason: this tool's own
-distribution is called `dockerdesk`, and a substring test for "docker" would make the
-engine report itself as a rival. The comment on line 65 says exactly that, and
-`RivalEngineProbeTests` line 141 spells the pair — `dockerdesk` and `docker-desktop` are
-one substring rule apart — with an assertion that `Judge` finds nothing on a machine
-whose only distribution is `dockerdesk`.
-
-`freewilly` contains no "docker", so the collision the rule was written against
-disappears and that assertion starts proving nothing. Deleting both is the obvious move
-and the wrong one, because DD55's migration creates the case that replaces it: a machine
-that ran an older build has a `dockerdesk` distribution on it, and after the rename that
-distribution is no longer this tool's own by name. A probe that reads it as an
-unidentified rival engine tells the user to uninstall the thing they are running.
-
-What this needs is for the old name to stay known to the probe as this project's former
-distribution rather than as a competitor, and for the test to assert that rather than
-the substring accident it currently asserts. The `dockerdesk-absent-` and
-`dockerdesk-test-` prefixes across four test files are fixture names, carry no such
-meaning, and are DD54's mechanical sweep rather than this task's.
-
 ### §DD68 A guard that can be satisfied by undoing a shipped fix
 
 `A_long_remedy_wraps_rather_than_running_off_the_console` ends with `Assert.All(lines,

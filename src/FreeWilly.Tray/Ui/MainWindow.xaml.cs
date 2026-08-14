@@ -34,6 +34,7 @@ internal partial class MainWindow : Window
 
     private ImagesPage? _images;
     private VolumesPage? _volumes;
+    private AboutPage? _about;
 
     /// <summary>The containers list. Built with the window: it is the destination it opens on.</summary>
     internal ContainersPage Containers { get; }
@@ -137,6 +138,11 @@ internal partial class MainWindow : Window
                 _volumes ??= Add(new VolumesPage(_api, _engineState));
                 page = _volumes;
                 _ = _volumes.RefreshVolumesAsync();
+                break;
+            case "About":
+                _about ??= Add(new AboutPage(_api));
+                page = _about;
+                _ = _about.RefreshAboutAsync();
                 break;
             default:
                 page = Containers;
@@ -266,12 +272,4 @@ internal partial class MainWindow : Window
             _ => "Engine stopped",
         };
     }
-
-    private void ShowAbout(object sender, RoutedEventArgs e) =>
-        System.Windows.MessageBox.Show(
-            this,
-            Attribution.About(EngineManifest.Current, BuildVersion.Current),
-            "About FreeWilly",
-            System.Windows.MessageBoxButton.OK,
-            System.Windows.MessageBoxImage.Information);
 }

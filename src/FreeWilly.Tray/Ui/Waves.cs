@@ -45,7 +45,14 @@ internal sealed class Waves : Grid
     /// <summary>The logical floor the water is filled down to.</summary>
     private const double Floor = 200;
 
-    /// <summary>How tall the band is on screen.</summary>
+    /// <summary>
+    /// How tall the band is where nothing says otherwise.
+    /// </summary>
+    /// <remarks>
+    /// A default and not a fixed size: the window's foot wants a strip and the About band wants
+    /// something the mark can sit inside, so a host that sets <c>Height</c> gets what it asked for
+    /// and the layers follow it (DD83).
+    /// </remarks>
     private const double BandHeight = 52;
 
     /// <summary>How far the foam rides above the crest it sits on.</summary>
@@ -182,6 +189,7 @@ internal sealed class Waves : Grid
         foreach (var band in _bands)
         {
             band.Width = ActualWidth * 2;
+            band.Height = ActualHeight;
         }
 
         Apply();

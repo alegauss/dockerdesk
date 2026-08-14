@@ -1,0 +1,67 @@
+<!-- What this build is, and what it put on the machine (DD83). A destination and not a dialog (L2):
+     a version is the first thing a bug report asks for, and a modal that has to be dismissed before
+     anything can be copied out of it is the wrong shape for a page somebody reads while typing.
+
+     The information architecture is Docker Desktop's about dialog — a mark band, the version once
+     and large, a grid of components, links over a copyright line. None of the artwork is: the
+     wordmark, the isometric drawing and the whale are Docker trademarks and this is a competing
+     product, so the band carries this project's own mark over the water DD69 introduced. -->
+<UserControl x:Class="FreeWilly.Tray.Ui.Pages.AboutPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:FreeWilly.Tray.Ui"
+             x:ClassModifier="internal">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="10,10,10,20" MaxWidth="720" HorizontalAlignment="Left">
+
+      <!-- The band. The water is the same control the window's foot carries, so the two read as one
+           surface rather than as a picture of one. -->
+      <Grid Height="128" ClipToBounds="True">
+        <!-- The water fills the band and the mark sits in it, which is the whole borrowed idea: a
+             product introduced by an orca cresting a wave should be introduced by one here too. -->
+        <ui:Waves x:Name="BandWater" Height="128" VerticalAlignment="Stretch" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
+          <Image x:Name="Mark" Width="64" Height="64" VerticalAlignment="Center"
+                 RenderOptions.BitmapScalingMode="HighQuality" />
+          <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="FreeWilly" FontSize="28" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock x:Name="BuildLine" FontSize="13" Margin="0,2,0,0"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+
+      <!-- What is on this machine. Two columns, and a row is absent rather than blank where this
+           install does not place the thing yet — so the grid grows as components land. -->
+      <TextBlock Text="On this machine" FontSize="12" FontWeight="SemiBold" Margin="0,20,0,8"
+                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+      <ItemsControl x:Name="Components">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Grid Margin="0,0,0,6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="13"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- The terms, where the choice is made. A visitor who cannot establish them in the first ten
+           seconds assumes the same trap they came here to escape. -->
+      <TextBlock Text="Licence" FontSize="12" FontWeight="SemiBold" Margin="0,20,0,8"
+                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+      <TextBlock x:Name="Terms" FontSize="13" TextWrapping="Wrap"
+                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+      <TextBlock x:Name="Copyright" FontSize="12" Margin="0,12,0,0" TextWrapping="Wrap"
+                 Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -109,10 +109,6 @@
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
             </StackPanel>
-            <!-- The terms, where the choice is made. A visitor who cannot establish them in the
-                 first ten seconds assumes the same trap they came here to escape. -->
-            <Button Content="About" Click="ShowAbout" HorizontalAlignment="Right"
-                    Style="{StaticResource RowAction}" Margin="0" />
         </Grid>
         <!-- The nav strip, borrowed from claude-tray rather than left as TabItem headers: quiet text
              with an accent underline under the selected one. Two apps by the same author that look
@@ -135,6 +131,12 @@
                 <RadioButton x:Name="NavVolumes" Style="{StaticResource NavDest}"
                              GroupName="Destination" Content="Volumes"
                              Tag="Volumes" Checked="Destination_Checked" />
+                <!-- The terms and the versions, where a bug report starts. A destination rather
+                     than the dialog it used to be (DD83, L2): a modal that has to be dismissed is
+                     the wrong shape for a page somebody reads while typing somewhere else. -->
+                <RadioButton x:Name="NavAbout" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="About"
+                             Tag="About" Checked="Destination_Checked" />
             </StackPanel>
         </Border>
 

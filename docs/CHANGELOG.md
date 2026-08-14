@@ -45,6 +45,7 @@
 - ✅ **DD80** **Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb** — A bare launch is the tray and the window, and the Run key that starts with Windows is the one caller that asks for silence with --tray.
 - ✅ **DD81** **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — A second launch signals the tray that is already running, which restores and activates its window, then exits zero without printing at anybody who double-clicked.
 - ✅ **DD82** **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The image and the tooltip are set before visibility, so the shell's notify-add carries both and the overflow flyout names the entry.
+- ✅ **DD83** **Nothing in the window names the build, the engine version behind it, or the API version the client speaks** — An About destination names the build, the engine, the API level and every pinned artefact, read from the manifest and the daemon and never typed.
 
 ## Block D — Container operations (what a user came to do)
 

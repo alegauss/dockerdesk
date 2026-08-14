@@ -21,13 +21,20 @@
          down, so it is not the project's name. -->
     <AssemblyName>FreeWilly</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Generated from docs\logo.svg by build\icon.mjs, and committed: a build that needed Node to
-         produce a Windows resource would fail on a machine with only the .NET SDK. -->
+    <!-- Generated from site\public\logo.svg by build\icon.mjs, and committed: a build that needed
+         Node to produce a Windows resource would fail on a machine with only the .NET SDK. -->
     <ApplicationIcon>FreeWilly.ico</ApplicationIcon>
     <!-- Unconditional, so the output path is the same in Debug and Release and every script,
          document and installer reference can name one folder. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same file again, reachable from WPF (DD83). ApplicationIcon puts it in the executable's
+         Win32 resources, which is what Explorer and the title bar read and is not something a
+         BitmapDecoder can open; the About destination draws the mark at 256 and needs the frames. -->
+    <Resource Include="FreeWilly.ico" />
+  </ItemGroup>
 
   <!-- One self-contained file when published, and Release only. A clean Windows 11 has no .NET
        runtime — measured in the test guest, where a framework-dependent build died with 0x80008083

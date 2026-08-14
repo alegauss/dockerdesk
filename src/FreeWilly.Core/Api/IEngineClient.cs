@@ -25,6 +25,19 @@ namespace FreeWilly.Core.Api;
 /// </remarks>
 public interface IEngineClient
 {
+    /// <summary>
+    /// What the daemon says about itself.
+    /// </summary>
+    /// <remarks>
+    /// Here because the window has to name it (DD83): a version is the first thing a bug report asks
+    /// for, and until this it was only reachable from a console verb. On the interface rather than on
+    /// <c>DockerApi</c> alone so the fixture answers it too, which is what makes the connected state
+    /// of that page reviewable without a daemon.
+    /// </remarks>
+    /// <param name="cancellation">Cancellation.</param>
+    /// <returns>Its versions and platform.</returns>
+    Task<EngineVersion> VersionAsync(CancellationToken cancellation = default);
+
     /// <summary>Every container, stopped ones included.</summary>
     /// <param name="all">Whether to include the ones that are not running.</param>
     /// <param name="cancellation">Cancellation.</param>

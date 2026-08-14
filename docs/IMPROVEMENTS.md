@@ -53,34 +53,6 @@ overflow makes finding the icon its own problem. Or the product could show its o
 behind a verb, the way `--capture-window` already renders on request, which keeps the
 driving inside the process that owns the menu and costs one more surface.
 
-### §DD83 The shape borrowed, and the mark that is not
-
-The reference screenshot is Docker Desktop's about dialog, and only its information
-architecture is borrowed: a mark band across the top, the product version and build
-stated once and large, a two column grid of component versions under it, and a footer of
-links over a copyright line.
-
-None of the artwork comes with it. The wordmark, the blue isometric drawing and the
-whale are Docker trademarks and this is a competing product, so the band carries this
-project's own mark over the water DD69 introduces. That is why this waits on DD69:
-building the band before that task decides how the ocean reads would mean drawing it
-twice.
-
-A destination and not a dialog, per L2. A UserControl beside the three lists, built on
-first navigation and kept collapsed, reached from the shell rather than from the tray
-menu, which stays short by intent.
-
-It draws with no daemon, per L6, so the engine rows read as unavailable rather than
-blocking, and it takes a capture flag so the empty and the connected states are both
-reviewable.
-
-Every value is read and never typed: the build from BuildVersion, and the engine
-version, the API version and the host architecture from VersionAsync, which already
-returns them. Rows for components this install does not place yet are absent rather than
-blank, so the grid grows as they land.
-
-There is no Kubernetes row.
-
 ### §DD85 Amending L8, and what stays testable
 
 This amends a law rather than fixing a defect, and L8 exists so that cannot happen

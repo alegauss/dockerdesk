@@ -45,20 +45,27 @@ public sealed class ShellAndPagesTests
     }
 
     [Fact]
-    public void Every_page_holds_exactly_one_list()
+    public void No_page_holds_more_than_one_list()
     {
+        // "Exactly one" until DD83, when About became a destination: it holds no list at all, which
+        // breaks the letter of that rule and none of its point. The point is that a SECOND list is a
+        // page of its own — that is what kept the shell from growing back — and a page with none is
+        // simply not a list page.
         var pages = PageMarkup().ToList();
-        Assert.Equal(3, pages.Count);
+        Assert.NotEmpty(pages);
 
+        var lists = 0;
         foreach (var page in pages)
         {
-            var markup = File.ReadAllText(page);
-            var lists = markup.Split("<ListView ").Length - 1;
+            var here = File.ReadAllText(page).Split("<ListView ").Length - 1;
             Assert.True(
-                lists == 1,
-                $"{Path.GetFileName(page)} holds {lists} lists. A page is one list; a second one is a "
-                + "page of its own.");
+                here <= 1,
+                $"{Path.GetFileName(page)} holds {here} lists. A second one is a page of its own.");
+            lists += here;
         }
+
+        // And the three the window is opened for are still there, or this passed by finding none.
+        Assert.Equal(3, lists);
     }
 
     [Fact]

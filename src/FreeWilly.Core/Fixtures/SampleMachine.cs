@@ -31,6 +31,27 @@ public sealed class SampleMachine : IEngineClient
     /// <summary>What a write answers with, in the shape a refusal arrives in.</summary>
     public const string ReadOnly = "this is a fixture: nothing here is a real container";
 
+    /// <summary>
+    /// The engine this fixture pretends to be, pinned so a capture of the About page is the same
+    /// picture on every machine (DD83).
+    /// </summary>
+    /// <remarks>
+    /// The manifest's own engine version, so the fixture and the thing this install would place do
+    /// not disagree in a screenshot somebody reads as documentation.
+    /// </remarks>
+    public static EngineVersion Version { get; } = new()
+    {
+        Version = Engine.EngineManifest.Current.Engine.Version,
+        ApiVersion = "1.55",
+        MinApiVersion = "1.24",
+        Os = "linux",
+        Arch = "amd64",
+    };
+
+    /// <inheritdoc/>
+    public Task<EngineVersion> VersionAsync(CancellationToken cancellation = default) =>
+        Task.FromResult(Version);
+
     private static ContainerSummary Container(
         string id, string name, string image, string state, string status,
         string? service = null, IReadOnlyList<PortBinding>? ports = null) => new()

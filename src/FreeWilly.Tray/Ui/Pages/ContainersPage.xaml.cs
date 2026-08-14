@@ -104,7 +104,7 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// <summary>Draw the rows in hand, shaped.</summary>
     private void Show()
     {
-        var shown = ContainerRow.Shaped(_rows, _shape);
+        var shown = ContainerRow.Grouped(_rows, _shape, _collapsed);
 
         _live.Show(shown);
         NameHeading.Content = ContainerRow.Columns.Name + _shape.GlyphFor(ContainerRow.Columns.Name);
@@ -148,6 +148,37 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// default while somebody was reading it.
     /// </remarks>
     private ListShape _shape = new(ContainerRow.DefaultColumn, Descending: false);
+
+    /// <summary>
+    /// The projects the user has folded away (DD106).
+    /// </summary>
+    /// <remarks>
+    /// Beside <see cref="_shape"/> and for exactly its reason: DD37 says presentation cannot live in
+    /// the ListView because the list is rebuilt on every engine event, and a collapse held there
+    /// would spring open while somebody was reading it. Keyed by the project's name rather than by
+    /// the header's id, because the name is what survives the project going away and coming back.
+    /// </remarks>
+    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
+
+    /// <summary>Fold a project away, or open it again.</summary>
+    /// <remarks>
+    /// Redrawn from the rows in hand: which rows are hidden is presentation, and asking the daemon
+    /// about it would be a round trip to answer a question this window already knows.
+    /// </remarks>
+    private void ToggleProject(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ContainerRow { IsProject: true, Project: { } project } })
+        {
+            return;
+        }
+
+        if (!_collapsed.Add(project))
+        {
+            _ = _collapsed.Remove(project);
+        }
+
+        Show();
+    }
 
     /// <summary>Re-sort on a heading click, and redraw from the rows already in hand.</summary>
     private void SortBy(object sender, RoutedEventArgs e)

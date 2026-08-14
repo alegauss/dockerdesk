@@ -48,6 +48,98 @@ public sealed record ContainerRow(
     string Id)
 {
     /// <summary>
+    /// The compose project this container belongs to, or nothing (DD106).
+    /// </summary>
+    /// <remarks>
+    /// Read off the label the list response already carries, so the hierarchy costs no second call —
+    /// the same label DD24 addresses containers by. A container carrying none stays a top-level row
+    /// rather than joining an "other" group, because that group would name nothing.
+    /// </remarks>
+    public string? Project { get; init; }
+
+    /// <summary>
+    /// Whether this row is a project's header rather than a container (DD106).
+    /// </summary>
+    /// <remarks>
+    /// One row type and one template with a trigger, rather than two of each. The header fills the
+    /// columns it has an answer for — the name, the count, its chevron — and the rest read empty,
+    /// which is what the trigger is for. A header with no answer for the image column must read as
+    /// blank and never as a container with no image.
+    /// </remarks>
+    public bool IsProject { get; init; }
+
+    /// <summary>Whether this row is a container. The complement, spelled for markup.</summary>
+    public bool IsContainer => !IsProject;
+
+    /// <summary>How many of the project's shown containers are running.</summary>
+    public int Running { get; init; }
+
+    /// <summary>How many containers the project is showing.</summary>
+    public int Total { get; init; }
+
+    /// <summary>Whether the project's children are hidden.</summary>
+    public bool Collapsed { get; init; }
+
+    /// <summary>
+    /// The disclosure glyph, in the two codepoints Segoe MDL2 Assets spells a chevron with.
+    /// </summary>
+    /// <remarks>
+    /// The same pair claude-tray's call tree uses, because that window is this project's reference
+    /// for interface formatting and a second glyph vocabulary would read as a second application. It
+    /// is the affordance and not decoration: a row that opens and one that does not must not look
+    /// alike.
+    /// </remarks>
+    public string Chevron => Collapsed ? "" : "";
+
+    /// <summary>
+    /// What the header says instead of a status: how much of the project is up.
+    /// </summary>
+    /// <remarks>
+    /// Of the containers actually under it rather than of the project as the daemon knows it. The
+    /// filter can hide some, and a header describing rows that are not on screen is a count nobody
+    /// can check against what they are looking at.
+    /// </remarks>
+    public string ProjectCount => IsProject
+        ? $"{Running.ToString(System.Globalization.CultureInfo.InvariantCulture)} of "
+            + $"{Total.ToString(System.Globalization.CultureInfo.InvariantCulture)} running"
+        : "";
+
+    /// <summary>How far this row is pushed in — the whole signal that it belongs to the one above.</summary>
+    public System.Windows.Thickness Indent =>
+        IsProject || Project is null ? default : new System.Windows.Thickness(18, 0, 0, 0);
+
+    /// <summary>The id a project's header is reconciled by (DD70), which is not a container's.</summary>
+    /// <param name="project">The project.</param>
+    /// <returns>The id.</returns>
+    /// <remarks>
+    /// Prefixed rather than the bare name, so a header can never collide with a container id — and
+    /// so <see cref="LiveRows{T}"/>'s arrive-and-leave fade works on projects with nothing added to
+    /// it, a project appearing being exactly the event that fade exists to show.
+    /// </remarks>
+    public static string ProjectId(string project) => "compose:" + project;
+
+    /// <summary>Build a project's header row.</summary>
+    /// <param name="project">The project's name.</param>
+    /// <param name="children">The containers shown under it.</param>
+    /// <param name="collapsed">Whether its children are hidden.</param>
+    /// <returns>The header.</returns>
+    public static ContainerRow ProjectHeader(
+        string project, IReadOnlyList<ContainerRow> children, bool collapsed)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(project);
+        ArgumentNullException.ThrowIfNull(children);
+
+        return new ContainerRow(project, "", "", "", [], ProjectId(project))
+        {
+            IsProject = true,
+            Project = project,
+            Running = children.Count(child => child.IsRunning),
+            Total = children.Count,
+            Collapsed = collapsed,
+        };
+    }
+
+    /// <summary>
     /// What this row is waiting for — <c>Stopping…</c> — or <see langword="null"/> when idle.
     /// </summary>
     /// <remarks>
@@ -90,7 +182,12 @@ public sealed record ContainerRow(
     public bool CanRestart => !IsPending && IsLive;
 
     /// <summary>Whether the row offers Remove. Anything not already busy can be removed.</summary>
-    public bool CanRemove => !IsPending;
+    /// <remarks>
+    /// A project's header is not one of those (DD106): the overflow's visibility hangs off this, and
+    /// a header offering Shell, Restart and Remove would address them to an id no daemon has. Acting
+    /// on a project as a project is DD107 and is a different verb.
+    /// </remarks>
+    public bool CanRemove => IsContainer && !IsPending;
 
     /// <summary>
     /// Whether a shell can be opened: running, and nothing else in flight.
@@ -201,7 +298,7 @@ public sealed record ContainerRow(
     public string PrimaryVerb => CanStop ? "Stop" : "Start";
 
     /// <summary>Whether the primary verb is offered at all.</summary>
-    public bool HasPrimary => CanStop || CanStart;
+    public bool HasPrimary => IsContainer && (CanStop || CanStart);
 
     /// <summary>Dress this row in the theme's brushes.</summary>
     /// <param name="style">The brushes, resolved once for the whole render.</param>
@@ -256,10 +353,89 @@ public sealed record ContainerRow(
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(shape);
 
-        var kept = rows.Where(row => shape.Keeps(
-            row.Name, row.Image, row.State, row.Status,
-            string.Join(" ", row.Ports.Select(port => port.Text))));
+        return Ordered(Kept(rows, shape), shape);
+    }
 
+    /// <summary>
+    /// The same list, with each compose project gathered under a header of its own (DD106).
+    /// </summary>
+    /// <param name="rows">What the daemon just returned.</param>
+    /// <param name="shape">The sort and filter the page is holding.</param>
+    /// <param name="collapsed">The projects whose children are hidden.</param>
+    /// <returns>Headers and rows, flat and in draw order.</returns>
+    /// <remarks>
+    /// <b>The filter runs before the grouping</b>, which is what keeps a header honest: a project
+    /// whose containers all went produces no group at all, and a header with nothing under it is
+    /// worse than no header. The project name is one of the fields the filter matches, so typing it
+    /// keeps the whole project rather than emptying it.
+    ///
+    /// <para><b>The sort runs twice</b>, and on the same key both times: inside a project, and over
+    /// the projects. A project is ordered by the child that sorts first under whatever column is
+    /// being sorted — so with the default STATE sort a project holding something running sits with
+    /// the running rows, which is where a reader looking for it would look. Ordering the projects
+    /// alphabetically instead would put a stopped project above a running container and make the one
+    /// column everybody scans stop meaning anything.</para>
+    ///
+    /// <para><b>A collapsed project keeps its header and drops its children</b>, so the count on the
+    /// header is what is left saying anything about it. Which projects those are is the page's to
+    /// hold, for DD37's reason: this list is rebuilt on every engine event, so a collapse living in
+    /// the ListView would spring open while somebody was reading it.</para>
+    /// </remarks>
+    public static IReadOnlyList<ContainerRow> Grouped(
+        IEnumerable<ContainerRow> rows, ListShape shape, IReadOnlySet<string> collapsed)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(shape);
+        ArgumentNullException.ThrowIfNull(collapsed);
+
+        var kept = Kept(rows, shape).ToList();
+
+        // A unit is a whole project or a single loose container, and both are ordered by the row
+        // that leads them — which is what makes one comparison serve both.
+        var units = new List<(ContainerRow Leads, IReadOnlyList<ContainerRow> Draws)>();
+
+        foreach (var row in kept.Where(row => row.Project is null))
+        {
+            units.Add((row, [row]));
+        }
+
+        foreach (var project in kept
+            .Where(row => row.Project is not null)
+            .GroupBy(row => row.Project!, StringComparer.Ordinal))
+        {
+            var children = Ordered(project, shape);
+            var header = ProjectHeader(project.Key, children, collapsed.Contains(project.Key));
+            units.Add((children[0], collapsed.Contains(project.Key) ? [header] : [header, .. children]));
+        }
+
+        // Ordered by the leading row and never by the header: a header carries no state, no status
+        // and no ports, so sorting on one would file every project under the empty string.
+        var order = Ordered(units.Select(unit => unit.Leads), shape);
+        var at = order.Select((row, index) => (row.Id, index))
+            .ToDictionary(pair => pair.Id, pair => pair.index, StringComparer.Ordinal);
+
+        return
+        [
+            .. units
+                .OrderBy(unit => at.TryGetValue(unit.Leads.Id, out var index) ? index : int.MaxValue)
+                .SelectMany(unit => unit.Draws),
+        ];
+    }
+
+    /// <summary>Narrow a list to what the filter keeps.</summary>
+    private static IEnumerable<ContainerRow> Kept(IEnumerable<ContainerRow> rows, ListShape shape) =>
+        rows.Where(row => shape.Keeps(
+            row.Name, row.Image, row.State, row.Status,
+            string.Join(" ", row.Ports.Select(port => port.Text)),
+
+            // DD106: typing a project's name keeps the project. Without it the one word a reader
+            // knows the group by is the one word that empties the list.
+            row.Project));
+
+    /// <summary>Order a list under the shape's column.</summary>
+    private static IReadOnlyList<ContainerRow> Ordered(
+        IEnumerable<ContainerRow> kept, ListShape shape)
+    {
         // Name is the tie-break under every column, and it is always ascending: a redraw must not
         // reshuffle rows that compare equal on whatever is being sorted, and flipping the direction
         // of the sorted column is not a reason to flip the tie-break under it.
@@ -311,13 +487,25 @@ public sealed record ContainerRow(
             }
         }
 
+        // Already on the list response, which is the whole reason the hierarchy costs no second call
+        // (DD106). Blank is treated as absent: a label present and empty names no project, and a
+        // group headed by the empty string is a group nobody can read.
+        var project = container.Labels is { } labels
+            && labels.TryGetValue(Core.Agent.ContextPack.ProjectLabel, out var named)
+            && !string.IsNullOrWhiteSpace(named)
+                ? named
+                : null;
+
         return new ContainerRow(
             container.DisplayName,
             container.Image,
             container.State,
             container.Status,
             ports,
-            container.Id);
+            container.Id)
+        {
+            Project = project,
+        };
     }
 }
 

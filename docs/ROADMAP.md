@@ -8,11 +8,9 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD106** (deps: —) **Every container of a compose project is a peer row, so the project it belongs to is invisible** — The label that names the project is already on the list response, so the hierarchy costs no second call, and without it a four-service project is found by reading forty rows. → §DD106
-
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD107** (deps: DD106) **A project is stopped one service at a time, so its row carries no verb and four clicks do what one should** — The parent row is only worth drawing if acting on it acts on the project, and fanning four verbs across children needs an order and somewhere for a partial failure to go. → §DD107
+- 📋 **DD107** (deps: DD106 ✅) **A project is stopped one service at a time, so its row carries no verb and four clicks do what one should** — The parent row is only worth drawing if acting on it acts on the project, and fanning four verbs across children needs an order and somewhere a partial failure can go. → §DD107
 
 ## Block E — Images, volumes and networks
 

@@ -6,33 +6,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD106 The project a row belongs to
-
-`ContainerSummary.Labels` is already on the list response and
-`com.docker.compose.project` is in it — DD24 leans on that for name addressing. So the
-hierarchy Docker Desktop draws costs no second call: group by that label, and a
-container carrying none stays a top-level row.
-
-Three things the flat list makes non-trivial.
-
-**The key.** `LiveRows` reconciles by `row.Id`, so a group header needs an id of its own
-— `compose:<project>` — and DD70's arrive-and-leave fade then works on projects too.
-
-**The shape.** `ContainerRow.Shaped` sorts and filters one flat sequence. Grouped, the
-sort runs inside a project and also orders the projects, and the filter has to keep a
-header whose children matched while dropping one whose children all went. A header with
-nothing under it is worse than no header.
-
-**The state.** Whether a project is collapsed is presentation, and DD37 already says why
-that cannot live in the ListView: the list is rebuilt on every engine event, so a
-collapse would spring open while somebody was reading it. It belongs beside `_shape` on
-the page.
-
-The row is one template with a trigger, not two. A header fills the name column, the
-running-of-total count and its chevron; the columns it has no answer for read as empty,
-not as a container with no image. The children indent, which is the whole signal — and
-the test asserting the header grid matches the row grid has to stay true through it.
-
 ## Block D — Container operations (what a user came to do)
 
 ### §DD107 One verb, the whole project

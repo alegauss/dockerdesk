@@ -119,10 +119,27 @@
                 <ColumnDefinition Width="1.2*" />
                 <ColumnDefinition Width="180" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <!-- DD106. The indent is on this cell rather than on the whole row: pushing the grid in
+                 would take every other column with it, and a STATE cell that no longer sits under
+                 the STATE caption is the one thing L3 is about. A DockPanel rather than a nested
+                 Grid — nesting one would add a third ColumnDefinitions block to this file and the
+                 guard that pairs a header with its rows counts them. -->
+            <DockPanel Grid.Column="0" Margin="{Binding Indent}" LastChildFill="True">
+                <!-- The affordance: a row that opens into containers and one that does not must not
+                     look the same. The glyph pair and the font are claude-tray's, because that
+                     window is this project's reference and a second vocabulary reads as a second
+                     application. -->
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Chevron}"
+                           FontFamily="Segoe MDL2 Assets" FontSize="9" Margin="0,1,8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           Visibility="{Binding IsProject, Converter={StaticResource Shown}}" />
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </DockPanel>
             <TextBlock Grid.Column="1" Text="{Binding Image}" TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Visibility="{Binding IsContainer, Converter={StaticResource Shown}}" />
             <!-- A chip, because state is the column actually scanned and it used to be drawn in
                  the same tertiary grey as the status restating it. The fill is translucent so one
                  pair of bytes works on both surfaces, and it is resolved once per render rather
@@ -131,12 +148,21 @@
                  shows, or the tooltip would be the same sentence twice. -->
             <Border Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center"
                     CornerRadius="5" Padding="8,2" Background="{Binding ChipFill}"
-                    ToolTip="{Binding StateEvidence}">
+                    ToolTip="{Binding StateEvidence}"
+                    Visibility="{Binding IsContainer, Converter={StaticResource Shown}}">
                 <TextBlock Text="{Binding State}" FontSize="12"
                            Foreground="{Binding ChipText}" />
             </Border>
             <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Visibility="{Binding IsContainer, Converter={StaticResource Shown}}" />
+            <!-- What a project says instead of a status, in the column that already carries the
+                 sentence. Of the containers under it and not of the project as the daemon knows it:
+                 the filter can hide some, and a count a reader cannot check against what is on
+                 screen is worse than none. -->
+            <TextBlock Grid.Column="3" Text="{Binding ProjectCount}" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Visibility="{Binding IsProject, Converter={StaticResource Shown}}" />
             <ItemsControl Grid.Column="4" ItemsSource="{Binding Ports}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -187,7 +213,8 @@
                      one artefact a container that exited two seconds in leaves, and
                      reading it changes nothing that could be in flight. -->
                 <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
-                        Style="{DynamicResource RowAction}" />
+                        Style="{DynamicResource RowAction}"
+                        Visibility="{Binding IsContainer, Converter={StaticResource Shown}}" />
                 <!-- The one verb this row is opened for: a running container to be stopped, a
                      stopped one to be started. The other three are one click deeper. -->
                 <Button Content="{Binding PrimaryVerb}" Tag="{Binding}" Click="PrimaryAction"
@@ -220,6 +247,22 @@
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                            Visibility="{Binding IsPending, Converter={StaticResource Shown}}" />
             </StackPanel>
+
+            <!-- The header's hit target, and the last child of the grid so it sits over the cells it
+                 covers. Collapsed on a container, which is the trigger — so it catches nothing on a
+                 row that has its own buttons. The whole strip rather than the chevron alone: a
+                 nine-pixel glyph is a target somebody has to aim at, and the row already reads as
+                 one thing. Verbs on a project are DD107; this only folds it away. -->
+            <Button Grid.Column="0" Grid.ColumnSpan="5" Tag="{Binding}" Click="ToggleProject"
+                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                    ToolTip="Show or hide this project's containers"
+                    Visibility="{Binding IsProject, Converter={StaticResource Shown}}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" />
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
         </Grid>
 
         <!-- Where the click was, in the engine's own words. A port already in use or a

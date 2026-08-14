@@ -20,7 +20,7 @@ before(() => {
 });
 
 const EXPECTED = [
-  "/", "/status", "/claude-code", "/compare",
+  "/", "/claude-code", "/compare",
   "/features/preflight", "/features/engine", "/features/pipe",
   "/features/window", "/features/agent-surface",
 ];

@@ -93,10 +93,19 @@ blocks with their counts, every task with its id, marker, block, symptom and why
 the next ready line — and roadkeep's own `export --site` exists because a projection
 into a page is a thing it expects to own.
 
-So: **the build reads roadkeep, and a figure about this project's own progress is
-generated or it is not on the page.** A renamed id fails the build rather than dropping
-a row. This is Shio's *a measured number is generated, never typed* (SH533) applied to
-the one measurement DockerDesk has today. → **DD43**
+So: **a figure about this project's own progress is generated or it is not on the page.**
+This is Shio's *a measured number is generated, never typed* (SH533), and DD43 satisfied
+it by generating the whole board from `roadkeep export --json`. → **DD43**
+
+**DD91 reversed the conclusion and kept the law.** The board was correct for as long as it
+existed and answered a question only the author has: a reader arriving to ask whether they
+can have Docker without the licence was handed a burndown of somebody else's backlog. So
+the page publishes no progress figure at all, which satisfies this law the other way — what
+cannot be derived does not go on the page, and what nobody asked for does not either. The
+figures that stayed are the ones about the product rather than about the plan: the measured
+token costs, generated from `agent-budget.json` and the verb registry, which is why
+`scripts/surface.mjs` outlived `scripts/roadmap.mjs`. The backlog is reachable by the one
+reader it answers, as a link out to the governed files and never as a projection of them.
 
 ### S3 — Copy lives in one module; sections only render it
 
@@ -194,7 +203,6 @@ Ten routes, mirroring `shio-site`'s five-plus-depth-pages shape.
 | `/features/pipe` | Why a named pipe and not a port, and the ACL that is the reason | DD48 |
 | `/features/window` | The tray, the container list, the logs, the shell, images and volumes | DD48 |
 | `/features/agent-surface` | The context pack, `read doctor`, teaching errors with the Windows join | DD48 |
-| `/status` | Every DD line, its marker and its block — generated from roadkeep | DD43 |
 | `/index.md` &c. | The Markdown twin of each of the above, plus `manifest.json`, `llms.txt` | DD42 |
 
 The landing section order is an argument, not a feature list. Shio opens on a session
@@ -256,7 +264,7 @@ Three facts about this repository shape it:
 | **DD40** | The workspace and the landing page: Vite, React, Tailwind, shadcn; copy in one module; the OS theme (S3, S6) |
 | **DD41** | The prerender and the route pair, both directions, replace-or-throw (S4) |
 | **DD42** | The Markdown twin per route, `manifest.json`, and `llms.txt` refreshed (S5) |
-| **DD43** | `/status` and every progress figure generated from `roadkeep export --json` (S2) |
+| **DD43** | `/status` and every progress figure generated from `roadkeep export --json` (S2) — **reversed by DD91**: the apparatus is removed and the site publishes no progress figure |
 | **DD44** | The hero: the five-call session, scrolling its own list (S7) |
 | **DD45** | The ten laws and the two actors — the description this project ships under (S10) |
 | **DD46** | `/claude-code` — the read/do split and the one allowlist line |

@@ -1,6 +1,5 @@
 import type { ComponentType } from "react";
 import { Landing } from "./pages/Landing";
-import { StatusPage } from "./pages/Status";
 import { ClaudeCode } from "./pages/ClaudeCode";
 import { Compare } from "./pages/Compare";
 import { FeaturePage } from "./pages/Feature";
@@ -38,15 +37,6 @@ export const ROUTE_META: RouteMeta[] = [
     ogDescription: meta.og.description,
   },
   {
-    path: "/status",
-    title: "FreeWilly — status, generated from the roadmap",
-    description:
-      "Every DD roadmap line, its marker and its block, generated from roadkeep export --json on every build — so a shipped task moves its own row.",
-    ogTitle: "FreeWilly — status",
-    ogDescription:
-      "Every DD roadmap line and its marker, generated from roadkeep so the page is never stale about the project's own progress.",
-  },
-  {
     path: "/claude-code",
     title: claudeCode.meta.title,
     description: claudeCode.meta.description,
@@ -76,7 +66,6 @@ export const ROUTE_META: RouteMeta[] = [
 // the static file.
 export const ROUTES: { path: string; component: ComponentType }[] = [
   { path: "/", component: Landing },
-  { path: "/status", component: StatusPage },
   { path: "/claude-code", component: ClaudeCode },
   { path: "/compare", component: Compare },
   ...features.map((f) => ({

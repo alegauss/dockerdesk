@@ -5,7 +5,7 @@
 # artefact where a defect is public immediately.
 #
 # S8 — the gate is the build: there is no separate typecheck/lint step here, because
-# `npm run build` already is one. It runs the roadmap generation (roadkeep), tsc, the client
+# `npm run build` already is one. It runs the surface generation, tsc, the client
 # build, the og image, the SSR build and the prerender — and the prerender's replace-or-throw
 # head patch and the route-pair assertion are the route and head gates. A gate that runs
 # twice is one that can be satisfied by the copy nobody kept current.
@@ -53,20 +53,16 @@ jobs:
       - name: Fonts for the social card
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-dejavu-core
 
-      # S2 — the build reads roadkeep for the generated status. The CLI is standalone.
-      - name: roadkeep
-        run: git clone --depth 1 https://github.com/alegauss/roadkeep.git "$RUNNER_TEMP/roadkeep"
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: site/package-lock.json
 
+      # No roadkeep step: DD91 removed the generated status, so the only thing the build
+      # generates is the verb surface, which it reads out of this repository's own source.
       - name: Build
         working-directory: site
-        env:
-          ROADKEEP_CMD: python3 ${{ runner.temp }}/roadkeep/scripts/roadkeep.py
         run: |
           npm ci
           npm run build

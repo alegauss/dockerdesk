@@ -338,34 +338,6 @@ thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD91 DD91 - the published surface stops tracking the backlog
-
-DD43 built the board against a real defect: the hand-written page listed five shipped
-tasks as open, and nothing failed when the roadmap moved under it. Generating every
-figure from `roadkeep export --json` fixed it, and S2 — a status is derived, never typed
-— has held.
-
-What changed is the subject, not the mechanism. With 74 of 89 tasks shipped and every
-basic capability landed, a page organised around how much is left measures what matters
-least. A reader asking whether they can have Docker without the licence is handed a
-burndown, and the fifteen open lines are window polish, a bind-mount spelling and a
-benchmark seam.
-
-So the apparatus goes, not the honesty it protected. Removed: the `/status` route and
-its metadata row, `StatusBoard`, the landing progress section, `lib/roadmap.ts` and its
-generated module, `scripts/roadmap.mjs` and its test, the `generate` step, the Status
-and Roadmap links in nav and footer, and the status figures in CSS.
-`scripts/surface.mjs` stays: measured token costs are claims about the product, not the
-backlog.
-
-S2 is amended in `docs/specs/DD40-site-constitution.md`, not deleted, because the
-corollary survives — a figure about this project the build cannot derive does not go on
-the page. The conclusion moves from generate the progress to publish none. That
-document's own page map loses its `/status` row, and its reversals section records DD43,
-so nobody rebuilds a page removed on purpose.
-
-DD90 removes the last content naming a task id, so it lands first or in the same commit.
-
 ### §DD92 DD92 - the in-development framing outlives the condition it was written for
 
 S10 names its own expiry: the site says there is no release, in the badge and in a

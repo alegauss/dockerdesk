@@ -1,4 +1,4 @@
-# DockerDesk site
+# FreeWilly site
 
 The public site — a self-contained Vite + React 19 + TypeScript + Tailwind v4 workspace,
 and this repository's first Node workspace. It is standalone: `dotnet build` neither builds
@@ -36,8 +36,9 @@ DD40 is the workspace and the landing page ported into it. Deliberately still to
 
 - **DD41** — the prerender and the route table (no router yet; single client-rendered route).
 - **DD42** — the Markdown twin per route, `manifest.json`, and `llms.txt`.
-- **DD43** — `/status` and the status rows generated from `roadkeep export --json` (today
-  the rows are ported as content, honest but hand-kept).
+- **DD43** — `/status` and the status rows generated from `roadkeep export --json`. Built,
+  then **reversed by DD91**: the board answered a question only the author has, so the site
+  publishes no progress figure and the backlog is a link out rather than a page.
 - **DD44–DD48** — the hero session, the ten laws and two actors, `/claude-code`,
   `/compare`, and the five `/features/*` depth pages.
 - **DD49–DD51** — the social card, the publish job, and the site's own tests.

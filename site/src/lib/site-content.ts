@@ -41,15 +41,13 @@ export const navLinks = [
   { href: "#window", label: "Window" },
   { href: "/freewilly/claude-code/", label: "Claude Code" },
   { href: "/freewilly/compare/", label: "Compare" },
-  { href: "/freewilly/status/", label: "Status" },
 ] as const;
 
 export const footer = {
   links: [
     { href: "/freewilly/claude-code/", label: "Claude Code" },
     { href: "/freewilly/compare/", label: "Compare" },
-    { href: "/freewilly/status/", label: "Status" },
-    { href: repoUrl, label: "GitHub" },
+      { href: repoUrl, label: "GitHub" },
     { href: `${repoUrl}/blob/main/docs/ROADMAP.md`, label: "Roadmap" },
     { href: `${repoUrl}/blob/main/CONTRIBUTING.md`, label: "Contributing" },
   ],
@@ -616,9 +614,10 @@ export const nonGoals = {
 };
 
 /* ------------------------------------------------------------------ status */
-// The intro copy stays here; every figure and every row is generated from
-// `roadkeep export --json` and read through src/lib/roadmap.ts (S2, DD43). The landing
-// summary and the /status page are the two readers, and neither types a task.
+// The copy, and now only the copy (DD91). Every figure that used to sit under it was
+// generated from `roadkeep export --json`; the generator, the page it fed and the module
+// that read it are gone, because a burndown of this project's backlog answers a question
+// only its author has. What is left is the sentence a reader came for.
 
 export const status = {
   eyebrow: "Where it actually is",
@@ -633,8 +632,8 @@ export const status = {
 /* ------------------------------------------------------------------ /claude-code page */
 // §DD46 — the page for the agent's operator. The read/do split is the highest-leverage
 // decision in DD23 and it is invisible to the person who would benefit from it. The whole
-// surface is designed (Block G) and the plugin is DD32 (Block F); the page says so, and
-// links its status, so a reader is never told a shipped thing that is not.
+// surface is the registry the build reads, so the page cannot list a verb that does not
+// exist and a reader is never told a shipped thing that is not.
 
 export const claudeCode = {
   meta: {

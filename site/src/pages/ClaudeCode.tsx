@@ -105,8 +105,7 @@ export function ClaudeCode() {
             <Rich runs={cc.intro} />
           </p>
           <p className="page-status">
-            <b>{shippedCount()}</b> {cc.statusLead} <Rich runs={cc.status} />{" "}
-            <a href="status/">See the status →</a>
+            <b>{shippedCount()}</b> {cc.statusLead} <Rich runs={cc.status} />
           </p>
         </div>
       </header>

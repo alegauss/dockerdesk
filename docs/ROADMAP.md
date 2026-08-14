@@ -35,8 +35,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD92** (deps: —) **The hero badge and a section of its own still say the project is in development with nothing to download** — S10 tied that copy to DD15, which has shipped with DD14, so the framing now dates the site rather than informing a reader. → §DD92
-
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

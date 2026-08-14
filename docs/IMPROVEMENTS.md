@@ -337,29 +337,3 @@ shape is not obviously better than the caller spelling it, and deleting it says 
 thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
-
-### §DD92 DD92 - the in-development framing outlives the condition it was written for
-
-S10 names its own expiry: the site says there is no release, in the badge and in a
-section of its own — and keeps saying so until DD15 ships. DD15 has shipped, and so has
-DD14. The installer exists and CI builds the release, so the copy is no longer honesty;
-it is a claim the project has moved past.
-
-Removed: the development wording in the hero badge, the `#status` call to action beside
-View on GitHub, and the honest-status section — heading, intro and the whole `status`
-export.
-
-**The risk, recorded because it was raised and accepted.** No tag and no published
-release exist yet: DD15 built the pipeline and nothing has run it. A visitor still
-cannot download anything, and removing every availability statement leaves the site not
-saying so. It goes anyway, because the build-from-source section carries that truth in a
-form a reader can act on: install instructions beginning with `git clone` and a .NET SDK
-are not read as an offer to download.
-
-That makes the build section load-bearing, so it stays where it is and is not shortened.
-The follow-up belongs to whoever publishes the first release: the moment a tag exists,
-that section stops being the whole truth. Filed then, against an artefact that exists —
-the reasoning DD40 used to keep an `/install` page off the map.
-
-S10 is amended rather than struck. The half about the comparison matrix is what makes
-`/compare` believable, and nothing here touches it.

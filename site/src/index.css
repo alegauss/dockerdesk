@@ -1208,15 +1208,6 @@ footer .wrap {
   }
 }
 
-/* ---------- status: the sentence, with no figures under it (DD91) ---------- */
-/* The board, the block chips, the progress bars and the next-task line lived here and
-   went with the apparatus that fed them. What is left is one link out to the backlog for
-   the reader who wants it, which is a link and not a projection. */
-.status-links {
-  margin-top: 18px;
-  text-align: center;
-}
-
 /* ---------- hero session transcript (DD44) — a dark island, like the terminals ---------- */
 .session-eyebrow {
   margin-top: 44px;

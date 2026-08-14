@@ -25,9 +25,6 @@ export function Hero() {
           <a className="btn btn-primary" href={repoUrl}>
             ★ View on GitHub
           </a>
-          <a className="btn btn-ghost" href="#status">
-            📋 Read the status
-          </a>
         </div>
 
         <div className="session-eyebrow">{heroSession.eyebrow}</div>

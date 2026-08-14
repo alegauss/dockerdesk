@@ -61,7 +61,7 @@ export const footer = {
 /* ------------------------------------------------------------------ hero */
 
 export const hero = {
-  badge: "In development · No release yet · Windows 10 / 11",
+  badge: "Windows 10 / 11 · Per-user install · Apache-2.0",
   titleLead: "Docker on Windows,",
   titleAccent: "without Docker Desktop.",
   sub: [
@@ -611,22 +611,6 @@ export const nonGoals = {
       body: "The complaint that sends people looking for an alternative is an engine holding gigabytes from every boot. Not being that is the product, not a preference.",
     },
   ],
-};
-
-/* ------------------------------------------------------------------ status */
-// The copy, and now only the copy (DD91). Every figure that used to sit under it was
-// generated from `roadkeep export --json`; the generator, the page it fed and the module
-// that read it are gone, because a burndown of this project's backlog answers a question
-// only its author has. What is left is the sentence a reader came for.
-
-export const status = {
-  eyebrow: "Where it actually is",
-  heading: "Honest status: there is nothing to download yet",
-  intro: [
-    "The engine and the container window work end to end — provision, start, stop, the pipe, the API, the event stream, the tray, the list. What does not exist yet is the thing you would install: no executable, no installer, no release. Building from source is the only way in today.",
-  ] as Rich,
-  roadmapUrl: `${repoUrl}/blob/main/docs/ROADMAP.md`,
-  improvementsUrl: `${repoUrl}/blob/main/docs/IMPROVEMENTS.md`,
 };
 
 /* ------------------------------------------------------------------ /claude-code page */

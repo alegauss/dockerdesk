@@ -164,11 +164,23 @@ immediately. → **DD50**
 
 ### S10 — The honest status is a feature, not a disclaimer
 
-There is no release. The site says so on the landing page, above the fold, in the badge
-and in a section of its own — and it keeps saying so until DD15 ships. Every rival in
-the comparison matrix has something it is genuinely better at, and the matrix says what.
-A page that wins every row is one nobody believes, which is the argument Shio's
-`/compare` is built on. → **DD45**, **DD47**
+Every rival in the comparison matrix has something it is genuinely better at, and the
+matrix says what. A page that wins every row is one nobody believes, which is the argument
+Shio's `/compare` is built on. → **DD45**, **DD47**
+
+**The availability half of this law expired as it was written to.** It said: there is no
+release, the site says so above the fold in the badge and in a section of its own, and it
+keeps saying so *until DD15 ships*. DD15 shipped, with DD14, so DD92 took the badge wording,
+the call to action and the section out. What replaces the claim is not silence: the
+build-from-source section begins with `git clone` and a .NET SDK, which no reader mistakes
+for an offer to download. That makes it load-bearing — it is not to be shortened while it is
+the only thing carrying this.
+
+The risk was raised and accepted: no tag exists yet, so a visitor still cannot download
+anything and the site no longer says so in as many words. The moment a tag exists that
+section stops being the whole truth, and the task belongs to whoever publishes the first
+release — filed then, against an artefact that exists, which is the reasoning §5 used to
+keep an `/install` page off the map.
 
 ---
 

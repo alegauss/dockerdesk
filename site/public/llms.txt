@@ -9,12 +9,11 @@
 > tray, WPF window on the built-in Fluent theme, and an Engine API client with no NuGet
 > dependency).
 
-**Status: in development. There is no release, no installer and no executable to download
-yet** — building from source with the .NET 10 SDK is currently the only way to run it. The
-engine (preflight, provisioning, start/stop, the pipe, the API client, the event stream,
-the tray icon) and the container window are shipped end to end; what does not exist yet is
-a packaged per-user install and a release built by CI. The line-by-line picture, with the
-reason each exists, is in
+**Nothing has been published to download yet** — building from source with the .NET 10 SDK
+is currently the only way to run it. The engine (preflight, provisioning, start/stop, the
+pipe, the API client, the event stream, the tray icon), the container window, the per-user
+installer and the workflow that drafts a release from a tag all exist; what has not happened
+is the tag. The line-by-line picture, with the reason each exists, is in
 [`docs/ROADMAP.md`](https://github.com/alegauss/freewilly/blob/main/docs/ROADMAP.md) and
 [`docs/CHANGELOG.md`](https://github.com/alegauss/freewilly/blob/main/docs/CHANGELOG.md).
 

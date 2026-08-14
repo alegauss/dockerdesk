@@ -11,7 +11,6 @@ import { WindowSection } from "../components/sections/WindowSection";
 import { FeatureIndex } from "../components/sections/FeatureIndex";
 import { NotResident } from "../components/sections/NotResident";
 import { NonGoals } from "../components/sections/NonGoals";
-import { Status } from "../components/sections/Status";
 import { Build } from "../components/sections/Build";
 
 // The landing page. The section order is the argument, not a feature list (§5): why →
@@ -33,7 +32,6 @@ export function Landing() {
       <FeatureIndex />
       <NotResident />
       <NonGoals />
-      <Status />
       <Build />
       <Footer />
     </>

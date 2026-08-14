@@ -39,3 +39,7 @@
 # a blurred image of whatever was behind it - measured, with another application's content legible
 # through the frame. A capture is a working artefact, never a source, and it does not get staged.
 /docs/_preview/
+
+# Python bytecode, from the roadkeep launcher and anything that imports it (DD116).
+__pycache__/
+*.pyc

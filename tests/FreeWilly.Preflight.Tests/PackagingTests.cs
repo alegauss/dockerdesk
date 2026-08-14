@@ -193,6 +193,11 @@ public sealed class PackagingTests
             run.Environment["CLAUDE_PROJECT_DIR"] = root;
             run.Environment["ROADKEEP_HOME"] = "${CLAUDE_PROJECT_DIR}/.roadkeep";
 
+            // Importing the launcher makes Python write a .pyc beside it, inside the repository, on
+            // every run of this test — and run-commit.cmd stages everything by design, so the first
+            // one landed in a commit. A test must not leave anything behind in the tree it reads.
+            run.Environment["PYTHONDONTWRITEBYTECODE"] = "1";
+
             using var process = System.Diagnostics.Process.Start(run);
             Assert.NotNull(process);
             var resolved = process!.StandardOutput.ReadToEnd().Trim();

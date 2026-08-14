@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Pipes;
 using System.Text;
 
@@ -7,6 +8,14 @@ namespace FreeWilly.Preflight.Tests;
 /// A daemon that answers on a real named pipe. The transport under test is the actual one — a
 /// pipe, HTTP over it, and .NET's own parser — so what is faked is only what the engine would say.
 /// </summary>
+/// <remarks>
+/// It speaks HTTP/1.1 rather than one-request-per-connection, and that is load-bearing rather than
+/// tidy (DD64). A server that closes after every answer hands the client's pool a connection that
+/// is already dead, and .NET retries such a request transparently — so the same call arrives twice,
+/// is recorded twice, and the count this fake exists to report is one higher than the calls that
+/// were made. Keeping the connection open for a body the client can measure removes the close that
+/// the retry was racing.
+/// </remarks>
 internal sealed class FakeDockerDaemon : IAsyncDisposable
 {
     private readonly CancellationTokenSource _stopping = new();
@@ -71,10 +80,14 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
         return this;
     }
 
+    /// <remarks>
+    /// No <c>Connection: close</c>: the length is what ends this body, so the close would only be a
+    /// second, racier way of saying the same thing — see the note on the class.
+    /// </remarks>
     private static string Http(string status, string type, string body) =>
         $"HTTP/1.1 {status}\r\nContent-Type: {type}\r\n"
         + $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n"
-        + "Api-Version: 1.55\r\nConnection: close\r\n\r\n"
+        + "Api-Version: 1.55\r\n\r\n"
         + body;
 
     private async Task ServeAsync(CancellationToken cancellation)
@@ -104,33 +117,29 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
     {
         try
         {
-            var request = await ReadRequestAsync(client, cancellation).ConfigureAwait(false);
-            if (request is null)
+            var conversation = new Conversation(client);
+            while (await conversation.NextAsync(cancellation).ConfigureAwait(false) is { } asked)
             {
-                return;
-            }
+                lock (_guard)
+                {
+                    _requested.Add(asked.Line);
+                }
 
-            lock (_guard)
-            {
-                _requested.Add(request);
-            }
+                var response = ResponseFor(asked.Line);
+                var bytes = Encoding.UTF8.GetBytes(response);
+                await client.WriteAsync(bytes, cancellation).ConfigureAwait(false);
+                await client.FlushAsync(cancellation).ConfigureAwait(false);
 
-            // The request line is `GET /v1.43/version HTTP/1.1`; routes are keyed by the path.
-            var path = request.Split(' ') is [_, var target, ..] ? target : "";
-            string response;
-            lock (_guard)
-            {
-                response = _routes.TryGetValue(path, out var canned)
-                    ? canned()
-                    : _prefixes.FirstOrDefault(p =>
-                        path.StartsWith(p.Key, StringComparison.Ordinal)).Value
-                      ?? Http("404 Not Found", "text/plain", $"no route for {path}");
+                // A body the client can count ends on its own, so the connection stays open and the
+                // next request arrives on it. A body delimited by end-of-stream has no other ending
+                // — there the close IS the framing, and it is safe at exactly this point because
+                // nothing is still draining behind it.
+                if (asked.WantsClose || !EndsOnItsOwnCount(response))
+                {
+                    client.WaitForPipeDrain();
+                    return;
+                }
             }
-
-            var bytes = Encoding.UTF8.GetBytes(response);
-            await client.WriteAsync(bytes, cancellation).ConfigureAwait(false);
-            await client.FlushAsync(cancellation).ConfigureAwait(false);
-            client.WaitForPipeDrain();
         }
         catch (Exception exception) when (exception is IOException
             or ObjectDisposedException or OperationCanceledException)
@@ -143,24 +152,31 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
         }
     }
 
-    private static async Task<string?> ReadRequestAsync(
-        Stream client, CancellationToken cancellation)
+    /// <summary>The canned answer for a request line, or a 404 naming the path.</summary>
+    private string ResponseFor(string request)
     {
-        var buffer = new byte[8192];
-        var head = new StringBuilder();
-        while (!head.ToString().Contains("\r\n\r\n", StringComparison.Ordinal))
+        // The request line is `GET /v1.43/version HTTP/1.1`; routes are keyed by the path.
+        var path = request.Split(' ') is [_, var target, ..] ? target : "";
+        lock (_guard)
         {
-            var read = await client.ReadAsync(buffer, cancellation).ConfigureAwait(false);
-            if (read == 0)
-            {
-                return null;
-            }
-
-            head.Append(Encoding.ASCII.GetString(buffer, 0, read));
+            return _routes.TryGetValue(path, out var canned)
+                ? canned()
+                : _prefixes.FirstOrDefault(p =>
+                    path.StartsWith(p.Key, StringComparison.Ordinal)).Value
+                  ?? Http("404 Not Found", "text/plain", $"no route for {path}");
         }
-
-        return head.ToString().Split("\r\n")[0];
     }
+
+    /// <summary>Whether a response says where its body ends without closing the connection.</summary>
+    private static bool EndsOnItsOwnCount(string response)
+    {
+        var head = response.Split("\r\n\r\n")[0];
+        return !Has(head, "Connection: close")
+            && (Has(head, "Content-Length:") || Has(head, "Transfer-Encoding: chunked"));
+    }
+
+    private static bool Has(string head, string header) =>
+        head.Contains(header, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
@@ -177,5 +193,172 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
         }
 
         _stopping.Dispose();
+    }
+
+    /// <summary>One request, as much of it as answering it needs.</summary>
+    /// <param name="Line">The request line, which is what the routes are keyed by.</param>
+    /// <param name="WantsClose">Whether the caller asked for the connection to end after it.</param>
+    private readonly record struct Asked(string Line, bool WantsClose);
+
+    /// <summary>
+    /// One connection's bytes, read a whole request at a time.
+    /// </summary>
+    /// <remarks>
+    /// Reading only as far as the blank line was enough while every connection carried one request.
+    /// It is not enough now: a POST's body sits behind that line, and left in the pipe it would be
+    /// parsed as the request after it.
+    /// </remarks>
+    private sealed class Conversation(Stream pipe)
+    {
+        private byte[] _held = new byte[8192];
+        private int _count;
+
+        /// <summary>The next request, or <see langword="null"/> once the client hung up.</summary>
+        internal async Task<Asked?> NextAsync(CancellationToken cancellation)
+        {
+            int headEnd;
+            while ((headEnd = IndexPastHeaders()) < 0)
+            {
+                if (!await ReadMoreAsync(cancellation).ConfigureAwait(false))
+                {
+                    return null;
+                }
+            }
+
+            var head = Encoding.ASCII.GetString(_held, 0, headEnd);
+            Consume(headEnd);
+
+            // A body whose length the sender could not compute arrives in chunks, which is what
+            // HttpClient does with JSON content — so the frames have to be read off rather than
+            // counted off, and either way none of it may be left for the next request to find.
+            var read = head.Contains("Transfer-Encoding: chunked", StringComparison.OrdinalIgnoreCase)
+                ? await ConsumeChunkedAsync(cancellation).ConfigureAwait(false)
+                : await ConsumeCountedAsync(ContentLength(head), cancellation).ConfigureAwait(false);
+            if (!read)
+            {
+                return null;
+            }
+
+            return new Asked(
+                head.Split("\r\n")[0],
+                head.Contains("Connection: close", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task<bool> ConsumeCountedAsync(int length, CancellationToken cancellation)
+        {
+            while (_count < length)
+            {
+                if (!await ReadMoreAsync(cancellation).ConfigureAwait(false))
+                {
+                    return false;
+                }
+            }
+
+            Consume(length);
+            return true;
+        }
+
+        private async Task<bool> ConsumeChunkedAsync(CancellationToken cancellation)
+        {
+            while (true)
+            {
+                int eol;
+                while ((eol = IndexOfLineEnd()) < 0)
+                {
+                    if (!await ReadMoreAsync(cancellation).ConfigureAwait(false))
+                    {
+                        return false;
+                    }
+                }
+
+                // `1a;ext=1` is a legal chunk header, and the size is the part before the marker.
+                var size = Encoding.ASCII.GetString(_held, 0, eol).Split(';')[0].Trim();
+                if (!int.TryParse(
+                    size, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var length))
+                {
+                    return false;
+                }
+
+                // The header's own CRLF, the data, and the CRLF that closes the chunk.
+                if (!await ConsumeCountedAsync(eol + 2 + length + 2, cancellation)
+                    .ConfigureAwait(false))
+                {
+                    return false;
+                }
+
+                if (length == 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        private int IndexOfLineEnd()
+        {
+            for (var i = 0; i + 1 < _count; i++)
+            {
+                if (_held[i] == (byte)'\r' && _held[i + 1] == (byte)'\n')
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private int IndexPastHeaders()
+        {
+            for (var i = 0; i + 3 < _count; i++)
+            {
+                if (_held[i] == (byte)'\r' && _held[i + 1] == (byte)'\n'
+                    && _held[i + 2] == (byte)'\r' && _held[i + 3] == (byte)'\n')
+                {
+                    return i + 4;
+                }
+            }
+
+            return -1;
+        }
+
+        private async Task<bool> ReadMoreAsync(CancellationToken cancellation)
+        {
+            if (_count == _held.Length)
+            {
+                Array.Resize(ref _held, _held.Length * 2);
+            }
+
+            var read = await pipe.ReadAsync(_held.AsMemory(_count), cancellation)
+                .ConfigureAwait(false);
+            if (read == 0)
+            {
+                return false;
+            }
+
+            _count += read;
+            return true;
+        }
+
+        private void Consume(int bytes)
+        {
+            Buffer.BlockCopy(_held, bytes, _held, 0, _count - bytes);
+            _count -= bytes;
+        }
+
+        private static int ContentLength(string head)
+        {
+            const string name = "Content-Length:";
+            foreach (var line in head.Split("\r\n"))
+            {
+                if (line.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(
+                        line[name.Length..].Trim(), NumberStyles.None,
+                        CultureInfo.InvariantCulture, out var length))
+                {
+                    return length;
+                }
+            }
+
+            return 0;
+        }
     }
 }

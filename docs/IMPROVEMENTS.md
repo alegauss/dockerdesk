@@ -109,30 +109,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD64 A gate that goes red for the wrong reason stops being a gate
-
-What is left is the transport half, plus a correction the next attempt needs.
-
-A third red run — `An_unknown_argument_is_refused_rather_than_dropped(--plan
---nonsense)`, twice in five full runs — refuted the transport diagnosis for its own
-case, because `--plan` reaches no daemon at all. It was `Console`: four classes touch
-the process's, three by swapping and restoring it, and xUnit runs classes in parallel,
-so one restore lands over another's capture. They are one collection now, and eight full
-runs are green against two in five red before.
-
-The transport half keeps its diagnosis and loses its prescribed fix. "The fake should
-not dispose until the client has read what it was sent" was implemented twice. Waiting
-for the client to hang up went green six of six and took the suite from 20 seconds to
-38: a client that pools its connection never hangs up, so the wait ends on its timeout.
-Holding every pipe open until the fake is disposed hung the suite outright —
-`Connection: close` is how a streaming read learns it reached the end, so a pipe never
-closed is a read that never returns.
-
-The close is load-bearing, and the race is in its timing rather than its existence. What
-replaces it has to end the stream for a client waiting on EOF and not for one still
-draining a counted body — a distinction this fake cannot make, because it does not know
-which of the two it wrote.
-
 ### §DD65 The benchmark refused to invent a number, and now one exists
 
 `agent-budget.json` carries `"surface": { "exists": false }` beside an `about` naming

@@ -186,6 +186,75 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
+### §DD77 A migration with no way to see itself finish
+
+DD72 made every read match either `freewilly.session` or `dockerdesk.session`, which is
+right and is also permanent as it stands. Dropping the second key is a decision that
+needs one fact — whether anything on this machine still carries it — and nothing on this
+surface can answer that, so the honest thing to do at any future date is keep both.
+
+The fact is already in hand at every read. `read changes --session` and `do reclaim
+--session` both walk the labels of every container and volume, so which key matched is
+known at the moment of matching and is then thrown away. A plan that said `made-earlier
+(labelled before the rename)` beside its row would cost one word and would turn "keep
+both forever" into a thing a user can watch reach zero.
+
+What this is not is a relabelling. The Engine API sets labels at creation and offers no
+way to change one without recreating the container, which is exactly what this surface
+refuses to do to somebody's work — so the old generation leaves when the objects do, and
+the only question worth answering is when that has happened.
+
+The place it belongs is the reclaim plan and the changes listing rather than a verb of
+its own: both already enumerate the objects, and a third verb that answered "any legacy
+labels?" would be a call an agent has to know to make.
+
+### §DD78 A gate is only as tight as its least deterministic input
+
+DD65 recorded the shaped side at 4 calls, 16 requests and 774 tokens. The request count
+is asserted exactly, because the fixtures fully determine it. The token figure is banded
+at the file's own 15% — 658 to 890 — for two inputs that are not fixtures at all:
+
+- `ContextPack` names the Docker client from `WindowsMachineFacts()`, so the engine line
+  differs between a developer's machine and a CI runner with no Docker.
+- `ContainerDoctor` asks `new HostPorts().Listening()` whether anything on Windows holds
+  port 8080, so the fixture container's ports row is a pass on one machine and a failure
+  on another.
+
+Measured variance is perhaps 5%, so the band is three times wider than what it exists to
+absorb, and a response that grew by 100 tokens would land inside it silently. That is
+the defect the whole file exists to prevent, arrived at from the other direction.
+
+Both are constructed inside the verb rather than passed to it, so there is no seam to
+supply either. `AgentSurface.ReadVerify` already takes an `IServiceProbe` for exactly
+this reason and is the shape to follow — the argument is optional, defaulted to the real
+one, and only a measurement passes anything else.
+
+The band on the baseline stays: that one exists for a different reason, which is a
+fixture somebody shrinks, and it is honest about being one.
+
+### §DD79 A single write point that is not the write point
+
+`SessionLabel.For(session)` is documented as "the labels to stamp on anything created".
+No caller in `src/` uses it. The one thing that creates anything, `ComposeUp`, appends
+`SessionLabel.Key` into the generated YAML by hand, and the only exercise `For` gets is
+an assertion written for DD72.
+
+Nothing is wrong today, because both spell the same constant. What is wrong is the
+invitation: a reader looking for where a label is written finds a helper that says it is
+the answer and is not, and the next change that adds a second label — or that has to
+spell a value differently for compose than for the API — lands in one of the two places.
+
+DD72 is the evidence this matters. The key was respelled in `SessionLabel` and the
+change reached the compose writer only because that writer names the constant; a helper
+returning a dictionary would have carried it either way, and a second label added to
+`For` would still not reach compose today.
+
+The direction is for `ComposeUp` to render whatever `For` returns rather than one key it
+names, which also removes the assumption that there is exactly one label. Whether `For`
+survives at all is the other option worth weighing: a helper with one caller and one
+shape is not obviously better than the caller spelling it, and deleting it says the same
+thing honestly.
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ### §DD59 The published surface is a path, not just prose

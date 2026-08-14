@@ -46,6 +46,29 @@ true thing in the after-install page and in the doctor rows a WSL shell would re
 engine is on the Windows side, docker.exe is what reaches it, and a bind mount typed in
 a WSL shell carries a path the daemon reads differently.
 
+### §DD86 Compatibility with nobody
+
+DD55, DD57 and DD72 each resolved rather than rewrote: an install made before the rename
+keeps `dockerdesk` as its distribution and its root, `SessionLabel` reads both label
+keys, `RivalEngineProbe` carries the old distribution name, and `installer.iss` holds a
+`LegacyRunValue`, a `LegacyDistroName` and an upgrade path that finds the old directory.
+
+Each of those was the right call for a shipped product, and this one has not shipped.
+There is no release, no installer to download and no machine anywhere carrying the old
+names, so what the compatibility buys is nothing and what it costs is a second name a
+reader meets in `EnginePaths.Legacy`, in `SessionLabel.LegacyKey`, in the probe's
+distribution list and in three places in the installer script.
+
+`build/agent/SKILL.md` and `build/agent/settings-snippet.json` are the other half: they
+are installed onto a user's machine and still introduce the product as DockerDesk, which
+the public prose no longer does.
+
+The work is deletion, and its shape is that each removal takes its guard with it — a
+test asserting that an adopted install is found is a test for a state that cannot occur,
+so it goes rather than being inverted. What has to stay is the reasoning DD55 recorded
+about why a distribution cannot be renamed in place: that argument is about WSL and
+gigabytes, not about this project's history, and the next rename would need it again.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

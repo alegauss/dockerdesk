@@ -79,6 +79,12 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
     /// <summary>What the join last produced, before the sort and the filter are applied.</summary>
     private IReadOnlyList<VolumeRow> _rows = [];
 
+    /// <summary>The list, reconciled rather than replaced, so a new row can say so (DD70).</summary>
+    private LiveRows<VolumeRow>? _liveRows;
+
+    private LiveRows<VolumeRow> _live =>
+        _liveRows ??= new LiveRows<VolumeRow>(Volumes, row => row.Name);
+
     private string? _failure;
 
     private void ShowVolumes(IReadOnlyList<VolumeRow> rows, string? failure)
@@ -96,7 +102,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
         // Over everything, not over what is shown: a filter narrows the list and does not change how
         // much is on disk.
         _volumeTotals = VolumeTotals.For(_rows);
-        Volumes.ItemsSource = shown;
+        _live.Show(shown);
         VolumeTotalsLine.Text = _rows.Count == 0 ? "" : _volumeTotals.Summary;
         PruneVolumes.IsEnabled = _volumeTotals.CanPrune;
 

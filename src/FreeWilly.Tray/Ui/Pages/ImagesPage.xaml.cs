@@ -59,6 +59,12 @@ internal partial class ImagesPage : System.Windows.Controls.UserControl
     /// <summary>What the join last produced, before the sort and the filter are applied.</summary>
     private IReadOnlyList<ImageRow> _rows = [];
 
+    /// <summary>The list, reconciled rather than replaced, so a new row can say so (DD70).</summary>
+    private LiveRows<ImageRow>? _liveRows;
+
+    private LiveRows<ImageRow> _live =>
+        _liveRows ??= new LiveRows<ImageRow>(Images, row => row.Id);
+
     private string? _failure;
 
     /// <summary>Draw the rows in hand, shaped.</summary>
@@ -70,7 +76,7 @@ internal partial class ImagesPage : System.Windows.Controls.UserControl
         // list, and telling somebody they have 400 MB of images because they typed a name would be a
         // number that means nothing.
         _totals = ImageTotals.For(_rows);
-        Images.ItemsSource = shown;
+        _live.Show(shown);
         ImageTotalsLine.Text = _rows.Count == 0 ? "" : _totals.Summary;
         PruneImages.IsEnabled = _totals.CanPrune;
 

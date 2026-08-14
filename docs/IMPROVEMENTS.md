@@ -53,31 +53,6 @@ overflow makes finding the icon its own problem. Or the product could show its o
 behind a verb, the way `--capture-window` already renders on request, which keeps the
 driving inside the process that owns the menu and costs one more surface.
 
-### §DD70 §DD70 Motion that explains a change, which is the only motion Fluent asks for
-
-Fluent's motion exists to answer one question: did that change, or did I misread it? The
-engine dot now answers half of it — it breathes while `Starting` and stops the moment
-the engine is running or stopped, which is the one state here that is a wait rather than
-a settled answer.
-
-**What is left is the list.** A refresh from the event stream replaces the rows under
-the cursor with no transition, so a container that appeared and one that was always
-there are drawn identically. The fade should say only where the eye should look, which
-is the change.
-
-That is larger than it reads, and the reason is in `Show()`: every page assigns
-`ItemsSource` wholesale, so every row is new on every refresh. Fading on that signal
-would flash the whole list on every poll — louder than no motion at all. It needs the
-rows reconciled against what is shown, keyed by id, so only what joined fades in; and a
-row that left has to outlive its removal to fade out. Three pages do this, so the
-reconcile is shared.
-
-The constraints are the ones DD69 and the dot have met. `Ui/Motion.cs` is the one gate —
-`ClientAreaAnimation` off, no render tier, or a capture running — and a row mid-fade at
-the capture's settle would break the byte-identical PNG the review harness rests on.
-`Ui/Breathing.cs` is the worked example: it restores its end state rather than leaving
-the value wherever the animation reached.
-
 ### §DD81 One tray, and what the second launch does instead
 
 One mutex, held only by the tray surface. The console verbs stay concurrent: an agent

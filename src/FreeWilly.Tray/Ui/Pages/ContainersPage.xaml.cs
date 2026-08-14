@@ -95,12 +95,18 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// </remarks>
     private IReadOnlyList<ContainerRow> _rows = [];
 
+    /// <summary>The list, reconciled rather than replaced, so a new row can say so (DD70).</summary>
+    private LiveRows<ContainerRow>? _liveRows;
+
+    private LiveRows<ContainerRow> _live =>
+        _liveRows ??= new LiveRows<ContainerRow>(Containers, row => row.Id);
+
     /// <summary>Draw the rows in hand, shaped.</summary>
     private void Show()
     {
         var shown = ContainerRow.Shaped(_rows, _shape);
 
-        Containers.ItemsSource = shown;
+        _live.Show(shown);
         NameHeading.Content = ContainerRow.Columns.Name + _shape.GlyphFor(ContainerRow.Columns.Name);
         ImageHeading.Content = ContainerRow.Columns.Image + _shape.GlyphFor(ContainerRow.Columns.Image);
         StateHeading.Content = ContainerRow.Columns.State + _shape.GlyphFor(ContainerRow.Columns.State);

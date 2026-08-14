@@ -33,30 +33,6 @@ but memory; this is the first change that would test it.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD99 The manifest asks for sharp and the code hands over 16
-
-`app.manifest` opts this process into `PerMonitorV2` and says exactly why: "a tray icon
-drawn for 96 DPI and scaled up by Windows is the blurry square". Under that awareness
-Windows does not scale for the app — it expects the app to supply the size the display
-asks for. `StateIcon.Icon(state)` takes `size = 16` and every caller uses the default,
-so above 100% the shell is handed 16 pixels where it wanted 24 and scales anyway.
-
-It matters more since DD85 than it did before. Three abstract rings survive a bad
-resample; a traced orca with an eye and a wave does not, and the badge that carries the
-state is 0.44 of an edge that was already small.
-
-The fix is not a bigger constant. The notification area's size comes from the monitor
-the icon is on, so it is read rather than assumed, and it changes while the process runs
-— a laptop docked to a 4K display re-scales without a restart, and `NotifyIcon` has to
-be handed a new image when it does.
-
-Worth knowing before starting. `Icon.FromHandle(bitmap.GetHicon())` builds a
-single-image icon whatever size it is handed, so supplying several sizes at once means
-constructing an `.ico` in memory rather than passing a bigger bitmap — `build/icon.mjs`
-already writes that container and its layout is the reference. And the mark's frames
-below 48 come from `build/icon.svg`, so the 24 and 32 the shell asks for are already the
-drawing made for a tray.
-
 ### §DD103 The suite cannot be run where the product is
 
 `SingleTrayTests` claims the real named objects, deliberately: the names are the

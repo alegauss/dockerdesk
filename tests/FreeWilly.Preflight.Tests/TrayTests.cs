@@ -159,6 +159,80 @@ public sealed class TrayTests
         // rather than look wrong, because `Draw` refuses a size under 8.
         Assert.Equal(expected, StateIcon.Bounded(metric));
 
+    // ---- and the size the shell asks for next (DD99) ------------------------------------------
+
+    [Fact]
+    public void A_display_that_starts_asking_for_a_different_size_gets_a_redrawn_icon()
+    {
+        // The half the partial left open. Under PerMonitorV2 Windows resamples nothing for the app
+        // and NotifyIcon wears whatever it was last handed, so a laptop docked to a 4K panel keeps
+        // the icon drawn for the laptop's own scale until the process restarts.
+        var asked = 16;
+        var redraws = 0;
+        using var scale = new TrayScale(() => redraws++, () => asked);
+
+        _ = scale.Drawing();
+        asked = 32;
+
+        Assert.True(scale.RedrawIfMoved());
+        Assert.Equal(1, redraws);
+    }
+
+    [Fact]
+    public void A_display_event_that_moves_no_size_redraws_nothing()
+    {
+        // A display event fires for a resolution change, a monitor arriving and a monitor leaving as
+        // well as for a scale change, and only the last of those changes what the tray should draw.
+        // Redrawing on all of them would destroy and rebuild an unmanaged handle to no end.
+        var redraws = 0;
+        using var scale = new TrayScale(() => redraws++, () => 24);
+
+        _ = scale.Drawing();
+
+        Assert.False(scale.RedrawIfMoved());
+        Assert.Equal(0, redraws);
+    }
+
+    [Fact]
+    public void The_recorded_size_follows_the_drawing_so_a_second_change_is_noticed_too()
+    {
+        // Docking and undocking is the ordinary case, not a one-way trip: after the redraw the watch
+        // has to be comparing against the size that redraw used, or the return to the laptop's own
+        // display looks like no change at all.
+        var asked = 16;
+        using var scale = new TrayScale(() => { }, () => asked);
+
+        _ = scale.Drawing();
+        asked = 32;
+        Assert.True(scale.RedrawIfMoved());
+
+        // What the redraw itself does, in the tray: Show draws and records in one step.
+        Assert.Equal(32, scale.Drawing());
+
+        asked = 16;
+        Assert.True(scale.RedrawIfMoved());
+        Assert.Equal(32, scale.DrawnAt);
+        Assert.Equal(16, scale.Drawing());
+    }
+
+    [Fact]
+    public void A_size_a_caller_named_is_not_recorded_as_what_the_tray_is_wearing()
+    {
+        // StateIcon.Icon still honours an explicit size, and the About page and the capture verb both
+        // pass one. Those are not the tray's icon, so they must not move what the watch compares
+        // against — otherwise a capture at 48 makes the next display event redraw for no reason.
+        var redraws = 0;
+        using var scale = new TrayScale(() => redraws++, () => 24);
+
+        _ = scale.Drawing();
+        using var capture = StateIcon.Icon(EngineState.Stopped, 48);
+
+        Assert.Equal(48, capture.Width);
+        Assert.Equal(24, scale.DrawnAt);
+        Assert.False(scale.RedrawIfMoved());
+        Assert.Equal(0, redraws);
+    }
+
     [Fact]
     public void The_three_states_are_also_three_colours()
     {

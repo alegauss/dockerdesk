@@ -15,6 +15,7 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly DockerApi _api = new();
     private readonly EngineEvents _events;
     private readonly SynchronizationContext _ui;
+    private readonly TrayScale _scale;
     private Icon? _worn;
     private bool _startRequested;
     private EngineState _shown = EngineState.Stopped;
@@ -34,6 +35,8 @@ internal sealed class TrayApplication : ApplicationContext
         _menu = new TrayMenu(StartEngine, StopEngine, OpenWindow, Quit);
         _icon.ContextMenuStrip = _menu.Strip;
 
+        _scale = new TrayScale(() => _ui.Post(_ => Show(_shown), null));
+
         // The image and the tooltip BEFORE visibility, and the order is the whole of DD82. Setting
         // Visible is what emits the shell's notify-add, and Windows persists what that call carried:
         // with the holder still empty the add went out with no icon flag and an empty string, and
@@ -47,6 +50,12 @@ internal sealed class TrayApplication : ApplicationContext
         // a user has to read to find this tool was the one naming nothing.
         Show(EngineState.Stopped);
         _icon.Visible = true;
+
+        // The size the icon was just drawn at is only right for the display it was drawn on, and that
+        // display changes without the process restarting — a dock, an undock, the scale slider. The
+        // watch fires on a thread of its own, so the redraw is posted through the same context the
+        // event stream uses; calling Show from there would touch NotifyIcon off the UI thread (DD99).
+        _scale.Watch();
 
         // The indicator is the event loop's own connection state: connected exactly when the engine
         // is answering. No timer, and no second definition of "running".
@@ -162,7 +171,9 @@ internal sealed class TrayApplication : ApplicationContext
         var changed = _shown != state;
         _shown = state;
 
-        var next = StateIcon.Icon(state);
+        // Asked here rather than inside Icon, so what the watch compares against is the size that
+        // actually reached the shell and not a size something intended to use (DD99).
+        var next = StateIcon.Icon(state, _scale.Drawing());
         _icon.Icon = next;
 
         // The previous icon owns an unmanaged handle from GetHicon; replacing it without destroying
@@ -198,6 +209,10 @@ internal sealed class TrayApplication : ApplicationContext
         if (disposing)
         {
             _events.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            // SystemEvents is static and holds its subscribers alive, so leaving this attached is a
+            // leak that outlives the tray it was drawing for.
+            _scale.Dispose();
             _api.Dispose();
             _icon.Dispose();
             _worn?.Dispose();

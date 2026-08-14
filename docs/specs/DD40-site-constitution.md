@@ -27,7 +27,7 @@ shadcn/ui workspace, ten prerendered routes, a Markdown twin beside every one of
 its copy in a single module, its measured figures generated rather than typed, and a
 `workflow_dispatch` publish whose gates are the build's own.
 
-DockerDesk's site is a **single hand-written 1080-line `docs/index.html`**: dark-only,
+This project's site was a **single hand-written 1080-line `docs/index.html`**: dark-only,
 one page, no second page reachable, every claim typed into the markup that displays it,
 and a status section listing DD7 as *in progress* and DD8–DD12 as *open* — all five of
 which have shipped. Its footer states that `LICENSE` and `NOTICE` "are DD13 on the
@@ -235,13 +235,17 @@ Three facts about this repository shape it:
   `docs/IMPROVEMENTS.md` and `docs/specs/` are governed files, and a build that empties
   its output directory would delete them. So the site builds to `site/dist/` and the
   published tree is assembled from there — never written into `docs/`.
-- **The URL does not change.** The site stays at
+- **The base path is derived, not chosen.** The site is served at
   <https://alegauss.github.io/freewilly/>, so Vite's `base` is `/freewilly/` and every
-  canonical, sitemap entry and asset path carries that prefix. Moving Pages from
-  *deploy from `main` `/docs`* to *deploy from a GitHub Actions artefact* is a repository
-  setting the publish task must state, because the job is inert until it is changed, and
-  the old `docs/index.html` keeps serving in the meantime. That is the safe order:
-  nothing goes dark while the new site is being built.
+  canonical, sitemap entry and asset path carries that prefix. This was written as *the URL
+  does not change*, and DD59 falsified it: GitHub Pages derives the prefix from the
+  repository name, so renaming the repository moved every published address at once.
+  Moving Pages from *deploy from `main` `/docs`* to *deploy from a GitHub Actions artefact*
+  is a repository setting the publish task must state, because the job is inert until it is
+  changed. The safe order this section described — the old `docs/index.html` keeps serving
+  while the new site is built — held until DD89, which removed that folder because keeping
+  two publishes meant every correction had to be made twice. From DD89 on the artefact is
+  the only publish, so the setting is what the site is waiting on rather than a tidy-up.
 
 ---
 

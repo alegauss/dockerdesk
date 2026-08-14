@@ -35,7 +35,7 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD89** (deps: —) **The folder Pages actually serves is a hand-written copy of a page the site replaced, and no build regenerates it** — Its sitemap lists one URL, its prose describes two projects this tree does not have, and every correction to the real site has to be made a second time by hand. → §DD89
+- 📋 **DD90** (deps: —) **Reader-facing pages print internal task ids and a per-verb progress mark: DD badges, Block G, shipped or designed** — An id resolving only inside this repository makes a feature list unreadable, and five of the fifteen verbs listed do not exist, so the mark cannot just be dropped. → §DD90
 
 ## Non-goals
 

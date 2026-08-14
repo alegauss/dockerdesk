@@ -1,4 +1,4 @@
-// The product mark, traced from build/logo-source.png into docs/logo.svg and docs/icon.svg.
+// The product mark, traced from build/logo-source.png into site/public/logo.svg and build/icon.svg.
 //
 // The artwork arrived as a raster of flat colour, and a logo that exists only as a 575px PNG is
 // one that cannot be put on an installer, a favicon or anything printed. Redrawing it by eye is
@@ -228,7 +228,7 @@ ${layers.map((l) => `    <!-- ${l.name} -->\n    ${l.path}`).join("\n")}
 `;
 }
 
-console.log("docs/logo.svg");
+console.log("site/public/logo.svg");
 const full = await build({
   layers: [
     { name: "shell", of: ["shell"] },
@@ -241,13 +241,13 @@ const full = await build({
   ],
   grow: 0,
 });
-writeFileSync(join(root, "docs", "logo.svg"), compose(full, "The product mark."));
+writeFileSync(join(root, "site", "public", "logo.svg"), compose(full, "The product mark."));
 
 // The tray icon is drawn at 16 and 24 pixels, where three bands of cyan average into one and the
 // eye closes: the detail that makes the mark at 256 is what makes it a smudge at 16. So the small
 // sizes get their own file — the wave as a single tone, and an eye grown until it survives the
 // resampling. Same trace, same artwork, fewer things asked of eleven pixels.
-console.log("docs/icon.svg");
+console.log("build/icon.svg");
 const simplified = await build({
   layers: [
     { name: "shell", of: ["shell"] },
@@ -258,4 +258,4 @@ const simplified = await build({
   ],
   grow: 6,
 });
-writeFileSync(join(root, "docs", "icon.svg"), compose(simplified, "The mark at tray sizes: one wave tone, a wider eye."));
+writeFileSync(join(root, "build", "icon.svg"), compose(simplified, "The mark at tray sizes: one wave tone, a wider eye."));

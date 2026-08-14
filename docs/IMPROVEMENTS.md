@@ -338,24 +338,28 @@ thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD89 Two publishes, one of them live
+### §DD90 DD90 - the site stops naming its own task ids
 
-`docs/` holds the pre-DD48 single-page site: `index.html`, `llms.txt`, `robots.txt`,
-`sitemap.xml`. It is what GitHub Pages serves today, because the Pages source is still
-the folder and not the Actions workflow — the site job says so in a box at the top, and
-that was the right call while the new site was being built.
+A `DD25` badge beside a friction row, `Block G` in a sentence about the agent surface,
+and `DD32` named as what makes the plugin discoverable are one defect: a string that
+resolves only against this repository, printed for a reader who has never seen it.
 
-The cost is that every claim now exists twice. DD59's rename had to be applied to both.
-DD71's sweep had to be applied to both. DD84 generated a nine-route sitemap into `dist/`
-while the one being served still lists a single URL. And the copy in `docs/` describes
-`src/FreeWilly.Preflight` and `src/FreeWilly.Engine`, which are projects this tree does
-not have and has not had since DD54 — a page a reader is being served right now.
+The per-verb `shipped` / `designed` mark is the harder half, because it is the status
+board's progress claim restated fifteen times. Dropping it naively breaks S1 rather than
+tidying: ten of the fifteen listed verbs are in the registry and five are not, so an
+unmarked list asserts that `do prune` and `read disk` exist, and whoever runs them finds
+they do not.
 
-Nothing regenerates it, so it drifts by default rather than by neglect.
+So the page claims the inventory it has. The five the registry does not dispatch — `read
+disk`, `read path`, `do start`, `do rm`, `do prune` — come off the list, the badge goes
+with them, and `shippedCount()` stops being a headline figure. Nine working verbs argue
+better than fifteen with a third asterisked.
 
-The switch is one repository setting, and after it the built site is the only publish.
-What has to happen first is deciding what `docs/` becomes: deleted, so `git log` is the
-only record of it, or kept as the artefact it is. Deleting the four files also removes
-the `robots.txt` and `sitemap.xml` that DD84 replaced, which is the half that is
-unambiguous — two sitemaps for one site is a contradiction whichever one a crawler reads
-first.
+The rest is prose. `Block G` and `DD32` leave `claudeCode.status` and `pluginBody`;
+`/compare` loses the `†` on its read/do row and the `tableNote` explaining it, a caveat
+that expired when the row came true; `llms.txt` loses its `roadmap DD14/DD15` pointer.
+The footer link into the governed docs stays, because an agent following it is the one
+reader the backlog answers.
+
+`surface.test.mjs` asserts every id the content names is still on the roadmap. That
+loses its subject here, and is deleted with the ids.

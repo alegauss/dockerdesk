@@ -1,4 +1,4 @@
-// The app icon, rasterised from docs/logo.svg into src/FreeWilly.Tray/FreeWilly.ico.
+// The app icon, rasterised from site/public/logo.svg into src/FreeWilly.Tray/FreeWilly.ico.
 //
 // Not part of any build: the .ico is committed, because a build that needs Node and the site's
 // dependencies to produce a Windows resource is a build that fails on a machine with only the .NET
@@ -23,8 +23,11 @@ const { Resvg } = await import(
   pathToFileURL(join(root, "site", "node_modules", "@resvg", "resvg-js", "index.js")).href
 );
 
-const mark = readFileSync(join(root, "docs", "logo.svg"), "utf8");
-const small = readFileSync(join(root, "docs", "icon.svg"), "utf8");
+// The published mark is the site's own asset and the tray mark is never published, so each
+// is read where it lives (DD89). They were both under docs/ while that folder was a web
+// root; it is not one any more.
+const mark = readFileSync(join(root, "site", "public", "logo.svg"), "utf8");
+const small = readFileSync(join(root, "build", "icon.svg"), "utf8");
 
 // Every size Windows asks for: 16 and 24 in the Explorer list, 32 in the title bar and Alt+Tab, 48
 // on the desktop, 64 and 128 in the larger Explorer views, 256 for the Add/Remove Programs entry
@@ -34,7 +37,7 @@ const sizes = [16, 24, 32, 48, 64, 128, 256];
 
 // An .ico is a file of separate pictures, not one picture resampled, which is the whole reason it
 // carries every size: the small entries can be a *different drawing*. Below 48 the mark's three
-// cyan tones average into one and its eye closes, so those entries come from docs/icon.svg, which
+// cyan tones average into one and its eye closes, so those entries come from build/icon.svg, which
 // is the same artwork traced with the wave as one tone and the eye grown to survive the size.
 const pngs = sizes.map((size) => {
   const svg = size < 48 ? small : mark;

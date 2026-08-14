@@ -330,8 +330,8 @@ PATH. The version is stated once, in
 [Directory.Build.props](Directory.Build.props) — the installer reads it back off the
 built `.exe` rather than repeating it. The mark and the app icon are committed, and
 neither is part of the build: `build\trace-logo.mjs` traces
-[`build/logo-source.png`](build/logo-source.png) into `docs/logo.svg` and the
-tray-sized `docs/icon.svg`, and `build\icon.mjs` rasterises those two into the `.ico`
+[`build/logo-source.png`](build/logo-source.png) into `site/public/logo.svg` and the
+tray-sized `build/icon.svg`, and `build\icon.mjs` rasterises those two into the `.ico`
 — below 48 pixels from the simplified one. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
 roadmap, changelog and rationale under `docs/` are written — they are governed by a tool
 and a hand edit is refused.

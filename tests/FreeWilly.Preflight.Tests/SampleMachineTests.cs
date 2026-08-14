@@ -174,4 +174,60 @@ public sealed class SampleMachineTests
             Assert.DoesNotContain(typeof(DockerApi), takes);
         }
     }
+
+    // ---- the fixture exercises the ordering rather than its fallback (DD113) --------------------
+
+    [Fact]
+    public async Task The_sample_project_orders_differently_from_the_list_it_is_drawn_in()
+    {
+        // The whole of DD113. Before this the fixture's compose project declared no dependencies, so
+        // `ComposeOrder` saw a project with no edges every single time the fixture was used, took
+        // its fallback and looked exactly as it would if it were not there — which is the one thing
+        // a fixture exists to make showable.
+        //
+        // Asserted as a difference and not as a literal order: the claim is that the fixture
+        // exercises the ordering, and a hard-coded sequence would still pass on the day the labels
+        // were removed and the fallback happened to agree.
+        var rows = (await new SampleMachine().ContainersAsync())
+            .Select(ContainerRow.From)
+            .Where(row => row.Project is not null)
+            .ToList();
+
+        Assert.NotEmpty(rows);
+        Assert.Contains(rows, row => row.DependsOn.Count > 0);
+
+        var starting = ComposeOrder.ToStart(rows).Select(row => row.Service).ToList();
+        var stopping = ComposeOrder.ToStop(rows).Select(row => row.Service).ToList();
+
+        Assert.NotEqual(rows.Select(row => row.Service), starting);
+        Assert.NotEqual(starting, stopping);
+
+        // And it is the right difference: what is depended on comes up first and goes down last.
+        Assert.Equal("db", starting[0]);
+        Assert.Equal("db", stopping[^1]);
+    }
+
+    [Fact]
+    public async Task Every_label_the_fixture_carries_is_spelled_the_way_compose_spells_it()
+    {
+        // A fixture that simplified the format would exercise a parser this project does not ship.
+        // `<service>:<condition>:<restart>` is what compose writes, and `DependenciesIn` reading a
+        // service out of it is the thing being stood in for.
+        var containers = await new SampleMachine().ContainersAsync();
+        var labels = containers
+            .Select(container => container.Labels)
+            .Where(carried => carried is not null)
+            .Select(carried => carried!.TryGetValue(ComposeOrder.DependsOnLabel, out var value)
+                ? value
+                : null)
+            .Where(value => value is not null)
+            .ToList();
+
+        Assert.NotEmpty(labels);
+        foreach (var label in labels)
+        {
+            Assert.Equal(3, label!.Split(',')[0].Split(':').Length);
+            Assert.NotEmpty(ComposeOrder.DependenciesIn(label));
+        }
+    }
 }

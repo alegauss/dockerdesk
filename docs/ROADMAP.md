@@ -8,8 +8,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD113** (deps: —) **The fixture machine's compose project declares no dependencies, so the ordering DD107 added is never exercised by it** — Every capture and every fixture run sees a project with no edges, so ComposeOrder takes its fallback path and looks exactly as it would if it were not there. → §DD113
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

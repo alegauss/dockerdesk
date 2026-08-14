@@ -52,9 +52,26 @@ public sealed class SampleMachine : IEngineClient
     public Task<EngineVersion> VersionAsync(CancellationToken cancellation = default) =>
         Task.FromResult(Version);
 
+    /// <summary>
+    /// One container of the sample machine.
+    /// </summary>
+    /// <param name="id">Its id.</param>
+    /// <param name="name">Its name, without the leading slash the daemon adds.</param>
+    /// <param name="image">What it runs.</param>
+    /// <param name="state">One word.</param>
+    /// <param name="status">The daemon's own sentence.</param>
+    /// <param name="service">The compose service it is, or nothing for a container outside one.</param>
+    /// <param name="ports">What it publishes or exposes.</param>
+    /// <param name="dependsOn">
+    /// The services it waits for (DD113). Spelled the way compose spells it — <c>&lt;service&gt;:
+    /// &lt;condition&gt;:&lt;restart&gt;</c> — because a fixture that simplified the format would
+    /// exercise a parser this project does not ship.
+    /// </param>
+    /// <returns>The container.</returns>
     private static ContainerSummary Container(
         string id, string name, string image, string state, string status,
-        string? service = null, IReadOnlyList<PortBinding>? ports = null) => new()
+        string? service = null, IReadOnlyList<PortBinding>? ports = null,
+        string? dependsOn = null) => new()
     {
         Id = id,
         Names = ["/" + name],
@@ -62,14 +79,30 @@ public sealed class SampleMachine : IEngineClient
         State = state,
         Status = status,
         Ports = ports ?? [],
-        Labels = service is null
-            ? null
-            : new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["com.docker.compose.project"] = "sample",
-                ["com.docker.compose.service"] = service,
-            },
+        Labels = service is null ? null : ComposeLabels(service, dependsOn),
     };
+
+    /// <summary>The compose labels a service's container carries.</summary>
+    /// <param name="service">The service.</param>
+    /// <param name="dependsOn">What it waits for, or nothing.</param>
+    /// <returns>The labels.</returns>
+    private static Dictionary<string, string> ComposeLabels(string service, string? dependsOn)
+    {
+        var labels = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["com.docker.compose.project"] = "sample",
+            ["com.docker.compose.service"] = service,
+        };
+
+        // Absent rather than empty where a service waits for nothing, because that is what compose
+        // writes — a fixture carrying an empty label would exercise a case no machine produces.
+        if (dependsOn is not null)
+        {
+            labels["com.docker.compose.depends_on"] = dependsOn;
+        }
+
+        return labels;
+    }
 
     private static PortBinding Published(int host, int inside) => new()
     {
@@ -84,16 +117,25 @@ public sealed class SampleMachine : IEngineClient
     private readonly List<ContainerSummary> _containers =
     [
         // Running with a published port: the row whose port is a link.
+        //
+        // It also waits for db, and that is DD113: without a depends_on anywhere in this fixture,
+        // `ComposeOrder` saw a project with no edges every time the fixture was used, took its
+        // fallback and looked exactly as it would if it did not exist. api and worker both waiting
+        // on db is the smallest shape that orders differently from the list — stopping this project
+        // reaches api and worker before db rather than db first.
         Container("c1aaaaaaaaaa0000", Prefix + "api-1", "sample/api:1.4.2", "running",
-            "Up 6 minutes", "api", [Published(8080, 8080)]),
+            "Up 6 minutes", "api", [Published(8080, 8080)],
+            dependsOn: "db:service_healthy:true"),
 
-        // Running and healthy, so the status column carries something other than a duration.
+        // Running and healthy, so the status column carries something other than a duration. The
+        // condition above is why it is healthy rather than merely up: a fixture whose db said
+        // nothing about health would be one where the label it is depended on by made no sense.
         Container("c2bbbbbbbbbb0000", Prefix + "db-1", "postgres:16-alpine", "running",
             "Up 6 minutes (healthy)", "db", [Published(5432, 5432)]),
 
         // Killed. 137 is the exit code the whole diagnostic half of this product is about.
         Container("c3cccccccccc0000", Prefix + "worker-1", "sample/api:1.4.2", "exited",
-            "Exited (137) 12 seconds ago", "worker"),
+            "Exited (137) 12 seconds ago", "worker", dependsOn: "db:service_started:false"),
 
         // Exposed but not published: the port that is text rather than a link.
         Container("c4dddddddddd0000", Prefix + "cache-1", "redis:7-alpine", "running",

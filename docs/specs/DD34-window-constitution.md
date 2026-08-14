@@ -119,6 +119,14 @@ Already law in this repo, restated so a redesign cannot quietly drop it.
 `InkedPixels` makes that testable. Every chip L3 introduces carries a word, never a
 colour alone. Every failure is the daemon's sentence, passed through.
 
+Since DD85 the tray icon is the product mark with a state badge in its corner, so the
+shape that carries the state is the badge and `InkedPixels` is asked of `BadgeAt(size)`
+rather than of the whole bitmap. The law did not move, and DD85 proposed that it should:
+replacing shape with luminance was measured against this artwork and abandoned, because
+the mark's own mean luminance is 102 of 255 and there is no room under it — at gaps wide
+enough to read, the stopped icon vanished into a dark taskbar. **A law is amended by
+showing the replacement holds, not by showing the old one is inconvenient.**
+
 ---
 
 ## 3. The elements this implies

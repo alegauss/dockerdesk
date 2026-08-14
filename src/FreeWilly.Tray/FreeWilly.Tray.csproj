@@ -34,6 +34,11 @@
          Win32 resources, which is what Explorer and the title bar read and is not something a
          BitmapDecoder can open; the About destination draws the mark at 256 and needs the frames. -->
     <Resource Include="FreeWilly.ico" />
+    <!-- And once more, as a plain manifest resource, for StateIcon (DD85). The tray icon is the
+         mark now, so it is read rather than drawn — and it is read by GDI+ in a process that may
+         have no WPF Application at all (a test, a console verb), which is what rules the pack://
+         URI above out. Three inclusions of one file, each with a different reader. -->
+    <EmbeddedResource Include="FreeWilly.ico" LogicalName="FreeWilly.ico" />
   </ItemGroup>
 
   <!-- One self-contained file when published, and Release only. A clean Windows 11 has no .NET

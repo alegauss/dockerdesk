@@ -29,31 +29,6 @@ action.
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD85 Amending L8, and what stays testable
-
-This amends a law rather than fixing a defect, and L8 exists so that cannot happen
-quietly: it states that shape carries state and colour only reinforces it, and
-`InkedPixels` makes that testable. Under the requested scheme all three states share one
-silhouette, so that test asserts nothing and the constitution changes in the same
-commit.
-
-Luminance replaces shape. Running is the mark in full colour, starting the mark in one
-yellow tone, stopped the mark desaturated and dimmed. Those differ in brightness as well
-as in hue, so the states stay separable in a black and white screenshot, which was the
-bar L8 set, and the assertion becomes mean luminance ordering.
-
-The artwork exists: `build/icon.svg` is already the mark at tray sizes. Rasterised
-rather than drawn, so each state ships every size instead of one Windows stretches.
-`icon.mjs` already reaches resvg and writes an `.ico` of seven sizes; three tinted
-siblings are a tone function over the RGBA it has. The tint goes per raster, not per
-SVG, or the entries below 48 stop coming from `icon.svg`.
-
-Two things the next attempt should know. `StateIcon.Draw` returns a `Bitmap` the tray
-wears and the tests measure, so reading from an `.ico` changes that signature and its
-callers. And the shape test records two near-misses — a 360-degree arc one pixel
-smaller, and an ink threshold that would have survived a pen change — so the luminance
-ordering needs the same treatment: assert the gaps, not just the order.
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

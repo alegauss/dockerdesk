@@ -47,6 +47,7 @@
 - ✅ **DD82** **Visible is set before the icon and tooltip exist, so Windows persists an empty tooltip for the tray entry** — The image and the tooltip are set before visibility, so the shell's notify-add carries both and the overflow flyout names the entry.
 - ✅ **DD83** **Nothing in the window names the build, the engine version behind it, or the API version the client speaks** — An About destination names the build, the engine, the API level and every pinned artefact, read from the manifest and the daemon and never typed.
 - ✅ **DD67** **No popup this product draws has ever been photographed, and the one path that could is not reachable** — `--show-menu` holds the tray's own context menu open with no icon and no window, so the screen copy photographs a popup at last: 237x168, and byte-identical across two runs.
+- ✅ **DD85** **The tray icon is three abstract rings, so the one surface always on screen carries none of the product mark** — The tray icon is the mark with the three shapes shrunk to a badge in its corner, so L8 needed no amending (design §DD85 superseded: luminance cannot replace shape on a mark this dark).
 
 ## Block D — Container operations (what a user came to do)
 

@@ -10,8 +10,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD85** (deps: —) **The tray icon is three abstract rings, so the one surface always on screen carries none of the product mark** — The mark is the only thing a user recognises at a glance, and a ring says nothing about which product is running while three of them sit in one overflow. → §DD85
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

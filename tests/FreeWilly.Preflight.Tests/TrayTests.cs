@@ -28,21 +28,26 @@ public sealed class TrayTests
     [Fact]
     public void The_three_states_are_told_apart_with_no_colour_at_all()
     {
+        // Since DD85 the icon is the product mark with a state badge in its corner, so the
+        // discriminating shape is that badge and not the whole bitmap. Everything asserted here is
+        // what was asserted before, scoped to it — including both near-misses recorded below, which
+        // are the reason this test is shaped the way it is rather than counting pixels.
         using var running = StateIcon.Draw(EngineState.Running, 32);
         using var starting = StateIcon.Draw(EngineState.Starting, 32);
         using var stopped = StateIcon.Draw(EngineState.Stopped, 32);
 
-        var filled = StateIcon.InkedPixels(running);
-        var gapped = StateIcon.InkedPixels(starting);
-        var ring = StateIcon.InkedPixels(stopped);
+        var filled = InkedIn(running, StateIcon.BadgeAt(32));
+        var gapped = InkedIn(starting, StateIcon.BadgeAt(32));
+        var ring = InkedIn(stopped, StateIcon.BadgeAt(32));
 
         // The centre is the discriminator that is about shape rather than about how much ink there
         // happens to be: a disc is painted through the middle and a ring is hollow, whatever the
-        // stroke width. Measured at 32px the areas are 602 and 341, which a threshold could also
-        // catch — but only until somebody changes the pen.
-        Assert.True(Inked(running, 16, 16), "a filled disc should be painted at its centre");
-        Assert.False(Inked(stopped, 16, 16), "a ring should be hollow at its centre");
-        Assert.False(Inked(starting, 16, 16), "a gapped ring should be hollow at its centre");
+        // stroke width. Measured at 32px the badge areas are 150 and 116, which a threshold could
+        // also catch — but only until somebody changes the pen.
+        var (cx, cy) = Middle(StateIcon.BadgeAt(32));
+        Assert.True(Inked(running, cx, cy), "a filled disc should be painted at its centre");
+        Assert.False(Inked(stopped, cx, cy), "a ring should be hollow at its centre");
+        Assert.False(Inked(starting, cx, cy), "a gapped ring should be hollow at its centre");
 
         // And the two hollow ones differ by the gap — measured as the pixels the whole ring has and
         // the gapped one does not. `gapped < ring` alone is not this assertion: closing the arc to
@@ -52,6 +57,57 @@ public sealed class TrayTests
         Assert.True(gap > ring / 5, $"the gap ({gap}) should be a visible slice of the ring ({ring})");
         Assert.True(gapped > ring / 2, $"a gapped ring ({gapped}) should still read as a ring ({ring})");
         Assert.True(filled > ring, $"a disc ({filled}) should carry more ink than a ring ({ring})");
+    }
+
+    [Fact]
+    public void The_mark_is_the_same_drawing_in_every_state_and_only_the_badge_moves()
+    {
+        // The claim DD85 exists for, stated the strongest way it can be: outside the badge the three
+        // states are bit-identical, so what a user recognises at a glance is the product and not the
+        // engine's mood. Measured at 0 differing pixels — a mark that shifted, rescaled or retinted
+        // per state would fail here even where each state still looked fine on its own.
+        using var running = StateIcon.Draw(EngineState.Running, 32);
+        using var starting = StateIcon.Draw(EngineState.Starting, 32);
+        using var stopped = StateIcon.Draw(EngineState.Stopped, 32);
+
+        // The badge's punched halo is excluded generously: what is being asserted is the mark, and
+        // the boundary between the two is anti-aliased.
+        var badge = StateIcon.BadgeAt(32);
+        var mark = 0;
+        for (var x = 0; x < 32; x++)
+        {
+            for (var y = 0; y < 32; y++)
+            {
+                if (x >= badge.X - 4 && y >= badge.Y - 4)
+                {
+                    continue;
+                }
+
+                Assert.Equal(running.GetPixel(x, y), starting.GetPixel(x, y));
+                Assert.Equal(running.GetPixel(x, y), stopped.GetPixel(x, y));
+                if (Inked(running, x, y))
+                {
+                    mark++;
+                }
+            }
+        }
+
+        // And it is a drawing rather than a few stray pixels: the badge is 0.44 of the edge, so most
+        // of the icon has to be mark or the identity is not what a reader sees.
+        Assert.True(mark > 400, $"only {mark} pixels of the 32px icon are the mark");
+    }
+
+    [Fact]
+    public void The_badge_is_the_smaller_half_of_the_icon()
+    {
+        // A badge large enough to dominate would answer the state at the cost of the identity, which
+        // is the defect DD85 fixed arriving from the other side. Measured against the alternative at
+        // 0.52, which reads as a badge with a mark behind it.
+        Assert.True(StateIcon.BadgeFraction < 0.5, "the badge should not be half the icon");
+
+        var badge = StateIcon.BadgeAt(24);
+        Assert.True(badge.Right <= 24, "the badge should be inside the icon");
+        Assert.True(badge.Bottom <= 24, "the badge should be inside the icon");
     }
 
     [Theory]
@@ -91,6 +147,28 @@ public sealed class TrayTests
 
     private static bool Inked(System.Drawing.Bitmap bitmap, int x, int y) =>
         bitmap.GetPixel(x, y).A > 128;
+
+    /// <summary>The whole pixel nearest the middle of <paramref name="box"/>.</summary>
+    private static (int X, int Y) Middle(System.Drawing.RectangleF box) =>
+        ((int)(box.X + (box.Width / 2)), (int)(box.Y + (box.Height / 2)));
+
+    /// <summary>Painted pixels inside <paramref name="box"/>, which is where the state is said.</summary>
+    private static int InkedIn(System.Drawing.Bitmap bitmap, System.Drawing.RectangleF box)
+    {
+        var inked = 0;
+        for (var x = (int)box.X; x < Math.Min(bitmap.Width, box.Right + 1); x++)
+        {
+            for (var y = (int)box.Y; y < Math.Min(bitmap.Height, box.Bottom + 1); y++)
+            {
+                if (Inked(bitmap, x, y))
+                {
+                    inked++;
+                }
+            }
+        }
+
+        return inked;
+    }
 
     /// <summary>Pixels painted in <paramref name="whole"/> and not in <paramref name="cut"/>.</summary>
     private static int MissingFrom(System.Drawing.Bitmap whole, System.Drawing.Bitmap cut)

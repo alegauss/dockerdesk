@@ -81,11 +81,27 @@ internal sealed class TrayApplication : ApplicationContext
     private Ui.MainWindow? _open;
 
     /// <summary>Show the window, or bring the one already open to the front.</summary>
+    /// <summary>Show the window because a second launch asked for it (DD81).</summary>
+    /// <remarks>
+    /// Called from the thread waiting on the signal, so it marshals onto the UI thread through the
+    /// same context the event stream already posts through. Activating from a background thread is
+    /// how a window ends up behind the one that asked for it.
+    /// </remarks>
+    internal void RaiseWindow() => _ui.Post(_ => OpenWindow(), null);
+
     private void OpenWindow()
     {
         if (_open is not null)
         {
-            _open.Activate();
+            // Restore before activating: a minimised window that is only activated stays minimised,
+            // so a second launch would look like nothing happened — which is the whole failure
+            // DD81 exists to remove.
+            if (_open.WindowState is System.Windows.WindowState.Minimized)
+            {
+                _open.WindowState = System.Windows.WindowState.Normal;
+            }
+
+            _ = _open.Activate();
             return;
         }
 
@@ -211,8 +227,31 @@ internal static class Program
 
         if (route.Surface is Cli.Surface.Tray)
         {
-            ApplicationConfiguration.Initialize();
-            Application.Run(new TrayApplication(openWindow: route.OpenWindow));
+            // One tray per session (DD81). A second launch raises the window of the one already
+            // running and exits: two icons and two event streams on one daemon is what every extra
+            // click used to buy, and DD80 made that easier to reach by opening a window on a bare
+            // launch. The guard is here rather than around the whole of Main because the console
+            // verbs stay concurrent — an agent reading while the tray is open must not be refused.
+            if (!Cli.SingleTray.TryClaim(out var only))
+            {
+                Cli.SingleTray.RaiseTheLiveOne();
+
+                // Only where somebody typed a command. From Explorer this attaches to nothing and
+                // the line goes nowhere, which is the right amount of noise for a double click.
+                Cli.ParentConsole.Attach();
+                Console.Error.WriteLine(
+                    $"{Cli.CommandLine.ExecutableName}: already running — raised its window.");
+                return 0;
+            }
+
+            using (only)
+            {
+                ApplicationConfiguration.Initialize();
+                var tray = new TrayApplication(openWindow: route.OpenWindow);
+                only!.OnRaise(tray.RaiseWindow);
+                Application.Run(tray);
+            }
+
             return 0;
         }
 

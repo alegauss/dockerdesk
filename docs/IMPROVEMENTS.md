@@ -53,26 +53,6 @@ overflow makes finding the icon its own problem. Or the product could show its o
 behind a verb, the way `--capture-window` already renders on request, which keeps the
 driving inside the process that owns the menu and costs one more surface.
 
-### §DD81 One tray, and what the second launch does instead
-
-One mutex, held only by the tray surface. The console verbs stay concurrent: an agent
-running the read verb while the tray is open must not be refused, so the guard sits
-inside the tray branch of Main and never around the whole of it.
-
-Local rather than global, so two logins on one machine each get a tray, and a handle
-abandoned by a crashed process is claimed rather than read as a live holder.
-
-The second instance does not report an error. A double click from Explorer has no
-console to print to, and a message box on every accidental double click would be worse
-than the silence being fixed here. It signals the live instance, which raises and
-activates its window, then exits zero. That is the message, and it is what every Windows
-application does. Where a console is attached the second instance also writes one line
-to standard error, because there the caller typed a command and expects prose back.
-
-The two states then look identical from outside: launching shows a window, and launching
-again shows the same window. Somebody who clicks four times ends with one process and
-one window, which is the failure that produced this line.
-
 ### §DD82 Why the add goes out empty
 
 One construction in the wrong order. The visibility setter is what emits the shell

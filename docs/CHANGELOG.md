@@ -43,6 +43,7 @@
 - ✅ **DD69** **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The window's foot is the mark's own water, in the site's three blues and geometry, drifting only while the engine runs and held at phase zero for a capture.
 - ✅ **DD70** **A list that changed under a refresh and an engine that is still starting both arrive with no transition** — The three lists are reconciled by row id rather than replaced, so a row that joined fades in and one that left fades out while nothing else moves.
 - ✅ **DD80** **Launching the executable shows nothing, and the shortcuts the installer writes carry no window verb** — A bare launch is the tray and the window, and the Run key that starts with Windows is the one caller that asks for silence with --tray.
+- ✅ **DD81** **A second launch starts a second tray rather than raising the first, so two icons and two event streams run** — A second launch signals the tray that is already running, which restores and activates its window, then exits zero without printing at anybody who double-clicked.
 
 ## Block D — Container operations (what a user came to do)
 

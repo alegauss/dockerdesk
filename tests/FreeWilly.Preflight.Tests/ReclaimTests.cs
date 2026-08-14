@@ -11,8 +11,7 @@ public sealed class ReclaimTests
 {
     private const string Session = "repro-17";
 
-    private static ContainerSummary Container(
-        string name, string? session, string key = SessionLabel.Key) => new()
+    private static ContainerSummary Container(string name, string? session) => new()
     {
         Id = name + "0000000000000000",
         Names = ["/" + name],
@@ -20,17 +19,16 @@ public sealed class ReclaimTests
         State = "exited",
         Labels = session is null
             ? null
-            : new Dictionary<string, string>(StringComparer.Ordinal) { [key] = session },
+            : new Dictionary<string, string>(StringComparer.Ordinal) { [SessionLabel.Key] = session },
     };
 
-    private static VolumeSummary Volume(
-        string name, string? session, string key = SessionLabel.Key) => new()
+    private static VolumeSummary Volume(string name, string? session) => new()
     {
         Name = name,
         Driver = "local",
         Labels = session is null
             ? null
-            : new Dictionary<string, string>(StringComparer.Ordinal) { [key] = session },
+            : new Dictionary<string, string>(StringComparer.Ordinal) { [SessionLabel.Key] = session },
     };
 
     // ---- where a session comes from ------------------------------------------------------------
@@ -66,70 +64,28 @@ public sealed class ReclaimTests
         Assert.Equal("repro--17", SessionLabel.Resolve("repro #17", @"D:\shop"));
     }
 
-    // ---- the two spellings a machine can be carrying (DD72) ------------------------------------
+    // ---- the key, spelled out ------------------------------------------------------------------
 
     [Fact]
-    public void What_is_written_is_the_new_key_and_it_is_spelled_out_here()
+    public void What_is_written_is_the_key_a_machine_will_carry_and_it_is_spelled_out_here()
     {
-        // Both literals, because the point of this task is that the key is state on somebody's
-        // machine rather than spelling in a build: asserting `SessionLabel.Key` against itself would
-        // stay green through exactly the respelling that loses a session.
+        // A literal on both sides on purpose: the key is state on somebody's machine rather than
+        // spelling in a build, so asserting `SessionLabel.Key` against itself would stay green
+        // through exactly the respelling that loses a session. DD72 learned that; DD86 removed the
+        // second key it had added, because nothing was ever released carrying it.
         Assert.Equal("freewilly.session", SessionLabel.Key);
-        Assert.Equal("dockerdesk.session", SessionLabel.LegacyKey);
         Assert.Equal(SessionLabel.Key, SessionLabel.For(Session).Keys.Single());
     }
 
     [Fact]
-    public void An_object_stamped_before_the_rename_is_still_the_callers_own()
+    public void An_object_carrying_no_label_of_ours_belongs_to_nobody()
     {
-        // The failure this exists to stop is silent: with a read that knew only the new key, this
-        // container is nobody's, `read changes --session` answers empty on a machine full of the
-        // caller's own work, and `do reclaim --session` finds nothing to remove — which reads as
-        // "there was nothing there" rather than as an error.
-        var before = Container("made-earlier", Session, SessionLabel.LegacyKey);
+        var theirs = Container("theirs", null);
+        var other = Container("other", "repro-16");
 
-        Assert.True(SessionLabel.Owns(before.Labels, Session));
-        Assert.Equal(Session, SessionLabel.StampedOn(before.Labels));
-        Assert.False(SessionLabel.Owns(before.Labels, "repro-16"));
-    }
-
-    [Fact]
-    public void One_plan_holds_both_generations()
-    {
-        // The state a machine is actually in during the migration: objects made by the build before
-        // the rename beside objects made by the one after it, in one session. A reclaim that took
-        // only half would leave the rest behind with no way left to name them.
-        var plan = Reclaim.Plan(
-            Session,
-            [
-                Container("made-later", Session),
-                Container("made-earlier", Session, SessionLabel.LegacyKey),
-                Container("theirs", null),
-            ],
-            [
-                Volume("data-later", Session),
-                Volume("data-earlier", Session, SessionLabel.LegacyKey),
-            ],
-            includeVolumes: true);
-
-        Assert.Equal(
-            ["made-earlier", "made-later", "data-earlier", "data-later"],
-            plan.Removing.Select(i => i.Name).ToArray());
-    }
-
-    [Fact]
-    public void The_key_this_build_writes_wins_where_an_object_carries_both()
-    {
-        // Not a state anything here creates, and reachable the moment somebody re-creates a
-        // container from a compose file an older build stamped. The current key is the one this
-        // build writes, so it is the one that is true.
-        var both = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [SessionLabel.LegacyKey] = "repro-16",
-            [SessionLabel.Key] = Session,
-        };
-
-        Assert.Equal(Session, SessionLabel.StampedOn(both));
+        Assert.Null(SessionLabel.StampedOn(theirs.Labels));
+        Assert.False(SessionLabel.Owns(theirs.Labels, Session));
+        Assert.False(SessionLabel.Owns(other.Labels, Session));
     }
 
     // ---- the plan ------------------------------------------------------------------------------

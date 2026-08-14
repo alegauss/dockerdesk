@@ -1,11 +1,11 @@
 ---
 name: freewilly
-description: Drive Docker on this Windows machine through DockerDesk's agent surface. Use when the task involves containers, images, volumes, published ports, compose services, or the Docker engine itself — and before reaching for the `docker` CLI.
+description: Drive Docker on this Windows machine through FreeWilly's agent surface. Use when the task involves containers, images, volumes, published ports, compose services, or the Docker engine itself — and before reaching for the `docker` CLI.
 ---
 
-# DockerDesk
+# FreeWilly
 
-This machine runs Docker through DockerDesk, which ships a surface built for you rather
+This machine runs Docker through FreeWilly, which ships a surface built for you rather
 than for a terminal. **Reach for `freewilly read` before `docker`.**
 
 The reason is not convenience. `read` is a promise that nothing is mutated, held by two

@@ -266,7 +266,7 @@ public sealed class AgentDiscoveryTests
 
     private static ContextFacts Facts() => new(
         EngineState: "running",
-        Distribution: "dockerdesk",
+        Distribution: "freewilly",
         ApiVersion: "1.43",
         ContextName: "default",
         ContextReachesEngine: true,
@@ -321,7 +321,7 @@ public sealed class AgentDiscoveryTests
     [Fact]
     public async Task It_writes_where_it_was_told_and_refuses_to_replace_what_is_there()
     {
-        var scratch = Directory.CreateTempSubdirectory("dockerdesk-brief");
+        var scratch = Directory.CreateTempSubdirectory("freewilly-brief");
         try
         {
             var target = System.IO.Path.Combine(scratch.FullName, "nested", "brief.md");
@@ -367,7 +367,7 @@ public sealed class AgentDiscoveryTests
         // brief they asked for nor a reason. Most of a brief is how this surface is reached, which
         // is true whether the engine is up or not, and setting a project up before starting the
         // engine is the ordinary case.
-        var scratch = Directory.CreateTempSubdirectory("dockerdesk-brief-down");
+        var scratch = Directory.CreateTempSubdirectory("freewilly-brief-down");
         try
         {
             var target = System.IO.Path.Combine(scratch.FullName, "brief.md");

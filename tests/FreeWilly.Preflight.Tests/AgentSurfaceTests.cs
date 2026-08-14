@@ -109,7 +109,7 @@ public sealed class AgentSurfaceTests
         // `read logs --out` writes a file on purpose - so the guard is not "writes nothing" but "writes
         // nothing the caller did not name". The GET-only guard cannot see a filesystem write at all,
         // which is why this one exists beside it.
-        var scratch = Directory.CreateTempSubdirectory("dockerdesk-read-guard");
+        var scratch = Directory.CreateTempSubdirectory("freewilly-read-guard");
         var was = Directory.GetCurrentDirectory();
         try
         {
@@ -139,7 +139,7 @@ public sealed class AgentSurfaceTests
     [Fact]
     public async Task The_one_verb_that_writes_writes_only_where_it_was_told()
     {
-        var scratch = Directory.CreateTempSubdirectory("dockerdesk-out-guard");
+        var scratch = Directory.CreateTempSubdirectory("freewilly-out-guard");
         try
         {
             var target = System.IO.Path.Combine(scratch.FullName, "nested", "api.log");

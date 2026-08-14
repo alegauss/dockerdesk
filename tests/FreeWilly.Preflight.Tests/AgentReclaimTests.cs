@@ -25,17 +25,17 @@ public sealed class AgentReclaimTests
     /// <summary>Two containers and a volume this session made, beside two that somebody else did.</summary>
     private const string Containers = """
         [{"Id":"aaaaaaaaaaaa0000","Names":["/mine-a"],"Image":"shop/api:latest","State":"exited",
-          "Labels":{"dockerdesk.session":"repro-17"},"Ports":[]},
+          "Labels":{"freewilly.session":"repro-17"},"Ports":[]},
          {"Id":"bbbbbbbbbbbb0000","Names":["/mine-b"],"Image":"shop/api:latest","State":"running",
-          "Labels":{"dockerdesk.session":"repro-17"},"Ports":[]},
+          "Labels":{"freewilly.session":"repro-17"},"Ports":[]},
          {"Id":"cccccccccccc0000","Names":["/theirs"],"Image":"postgres:16-alpine","State":"running",
           "Ports":[]},
          {"Id":"dddddddddddd0000","Names":["/older"],"Image":"shop/api:latest","State":"exited",
-          "Labels":{"dockerdesk.session":"repro-16"},"Ports":[]}]
+          "Labels":{"freewilly.session":"repro-16"},"Ports":[]}]
         """;
 
     private const string Volumes = """
-        {"Volumes":[{"Name":"mine-data","Driver":"local","Labels":{"dockerdesk.session":"repro-17"}},
+        {"Volumes":[{"Name":"mine-data","Driver":"local","Labels":{"freewilly.session":"repro-17"}},
                     {"Name":"postgres-data","Driver":"local"}]}
         """;
 

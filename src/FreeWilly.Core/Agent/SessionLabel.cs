@@ -15,7 +15,7 @@ namespace FreeWilly.Core.Agent;
 /// <para>Docker already carries the mechanism — every object takes labels — so everything created
 /// through <c>do</c> is stamped, and a reclaim scoped to that label removes exactly that set.</para>
 ///
-/// <para><b>Where the id comes from.</b> Every <c>dockerdesk</c> call is a separate process, so an id
+/// <para><b>Where the id comes from.</b> Every <c>freewilly</c> call is a separate process, so an id
 /// generated per invocation would put every object in a session of its own and make the reclaim
 /// useless. <c>FREEWILLY_SESSION</c> names it instead: the boundary is drawn by whoever knows where it
 /// is, which is the caller. With it unset there is still a label — derived from the working directory,
@@ -26,22 +26,6 @@ public static class SessionLabel
 {
     /// <summary>The label key every created object carries.</summary>
     public const string Key = "freewilly.session";
-
-    /// <summary>What was stamped before the rename, and is still read (DD72).</summary>
-    /// <remarks>
-    /// A label is state on somebody's machine rather than spelling in a build, so a build that merely
-    /// respelled this would compile, pass every test, and then answer <c>read changes --session</c>
-    /// with nothing on a machine full of the caller's own containers. <c>do reclaim --session</c> is
-    /// the worse half: finding nothing to remove reads as "there was nothing there" rather than as an
-    /// error, and the leftovers stay.
-    ///
-    /// <para>The Engine API cannot relabel an existing object — labels are set at creation, and the
-    /// only way to change one is to recreate the container, which is exactly what this surface refuses
-    /// to do to somebody's work. So the migration is read-both, write-new, the way DD55 resolves an
-    /// adopted install rather than rewriting it: a machine carries both keys for as long as the older
-    /// objects live, and nothing is lost in the middle.</para>
-    /// </remarks>
-    public const string LegacyKey = "dockerdesk.session";
 
     /// <summary>The variable that names the session.</summary>
     public const string Variable = "FREEWILLY_SESSION";
@@ -83,27 +67,16 @@ public static class SessionLabel
     public static IReadOnlyDictionary<string, string> For(string session) =>
         new Dictionary<string, string>(StringComparer.Ordinal) { [Key] = session };
 
-    /// <summary>
-    /// The session an object was stamped with, under either key, or <see langword="null"/>.
-    /// </summary>
+    /// <summary>The session an object was stamped with, or <see langword="null"/>.</summary>
     /// <remarks>
-    /// The one place both spellings are read, so every caller that asks "whose is this?" sees both
-    /// generations without each of them remembering to. <see cref="Key"/> wins where an object somehow
-    /// carries both: the current key is the one this build writes, so it is the one that is true.
+    /// The one place the label is read, so every caller that asks "whose is this?" goes through one
+    /// answer. It read two keys while DD72 carried the spelling from before the rename; DD86 removed
+    /// the second, because nothing was ever released that wrote it.
     /// </remarks>
     /// <param name="labels">The object's labels.</param>
     /// <returns>The session id it carries, or nothing.</returns>
-    public static string? StampedOn(IReadOnlyDictionary<string, string>? labels)
-    {
-        if (labels is null)
-        {
-            return null;
-        }
-
-        return labels.TryGetValue(Key, out var current) ? current
-            : labels.TryGetValue(LegacyKey, out var before) ? before
-            : null;
-    }
+    public static string? StampedOn(IReadOnlyDictionary<string, string>? labels) =>
+        labels is not null && labels.TryGetValue(Key, out var stamped) ? stamped : null;
 
     /// <summary>Whether a set of labels says this object belongs to a session.</summary>
     /// <param name="labels">The object's labels.</param>

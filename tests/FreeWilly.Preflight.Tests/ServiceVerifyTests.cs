@@ -196,7 +196,7 @@ public sealed class ServiceVerifyTests
     [Fact]
     public void An_empty_bind_source_fails_because_the_count_is_the_point()
     {
-        var empty = Directory.CreateTempSubdirectory("dockerdesk-verify-empty");
+        var empty = Directory.CreateTempSubdirectory("freewilly-verify-empty");
         try
         {
             var report = ServiceVerify.Verify(Facts(
@@ -223,7 +223,7 @@ public sealed class ServiceVerifyTests
     [Fact]
     public void A_bind_source_with_something_in_it_passes()
     {
-        var full = Directory.CreateTempSubdirectory("dockerdesk-verify-full");
+        var full = Directory.CreateTempSubdirectory("freewilly-verify-full");
         try
         {
             File.WriteAllText(System.IO.Path.Combine(full.FullName, "index.js"), "//");

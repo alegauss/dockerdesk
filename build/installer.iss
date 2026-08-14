@@ -17,11 +17,6 @@
 ; do — DD59 waits on the GitHub rename itself.
 #define MyAppUrl "https://github.com/alegauss/freewilly"
 
-; The Run value an install made before the rename left behind. Deleted on install rather than
-; adopted: unlike the distribution and the app root, a Run value holds nothing — it is a label on a
-; command line — so the only thing to preserve is that logon does not try to start an executable
-; this build no longer produces (DD57).
-#define LegacyRunValue "DockerDesk"
 #define MyAppExeName "FreeWilly.exe"
 #define MyPublishDir "..\src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"
 
@@ -31,18 +26,17 @@
 #define MyAppVersion GetStringFileInfo(MyPublishDir + "\" + MyAppExeName, PRODUCT_VERSION)
 
 [Setup]
-; DD57, and the decision this task had to make: an old installation is UPGRADED IN PLACE, so this
-; string never changes. Inno identifies a product by AppId and by nothing else, so the name inside
-; this GUID is not a spelling — it is the identity of every copy already on a machine, and the old
-; name being visible in it is the price of that. Do not tidy it.
+; Inno identifies a product by AppId and by nothing else, so from the first release onward THIS
+; STRING NEVER CHANGES. Changing it is the one move that cannot be undone from here: the new setup
+; would not see the old install, so a machine would carry two entries in Add/Remove Programs, two
+; Run values and two roots — and the old uninstaller, run afterwards, offers to delete the engine
+; root the new install is now using. It is also what makes an upgrade land where the previous
+; install did, because Inno records the install directory against it.
 ;
-; Changing it is the one move that cannot be undone from here: the new setup would not see the old
-; install, so a machine would carry two entries in Add/Remove Programs, two Run values, and two
-; roots — and the old uninstaller, run afterwards, offers to delete the engine root that the new
-; install is now using. DD55 depends on this staying put from the other end: Inno records the
-; install directory against this id, which is how an upgrade stays in %LOCALAPPDATA%\DockerDesk for
-; EnginePaths.RootFor to adopt.
-AppId={{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}
+; DD57 kept the previous id for exactly that reason and left the old product name visible inside it.
+; DD86 changed it once, and could: nothing has been released, so there is no copy on any machine
+; whose identity this is. That window closes with the first published tag.
+AppId={{6B0E4D2A-9C77-4A31-8F5E-FREEWILLY0001}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -62,11 +56,8 @@ PrivilegesRequiredOverridesAllowed=dialog
 ; the executable, the downloads, the distribution, the docker CLI — is under one folder a person can
 ; find, and the uninstall has one place to ask about.
 ;
-; DD55: the new name is what a fresh install gets, and an upgrade never sees it. Inno records the
-; directory against the AppId, so a machine that already has this product reuses %LOCALAPPDATA%\
-; DockerDesk and EnginePaths.RootFor adopts exactly that — which is the only reason the two agree
-; without either of them storing a flag. DD57 weighed changing the AppId and did not: see the note
-; over it.
+; Inno records the directory against the AppId, so an upgrade reuses whatever the previous install
+; chose and a fresh one gets this. DD57 weighed changing the AppId and did not: see the note over it.
 DefaultDirName={localappdata}\FreeWilly
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -140,12 +131,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; \
     Flags: uninsdeletevalue; Tasks: startupicon
 
-; And the one an older install left, removed on every install rather than only when the task is
-; ticked (DD57). Left behind it points at an executable this build no longer produces, so logon
-; fails silently while the window reports autostart as off — two answers about one setting.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
-    ValueType: none; ValueName: "{#LegacyRunValue}"; Flags: deletevalue uninsdeletevalue
-
 ; EnginePaths says putting the CLI folder on PATH is the installer's job, and this is it. HKCU, so
 ; no elevation; expandsz, because that is what Windows keeps Path as and rewriting it as a plain
 ; string would flatten every %VAR% already in it.
@@ -162,13 +147,11 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName} now"; \
 
 [Code]
 const
-  // DD55. This product owns both names by construction: an install made before the rename registered
-  // `dockerdesk` and a fresh one registers `freewilly`, and no machine has both. The uninstall
-  // unregisters both rather than deriving which one is there — `wsl --unregister` on a name that is
-  // not registered fails harmlessly, and getting the derivation wrong would leave a distribution no
-  // uninstaller now knows about, which is the exact failure this whole set exists to avoid.
+  // The one distribution this product owns, spelled here and in EnginePaths.CurrentDistribution,
+  // with a test holding the two equal. The uninstall unregisters it by name rather than deriving
+  // which one is there: a derivation that got it wrong would leave a distribution no uninstaller
+  // knows about.
   DistroName = 'freewilly';
-  LegacyDistroName = 'dockerdesk';
 
 // ---------------------------------------------------------------------------------------------
 // PATH
@@ -304,8 +287,6 @@ begin
   // Unregister first: the virtual disk is open while the distribution is registered, so deleting the
   // directory underneath it fails and leaves a distribution pointing at nothing.
   Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + DistroName,
-       '', SW_HIDE, ewWaitUntilTerminated, Code);
-  Exec(ExpandConstant('{sys}\wsl.exe'), '--unregister ' + LegacyDistroName,
        '', SW_HIDE, ewWaitUntilTerminated, Code);
   DelTree(ExpandConstant('{app}\distro'), True, True, True);
   DelTree(ExpandConstant('{app}\downloads'), True, True, True);

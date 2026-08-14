@@ -265,14 +265,8 @@ internal static class EngineCommand
             Console.WriteLine();
         }
 
-        // What this machine actually has, not what a fresh install would create: on a machine carrying
-        // an install made before the rename, the plan says so rather than describing one somebody
-        // would have to go and look for. Marked per line, because the two can differ (DD55).
-        const string Adopted = "  (from an install made before the rename)";
-        Console.WriteLine(
-            $"  distribution   {paths.DistributionName}{(paths.DistributionIsLegacy ? Adopted : "")}");
-        Console.WriteLine(
-            $"  imported to    {paths.Distribution}{(paths.RootIsLegacy ? Adopted : "")}");
+        Console.WriteLine($"  distribution   {paths.DistributionName}");
+        Console.WriteLine($"  imported to    {paths.Distribution}");
         Console.WriteLine($"  downloads      {paths.Downloads}");
         Console.WriteLine($"  docker.exe     {paths.DockerCli}");
         Console.WriteLine($"  cli-plugins    {paths.PluginsDirectory}");

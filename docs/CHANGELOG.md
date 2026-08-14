@@ -16,6 +16,7 @@
 - ✅ **DD68** **The console-width guard asserts on every rendered line, including the evidence lines DD52 must not wrap** — The remedy's wrap width is the renderer's only length rule and is named as a constant, and a second test states out loud that an evidence line may exceed it.
 - ✅ **DD73** **docker compose is not a command on a clean install, and the do compose verb shells into exactly that** — Compose is a fourth pinned artefact placed under this install's own cli-plugins, and the bundled call sets DOCKER_CONFIG so docker compose is a subcommand.
 - ✅ **DD74** **No buildx is placed, so a Dockerfile with a cache mount or a heredoc cannot build on a clean install** — Buildx is a fifth pinned artefact placed beside Compose, so docker build is BuildKit and a cache mount stops failing on the mount option.
+- ✅ **DD86** **The old name survives as adoption code and an agent skill, for a product that has no installed base to adopt** — The old name is gone from the paths, the label, the probe, the installer and the agent files, and every guard for a state that cannot occur went with it.
 
 ## Block B — The daemon client (talk to the engine)
 

@@ -142,7 +142,7 @@ public sealed class DockerApiTests
     {
         // The tray asks this on a timer. An exception per tick for a stopped engine is not an
         // answer, it is noise.
-        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+        using var api = new DockerApi($"freewilly-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
 
         Assert.False(await api.PingAsync());
     }
@@ -150,7 +150,7 @@ public sealed class DockerApiTests
     [Fact]
     public async Task A_call_to_an_absent_engine_names_the_endpoint_it_could_not_reach()
     {
-        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+        using var api = new DockerApi($"freewilly-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
 
         var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.VersionAsync());
 
@@ -312,7 +312,7 @@ public sealed class DockerApiTests
     {
         // Detail is the daemon's words or nothing. A row that falls back to Message here is showing
         // the only sentence that exists.
-        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+        using var api = new DockerApi($"freewilly-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
 
         var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.StartContainerAsync(Id));
 
@@ -337,7 +337,7 @@ public sealed class DockerApiTests
     [Fact]
     public async Task An_action_against_an_absent_engine_names_the_endpoint_rather_than_timing_out_blankly()
     {
-        using var api = new DockerApi($"dockerdesk-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
+        using var api = new DockerApi($"freewilly-absent-{Guid.NewGuid():N}", TimeSpan.FromSeconds(3));
 
         var thrown = await Assert.ThrowsAsync<DockerApiException>(() => api.StopContainerAsync(Id));
 

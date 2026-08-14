@@ -49,7 +49,7 @@ public sealed class ContextPackTests
         string? context = "default",
         bool reaches = true) => new(
             EngineState: engineState,
-            Distribution: "dockerdesk",
+            Distribution: "freewilly",
             ApiVersion: "v1.43",
             ContextName: context,
             ContextReachesEngine: reaches,
@@ -67,7 +67,7 @@ public sealed class ContextPackTests
 
         var engine = text.Split(Environment.NewLine)[0];
         Assert.StartsWith("engine  running", engine, StringComparison.Ordinal);
-        Assert.Contains("wsl:dockerdesk", engine, StringComparison.Ordinal);
+        Assert.Contains("wsl:freewilly", engine, StringComparison.Ordinal);
         Assert.Contains("api=v1.43", engine, StringComparison.Ordinal);
         Assert.Contains("ctx=default(ok)", engine, StringComparison.Ordinal);
     }

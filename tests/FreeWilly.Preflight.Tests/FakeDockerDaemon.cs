@@ -26,7 +26,7 @@ internal sealed class FakeDockerDaemon : IAsyncDisposable
     private readonly Task _serving;
 
     /// <summary>The pipe this is listening on.</summary>
-    internal string PipeName { get; } = $"dockerdesk-api-{Guid.NewGuid():N}";
+    internal string PipeName { get; } = $"freewilly-api-{Guid.NewGuid():N}";
 
     /// <summary>Start serving.</summary>
     internal FakeDockerDaemon() => _serving = Task.Run(() => ServeAsync(_stopping.Token));

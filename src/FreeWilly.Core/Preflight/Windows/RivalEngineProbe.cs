@@ -58,23 +58,22 @@ internal static class RivalEngineProbe
     private const string LxssKey = @"Software\Microsoft\Windows\CurrentVersion\Lxss";
 
     /// <summary>
-    /// Every distribution this project has ever owned, and therefore never a rival (DD56).
+    /// The distribution this project owns, and therefore never a rival (DD56).
     /// </summary>
     /// <remarks>
-    /// The reason this list exists changed with the rename, and the new reason is the sharper one.
-    /// It used to be a spelling accident: the distribution was <c>dockerdesk</c>, which contains
-    /// "docker", so any substring rule would have made this product report itself. <c>freewilly</c>
-    /// contains no "docker", so that collision is gone.
+    /// This list was two names. The second was the distribution from before the rename, kept because
+    /// DD55 adopted such an install where it stood and a probe reporting it as an unidentified engine
+    /// would have told a user to uninstall the thing they were running — on the one row that must
+    /// never be wrongly red. DD86 removed the adoption, so there is no such machine and no second
+    /// name.
     ///
-    /// <para>What replaced it is a real machine. DD55 adopts an install made before the rename where
-    /// it stands, so a user upgrading from an older build has a <c>dockerdesk</c> distribution that
-    /// this tool is still driving — and a probe that read it as an unidentified engine would tell
-    /// them to uninstall the thing they are running, on the one row that must never be wrongly red.
-    /// So the old name stays known here as this project's former distribution rather than being
-    /// deleted along with the collision it was written against.</para>
+    /// <para>The list itself stays, and it is one entry rather than none. The rule it answers is
+    /// exact-match against <see cref="Known"/>, not a substring scan, so nothing here would match
+    /// <c>freewilly</c> today — but a probe that recognises every rival and never states which
+    /// distribution is its own is one edit away from reporting itself, and this is where that edit
+    /// would be caught.</para>
     /// </remarks>
-    private static readonly string[] Ours =
-        [Engine.EnginePaths.CurrentDistribution, Engine.EnginePaths.Legacy.Distribution];
+    private static readonly string[] Ours = [Engine.EnginePaths.CurrentDistribution];
 
     /// <summary>
     /// What a product is called, and how it is recognised.
@@ -137,10 +136,9 @@ internal static class RivalEngineProbe
         }
 
         // 2. A registered distribution, which survives the app being shut down — the state the
-        //    original probe read as an empty machine. This project's own are removed first and by
-        //    name (DD56), so no entry added to Known later can make the engine report itself: an
-        //    adopted install is still driving a distribution called dockerdesk, and the user must
-        //    never be told to uninstall the thing they are running.
+        //    original probe read as an empty machine. This project's own is removed first and by
+        //    name (DD56), so no entry added to Known later can make the engine report itself and
+        //    tell the user to uninstall the thing they are running.
         var foreign = signals.Distributions.Where(registered => !IsOurDistribution(registered));
         foreach (var (name, _, distributions) in Known)
         {

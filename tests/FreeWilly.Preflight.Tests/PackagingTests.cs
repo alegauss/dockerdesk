@@ -74,38 +74,34 @@ public sealed class PackagingTests
     }
 
     [Fact]
-    public void The_AppId_is_the_one_already_on_machines_and_never_changes()
+    public void The_AppId_is_pinned_here_so_a_future_tidy_cannot_move_it()
     {
-        // DD57's decision, and the one thing in that file that must survive every future tidy: Inno
-        // identifies a product by AppId and by nothing else. The old name is inside this GUID and
-        // stays there, because it is an identity rather than a spelling. Change it and a machine
-        // carrying the published build ends up with two entries in Add/Remove Programs, two Run
-        // values and two roots — and the old uninstaller then offers to delete the engine root the
-        // new install is using.
+        // Inno identifies a product by AppId and by nothing else, so from the first release onward
+        // this is an identity rather than a spelling. Change it and a machine carrying the published
+        // build ends up with two entries in Add/Remove Programs, two Run values and two roots — and
+        // the old uninstaller then offers to delete the engine root the new install is using.
+        //
+        // DD86 changed it once, which was only free because nothing has been released. The literal
+        // is repeated here rather than read from the script so that the next change has to be
+        // deliberate in two files: this test is the record that it is not a name to sweep.
         Assert.Contains(
-            "AppId={{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}",
+            "AppId={{6B0E4D2A-9C77-4A31-8F5E-FREEWILLY0001}",
             InstallerScript(),
             StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_old_autostart_value_is_removed_rather_than_left_running()
+    public void The_autostart_value_is_one_name_the_installer_and_the_runtime_agree_on()
     {
-        // The other half of DD57, and a regression DD54's rename introduced: the Run value's name
-        // moved with the sweep, so an upgraded machine kept a `DockerDesk` value pointing at an
-        // executable this build no longer produces. Logon would fail silently while the window
-        // reported autostart as off.
+        // DD57 removed a second Run value an older install had left, so logon could not start an
+        // executable this build no longer produces while the window reported autostart as off.
+        // DD86 removed the second value itself: nothing was ever released to leave one.
         var script = InstallerScript();
 
-        Assert.Contains("#define LegacyRunValue \"DockerDesk\"", script, StringComparison.Ordinal);
-        Assert.Contains(
-            "ValueName: \"{#LegacyRunValue}\"; Flags: deletevalue uninsdeletevalue",
-            script,
-            StringComparison.Ordinal);
-
-        // And the runtime owns the same pair, so turning it on or off from the window converges too.
+        // One Run value, and the installer and the runtime spell it the same way — or turning
+        // autostart on from the window and off from the uninstaller would touch two entries.
+        Assert.DoesNotContain("LegacyRunValue", script, StringComparison.Ordinal);
         Assert.Equal("FreeWilly", Core.Engine.Autostart.EntryName);
-        Assert.Equal("DockerDesk", Core.Engine.Autostart.LegacyEntryName);
     }
 
     [Fact]

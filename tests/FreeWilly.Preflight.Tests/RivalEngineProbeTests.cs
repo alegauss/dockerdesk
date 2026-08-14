@@ -136,29 +136,25 @@ public sealed class RivalEngineProbeTests
         }));
 
     [Fact]
-    public void Neither_of_this_project_s_own_distributions_is_a_rival()
+    public void This_project_s_own_distribution_is_not_a_rival()
     {
-        // This assertion used to be about a spelling accident — `dockerdesk` and `docker-desktop`
-        // being one substring rule apart — and `freewilly` retires that collision entirely. What it
-        // asserts now is a real machine (DD56): DD55 adopts an install made before the rename where
-        // it stands, so a user upgrading is still driving a distribution called `dockerdesk`. A row
-        // that read it as an unidentified engine would tell them to uninstall what they are running,
-        // on the one row this project says must never be wrongly red.
+        // This used to assert two names, the second being the distribution from before the rename,
+        // which DD55 adopted where it stood and DD86 removed. What remains is DD56's rule: the one
+        // name this tool owns is never reported as an unidentified engine, on the row this project
+        // says must never be wrongly red.
         Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["freewilly"] }));
-        Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["dockerdesk"] }));
 
         // However WSL happens to report it.
-        Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["  DockerDesk  "] }));
+        Assert.Empty(RivalEngineProbe.Judge(new RivalSignals { Distributions = ["  FreeWilly  "] }));
     }
 
     [Fact]
-    public void An_adopted_machine_still_sees_the_rival_beside_it()
+    public void Skipping_our_own_name_does_not_skip_anybody_else_s()
     {
-        // The other half of the same rule: skipping our own name must not skip anybody else's. A
-        // machine mid-migration is exactly where both are present.
+        // The other half of the same rule, and the one that would go wrong silently.
         var found = RivalEngineProbe.Judge(new RivalSignals
         {
-            Distributions = ["dockerdesk", "docker-desktop"],
+            Distributions = ["freewilly", "docker-desktop"],
         });
 
         Assert.Equal("Docker Desktop", Assert.Single(found).Name);
@@ -171,7 +167,6 @@ public sealed class RivalEngineProbeTests
         // product whose distribution list did would otherwise make this engine report itself, and
         // the row that must never be wrongly red is the worst place to rely on a coincidence.
         Assert.True(RivalEngineProbe.IsOurDistribution("freewilly"));
-        Assert.True(RivalEngineProbe.IsOurDistribution("dockerdesk"));
         Assert.False(RivalEngineProbe.IsOurDistribution("docker-desktop"));
         Assert.False(RivalEngineProbe.IsOurDistribution("Ubuntu"));
     }
@@ -212,7 +207,7 @@ public sealed class RivalEngineProbeTests
     public void The_command_is_resolved_the_way_a_shell_resolves_it()
     {
         // A real directory with a real file, because File.Exists is the whole mechanism.
-        var folder = Directory.CreateTempSubdirectory("dockerdesk-path").FullName;
+        var folder = Directory.CreateTempSubdirectory("freewilly-path").FullName;
         try
         {
             File.WriteAllText(Path.Combine(folder, "docker.exe"), "");
@@ -233,7 +228,7 @@ public sealed class RivalEngineProbeTests
         // Measured on the development machine: that directory holds both an extensionless `docker`
         // and a `docker.exe`, and where.exe listed both. The resolved path has to be the one that
         // would actually run, or the evidence names a file the shell would never execute.
-        var folder = Directory.CreateTempSubdirectory("dockerdesk-pathext").FullName;
+        var folder = Directory.CreateTempSubdirectory("freewilly-pathext").FullName;
         try
         {
             File.WriteAllText(Path.Combine(folder, "docker.cmd"), "");
@@ -255,8 +250,8 @@ public sealed class RivalEngineProbeTests
     [Fact]
     public void Earlier_directories_win_and_a_quoted_entry_is_still_a_directory()
     {
-        var first = Directory.CreateTempSubdirectory("dockerdesk-first").FullName;
-        var second = Directory.CreateTempSubdirectory("dockerdesk-second").FullName;
+        var first = Directory.CreateTempSubdirectory("freewilly-first").FullName;
+        var second = Directory.CreateTempSubdirectory("freewilly-second").FullName;
         try
         {
             File.WriteAllText(Path.Combine(second, "docker.exe"), "");
@@ -277,7 +272,7 @@ public sealed class RivalEngineProbeTests
     [Fact]
     public void A_malformed_entry_does_not_stop_the_search()
     {
-        var folder = Directory.CreateTempSubdirectory("dockerdesk-malformed").FullName;
+        var folder = Directory.CreateTempSubdirectory("freewilly-malformed").FullName;
         try
         {
             File.WriteAllText(Path.Combine(folder, "docker.exe"), "");
@@ -305,7 +300,7 @@ public sealed class RivalEngineProbeTests
     [Fact]
     public void A_command_that_is_not_there_resolves_to_nothing()
     {
-        var folder = Directory.CreateTempSubdirectory("dockerdesk-absent").FullName;
+        var folder = Directory.CreateTempSubdirectory("freewilly-absent").FullName;
         try
         {
             Assert.Null(RivalEngineProbe.ResolveOnPath("docker", folder, ".EXE;.CMD"));
@@ -319,7 +314,7 @@ public sealed class RivalEngineProbeTests
     [Fact]
     public void An_unset_PATHEXT_falls_back_to_what_cmd_uses()
     {
-        var folder = Directory.CreateTempSubdirectory("dockerdesk-noext").FullName;
+        var folder = Directory.CreateTempSubdirectory("freewilly-noext").FullName;
         try
         {
             File.WriteAllText(Path.Combine(folder, "docker.CMD"), "");

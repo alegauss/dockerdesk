@@ -295,15 +295,11 @@ public sealed class EngineProvisioner
     {
         if (DistributionExists())
         {
-            // DD55: on a machine carrying an install made before the rename this is the adoption, and
-            // it is the whole of it — the distribution is left exactly where WSL registered it. An
-            // export and re-import under the new name would copy gigabytes to change a label, and
-            // would have a failure mode in the middle that loses every image and volume in it.
+            // Left exactly where WSL registered it. Re-importing a distribution that is already
+            // there would copy gigabytes and has a failure mode in the middle that loses every image
+            // and volume in it.
             return new StepResult(ProvisioningStep.ImportDistribution, true,
-                _paths.IsAdopted
-                    ? $"{_paths.DistributionName} is registered from an install made before the "
-                      + "rename, and is adopted as it stands"
-                    : $"{_paths.DistributionName} is already registered, left as it is");
+                $"{_paths.DistributionName} is already registered, left as it is");
         }
 
         var result = _wsl.Run(ImportArguments(rootfsPath));

@@ -267,28 +267,6 @@ one is empty, which DD82 owns.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD77 A migration with no way to see itself finish
-
-DD72 made every read match either `freewilly.session` or `dockerdesk.session`, which is
-right and is also permanent as it stands. Dropping the second key is a decision that
-needs one fact — whether anything on this machine still carries it — and nothing on this
-surface can answer that, so the honest thing to do at any future date is keep both.
-
-The fact is already in hand at every read. `read changes --session` and `do reclaim
---session` both walk the labels of every container and volume, so which key matched is
-known at the moment of matching and is then thrown away. A plan that said `made-earlier
-(labelled before the rename)` beside its row would cost one word and would turn "keep
-both forever" into a thing a user can watch reach zero.
-
-What this is not is a relabelling. The Engine API sets labels at creation and offers no
-way to change one without recreating the container, which is exactly what this surface
-refuses to do to somebody's work — so the old generation leaves when the objects do, and
-the only question worth answering is when that has happened.
-
-The place it belongs is the reclaim plan and the changes listing rather than a verb of
-its own: both already enumerate the objects, and a third verb that answered "any legacy
-labels?" would be a call an agent has to know to make.
-
 ### §DD78 A gate is only as tight as its least deterministic input
 
 DD65 recorded the shaped side at 4 calls, 16 requests and 774 tokens. The request count

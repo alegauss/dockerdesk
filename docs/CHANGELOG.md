@@ -75,6 +75,7 @@
 - ✅ **DD63** **No verb on this surface creates anything, so the session stamp has nothing to stamp** — do compose up is the first verb that creates: the services come from the CLI, a generated override outside the project stamps each one, and the answer names the undo.
 - ✅ **DD65** **The budget file still says the agent surface does not exist, so the ratio it was built to prove is unrecorded** — The same task through read context, doctor, logs and verify is 4 calls and 774 tokens against the baseline's 6 and 11711, recorded as task-for-task rather than payload-for-payload.
 - ✅ **DD72** **The session label key is the last name in the rename set that is state on a machine rather than spelling in a build** — The key written is freewilly.session and both spellings are read, so a machine mid-migration keeps every session a previous build labelled.
+- 🗑 **DD77** **Nothing says a machine still carries objects labelled the way the build before the rename wrote them** — superseded by DD86: DD86 deletes the legacy label key outright rather than migrating off it, so there is no dual read left for this to make visible.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

@@ -40,6 +40,7 @@
 - ✅ **DD37** **No heading sorts and no list filters, so finding one container among forty is done with the scrollbar** — Every heading is a button that sorts and carries a glyph, and one box per list narrows over the rows in hand; both are held by the page so a refresh cannot drop them.
 - ✅ **DD39** **The window opens at one fixed size on the primary screen every time and forgets which list was being read** — The window opens where it was left, at the size it was left, on the tab that was being read - and a rectangle that no longer lands on a monitor is refused rather than opened off-screen.
 - ✅ **DD61** **A screen copy of the window carries a blurred image of what is behind it, because the Fluent backdrop transmits it** — Capture-Window.ps1 asks DWM for the window's system backdrop and refuses to copy one that has it, with no flag to waive it - so the leak is a refusal rather than a printed warning.
+- ✅ **DD69** **The window carries none of the ocean the mark swims in, and its lowest strip is margin and then the frame** — The window's foot is the mark's own water, in the site's three blues and geometry, drifting only while the engine runs and held at phase zero for a capture.
 
 ## Block D — Container operations (what a user came to do)
 

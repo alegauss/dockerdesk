@@ -49,6 +49,54 @@ internal static class Palette
     public const byte StoppedG = 0x94;
     public const byte StoppedB = 0x9E;
 
+    /// <summary>
+    /// The three blues the mark's wave is drawn in, back to front, and its foam (DD69).
+    /// </summary>
+    /// <remarks>
+    /// The site's own values rather than a lookalike: <c>site/src/index.css</c> declares these as
+    /// <c>--wave-1</c>, <c>--wave-2</c> and <c>--wave-3</c>, and the window drawing a different blue
+    /// would be two surfaces disagreeing about one mark.
+    ///
+    /// <para><b>Tints, not colours</b>, which is <see cref="RowStyle"/>'s rule and the reason one set
+    /// of bytes serves a light window and a dark one. The site keeps a second trio for dark; here the
+    /// water is drawn translucent over whatever the theme's background is, so it darkens by itself and
+    /// there is nothing to keep in step.</para>
+    /// </remarks>
+    public const byte WaveBackR = 0x91;
+
+    /// <summary>The back wave's green.</summary>
+    public const byte WaveBackG = 0xCD;
+
+    /// <summary>The back wave's blue.</summary>
+    public const byte WaveBackB = 0xDD;
+
+    /// <summary>The middle wave's red.</summary>
+    public const byte WaveMidR = 0x62;
+
+    /// <summary>The middle wave's green.</summary>
+    public const byte WaveMidG = 0xB9;
+
+    /// <summary>The middle wave's blue.</summary>
+    public const byte WaveMidB = 0xCD;
+
+    /// <summary>The front wave's red.</summary>
+    public const byte WaveFrontR = 0x3D;
+
+    /// <summary>The front wave's green.</summary>
+    public const byte WaveFrontG = 0xA7;
+
+    /// <summary>The front wave's blue.</summary>
+    public const byte WaveFrontB = 0xB7;
+
+    /// <summary>The back wave.</summary>
+    public static readonly Color WaveBack = Color.FromRgb(WaveBackR, WaveBackG, WaveBackB);
+
+    /// <summary>The middle wave.</summary>
+    public static readonly Color WaveMid = Color.FromRgb(WaveMidR, WaveMidG, WaveMidB);
+
+    /// <summary>The front wave, which the foam rides.</summary>
+    public static readonly Color WaveFront = Color.FromRgb(WaveFrontR, WaveFrontG, WaveFrontB);
+
     /// <summary>A refusal, or stderr. Reached from markup as <c>{x:Static ui:Palette.Danger}</c>.</summary>
     public static readonly Color Danger = Color.FromRgb(DangerR, DangerG, DangerB);
 

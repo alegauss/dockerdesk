@@ -91,11 +91,14 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20,16,20,16">
+    <!-- The margin loses its bottom: the water is flush to the frame, which is what makes it the
+         floor of the window rather than a band floating above one (DD69). -->
+    <Grid Margin="20,16,20,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><!-- the engine, in words -->
             <RowDefinition Height="Auto" /><!-- the nav strip -->
             <RowDefinition Height="*" />   <!-- the selected page -->
+            <RowDefinition Height="Auto" /><!-- the water, which moves only while the engine runs -->
         </Grid.RowDefinitions>
 
         <!-- The engine's own state, in words. Everything below is a view of this thing. -->
@@ -138,5 +141,11 @@
         <!-- Every page that has been visited stays here, collapsed: a scroll position and a list
              already read survive switching away, and a page nobody opened is never built. -->
         <Grid x:Name="DestinationHost" Grid.Row="2" />
+
+        <!-- The mark is an orca cresting a wave and this is the water it swims in, in the site's own
+             three blues. It drifts while the engine runs and lies flat and still while it does not:
+             perpetual motion in a utility window is scenery, and motion that reads the state is not.
+             Built in code because the geometry is computed — see Ui/Waves.cs. -->
+        <ui:Waves x:Name="Water" Grid.Row="3" Margin="-20,8,-20,0" />
     </Grid>
 </Window>

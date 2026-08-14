@@ -79,6 +79,13 @@ internal static class WindowCapture
         // a known machine, so the rows, the ports, the sizes and the states are the same on every
         // machine and in CI. The window is handed one or the other and never learns which.
         IEngineClient api = fixture ? new SampleMachine() : new DockerApi();
+
+        // Before the window exists, because the water starts drifting the moment it is told the
+        // engine is up and this verb's fixture says exactly that (DD69). A picture that caught a
+        // random phase would make every capture differ from the last, which is the one property
+        // this whole verb is for.
+        Ui.Waves.Still = true;
+
         var window = new Ui.MainWindow(
             api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { })
         {

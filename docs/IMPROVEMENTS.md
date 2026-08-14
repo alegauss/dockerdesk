@@ -340,27 +340,27 @@ thing honestly.
 
 ### §DD93 A law waiting for something that arrived
 
-`docs/specs/DD40-site-constitution.md` §4 is the one law it declined to port from Shio,
-and it says why: Shio publishes generated token figures from the file its suite asserts
+`docs/specs/DD40-site-constitution.md` has one law it declined to port from Shio, and it
+says why: Shio publishes generated token figures from the file its suite asserts
 against, and this project had no such file. **"DD23 is the benchmark, and it has not
 been written. Until it exists there is no measured number to generate, so the site must
 not carry one."**
 
 DD23 shipped, DD65 measured the shaped side against it, and `agent-budget.json` is the
-file §4 was waiting for. The friction section on `/claude-code` now prints a measured
-baseline, a per-shape cost and a ceiling per verb, every one generated from that file
-and asserted by `surface.test.mjs` — which is precisely the arrangement §4 describes as
-a follow-up that has not happened.
+file that section was waiting for. The friction rows on `/claude-code` now print a
+measured baseline, a per-shape cost and a ceiling per verb, every one generated from
+that file and asserted by `surface.test.mjs` — which is precisely the arrangement the
+section describes as a follow-up that has not happened.
 
-So the section is not merely stale, it is a rule pointing the wrong way. A contributor
-reading the constitution to settle an argument finds a prohibition on the thing the page
-does, and the honest reading of that is to delete the figures.
+So it is not merely stale, it is a rule pointing the wrong way. A contributor reading
+the constitution to settle an argument finds a prohibition on the thing the page does,
+and the honest reading of that is to delete the figures.
 
-The rewrite is the one §4 predicted for itself: the budget file *is* this site's
-generated source, an unmeasured cost is still not a figure on the page, and the DD23
-§3.1 numbers that remain targets are still stated as targets rather than achievements —
-the hero session's costs are exactly that, and its own note says so. The paragraph also
-names the project by the name it had before the rename.
+The rewrite is the one that section predicted for itself: the budget file *is* this
+site's generated source, an unmeasured cost is still not a figure on the page, and the
+DD23 acceptance criteria that remain targets are still stated as targets rather than
+achievements — the hero session's costs are exactly that, and its own note says so. The
+paragraph also names the project by the name it had before the rename.
 
 ### §DD94 A contributor's first read is the oldest one
 

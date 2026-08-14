@@ -85,11 +85,13 @@ export const hero = {
 };
 
 /* ------------------------------------------------------------------ hero session */
-// The five-call session from DD23 §3.1, and the context pack from §4.2. The commands and
-// their flags are the real agent surface; the values are illustrative demo data. Every
-// cost is a target DD23 must prove or falsify — an acceptance criterion, never a
-// measurement, because the benchmark that would measure it has not been written (§4 of the
-// site constitution). Rendered as an autoplaying transcript that scrolls its own list (S7).
+// The five-call session and the context pack from DD23's own acceptance criteria. The
+// commands and their flags are the real agent surface; the values are illustrative demo
+// data, and every cost here is a target the benchmark must prove or falsify rather than a
+// measurement — which is why they are typed and the friction section's are not. That split
+// is the constitution's law on generated figures: a measured cost is generated or it is not
+// on the page, and an unmeasured one is stated as the criterion it is.
+// Rendered as an autoplaying transcript that scrolls its own list (S7).
 
 export const heroSession = {
   eyebrow: "What it costs an agent",

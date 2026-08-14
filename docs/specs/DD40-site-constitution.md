@@ -184,20 +184,32 @@ keep an `/install` page off the map.
 
 ---
 
-## 4. The one law that is not ported
+## 4. The law that was deferred, and is now in force
 
 Shio's site publishes **generated token figures** from the properties file its Java
 suite asserts every response against — four bars, regenerated on every build, a renamed
 key failing it.
 
-DockerDesk has no such file yet: **DD23 is the benchmark, and it has not been written.**
-Until it exists there is no measured number to generate, so the site must not carry one.
-The rule that replaces it is the honest form of the same discipline: **an unmeasured cost
-is not a figure on the page.** The §3.1 targets in DD23 are acceptance criteria, and the
-site may state them as *targets DD23 must prove or falsify* — never as achievements, and
-never as a chart. When DD23 lands, its budget file becomes this site's generated source
-the way `token-budgets.properties` is Shio's, and the transcript in the hero gains its
-costs. That is a follow-up to DD23, not a task here.
+This project had no such file, so the law was written as a deferral: *the benchmark has not
+been written, so the site must not carry a measured number.* **DD93 closed it, because the
+condition it was waiting on is gone.** DD23 built the benchmark, DD65 measured the shaped
+side against it, and `agent-budget.json` is now this site's generated source exactly the way
+`token-budgets.properties` is Shio's.
+
+So the law is in force in its full form, and it has two halves:
+
+- **A measured cost on this page is generated, or it is not on the page.** The baseline, the
+  per-shape costs and the ceiling beside every verb are read out of `agent-budget.json` and
+  the verb registry by `scripts/surface.mjs`, and `scripts/surface.test.mjs` fails the build
+  on a row citing a shape the benchmark does not measure or a verb the registry does not
+  dispatch. A figure typed into the copy is the defect this prevents.
+- **An unmeasured cost is not a figure on the page.** What remains an acceptance criterion is
+  stated as one — the hero transcript's per-call costs are targets the benchmark must prove
+  or falsify, its own note says so, and they are never rendered as a chart or reported as
+  achievements.
+
+What this law does *not* license is a figure about the project's own progress. That was DD43,
+and DD91 reversed it: see S2. Measured is about the product; a burndown is about the plan.
 
 ---
 

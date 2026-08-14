@@ -76,6 +76,7 @@
 - ✅ **DD54** **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — The build spells FreeWilly throughout - projects, namespaces, assembly, icon and the harness - while the app root and the WSL distribution stay behind for DD55 to migrate.
 - ✅ **DD57** **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — An old install is upgraded in place: the AppId never changes, the labels around it do, and the Run value the old name owned is deleted rather than left starting a missing exe.
 - ✅ **DD97** **Two features write one Run value: the installer's start-with-Windows and the engine's autostart, with different commands** — The tray's entry and the engine's have different names under Run, so neither overwrites the other, and the uninstaller takes both.
+- ✅ **DD102** **The installer script is compiled only by the release workflow, so a syntax error in it is found by the release** — `check.yml` compiles `build/installer.iss` on every push and asserts the installer came out, so Inno refuses a bad construct on the commit rather than on the tag.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

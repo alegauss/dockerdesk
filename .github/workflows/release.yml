@@ -50,24 +50,11 @@ jobs:
       - name: Test
         run: dotnet test --nologo
 
+      # The probe moved into a composite action when check.yml needed the same one (DD102). The
+      # path it reports is unused here — build-installer.cmd runs its own three-path probe, because
+      # it is also what a maintainer runs by hand — so what this step buys is only the install.
       - name: Inno Setup
-        run: |
-          # The runner image usually ships it. Installing it unconditionally would add a minute to
-          # every release for nothing, so this looks in the same three places
-          # build\build-installer.cmd looks in, and only reaches for chocolatey if none of them has
-          # it. ${env:...} braces are required: ProgramFiles(x86) has parentheses in its name.
-          $candidates = @(
-            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
-            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
-            "$env:LocalAppData\Programs\Inno Setup 6\ISCC.exe"
-          )
-          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if ($found) {
-            Write-Output "already here: $found"
-          } else {
-            Write-Output "not on this image; installing"
-            choco install innosetup --no-progress -y
-          }
+        uses: ./.github/actions/inno-setup
 
       # Publishes the single .exe and wraps it, exactly as a maintainer would locally. The same
       # script, so a release cannot be built by a path nobody uses by hand.

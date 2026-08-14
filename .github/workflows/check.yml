@@ -65,6 +65,36 @@ jobs:
           $mb = [math]::Round((Get-Item $exe).Length / 1MB, 1)
           Write-Output "one file, $mb MB"
 
+      # DD102. Before this, the first thing that read build\installer.iss was the release — so a
+      # syntax error in it stopped the release rather than the commit that caused it, with the tag
+      # already pushed. That is DD88's defect in a second file: nothing on the ordinary path read it.
+      #
+      # PackagingTests is not this and must not be mistaken for it. It asserts over the script as
+      # *text* — that a line says `ValueType: none`, that an AppId is spelled a certain way — which
+      # proves the file says what the author meant and cannot say whether Inno accepts it. DD97
+      # shipped an Inno construct on exactly that evidence.
+      #
+      # Unconditional, and that is the decision the task left open. Gating it on `build/` having
+      # changed would put the one reader of this file back on a conditional path, which is the
+      # failure being repaired; and the cost the gate would save is not there — the runner image
+      # ships ISCC, and the compile needs a published .exe that the step above has already paid for.
+      - name: Inno Setup
+        id: inno
+        uses: ./.github/actions/inno-setup
+
+      - name: The installer script compiles
+        run: |
+          & "${{ steps.inno.outputs.iscc }}" build\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC refused build\installer.iss (exit $LASTEXITCODE)" }
+
+          # Asserted on the artefact and not only on the exit code: [Files] names the published
+          # .exe, and a script that compiled while packaging nothing is the failure a syntax check
+          # alone would wave through.
+          $setup = "dist\FreeWilly-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "ISCC exited 0 and produced no $setup" }
+          $mb = [math]::Round((Get-Item $setup).Length / 1MB, 1)
+          Write-Output "the installer compiles, $mb MB"
+
       - name: It starts, and says what it is
         run: |
           $exe = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"

@@ -19,8 +19,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD102** (deps: —) **The installer script is compiled only by the release workflow, so a syntax error in it is found by the release** — check.yml never reads it and PackagingTests asserts over the text, so DD97 shipped an Inno construct on evidence that cannot say whether Inno accepts it. → §DD102
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

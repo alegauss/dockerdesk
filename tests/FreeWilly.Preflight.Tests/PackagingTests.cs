@@ -59,8 +59,8 @@ public sealed class PackagingTests
         Assert.Equal(current, parsed!.ToString());
     }
 
-    /// <summary>The installer script, read as text — the only way to assert on Inno's decisions.</summary>
-    private static string InstallerScript()
+    /// <summary>The repository, found by walking up from the test binaries.</summary>
+    private static string RepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null
@@ -70,7 +70,55 @@ public sealed class PackagingTests
         }
 
         Assert.True(directory is not null, "the repository root was not found above the test binaries");
-        return File.ReadAllText(Path.Combine(directory!.FullName, "build", "installer.iss"));
+        return directory!.FullName;
+    }
+
+    /// <summary>The installer script, read as text — the only way to assert on Inno's decisions.</summary>
+    private static string InstallerScript() =>
+        File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "installer.iss"));
+
+    /// <summary>A workflow, read as text.</summary>
+    private static string Workflow(string name) =>
+        File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
+
+    [Fact]
+    public void The_ordinary_path_compiles_the_installer_script_and_not_only_the_release()
+    {
+        // DD102, and the guard is over the workflow because that is where the defect was. Every
+        // other test in this class asserts over the script as *text* — that a line says
+        // `ValueType: none`, that an AppId is spelled a certain way — which proves the file says
+        // what the author meant and can say nothing about whether Inno accepts it. DD97 shipped an
+        // Inno construct on exactly that evidence, and the first reader of the file was the release,
+        // by which point the tag was pushed.
+        //
+        // Asserted here rather than trusted to a reviewer, and for DD88's reason: the site build was
+        // broken for 21 commits because its workflow was `workflow_dispatch` only, and nothing
+        // noticed. A step deleted from check.yml would restore exactly that state, silently.
+        var check = Workflow("check.yml");
+
+        Assert.Contains("./.github/actions/inno-setup", check, StringComparison.Ordinal);
+        Assert.Contains(@"build\installer.iss", check, StringComparison.Ordinal);
+
+        // On every push and pull request, with no path filter in front of it. A conditional reader
+        // of this file is the failure being repaired, not a cheaper version of the fix.
+        Assert.Contains("on: [push, pull_request]", check, StringComparison.Ordinal);
+        Assert.DoesNotContain("paths:", check, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Both_workflows_find_the_compiler_the_same_way()
+    {
+        // One definition, because there are two callers and they are one rule — the same reasoning
+        // as Wsl.HasDriveLetter. Two inline probes would be two chances to disagree about where Inno
+        // Setup lives, and the one that disagreed would be found by a release.
+        foreach (var name in new[] { "check.yml", "release.yml" })
+        {
+            var workflow = Workflow(name);
+            Assert.Contains("./.github/actions/inno-setup", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "Inno Setup 6\\ISCC.exe",
+                workflow);
+        }
     }
 
     [Fact]

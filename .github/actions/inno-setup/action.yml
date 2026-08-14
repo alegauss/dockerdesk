@@ -1,0 +1,52 @@
+# DD102 — one definition of "where is ISCC.exe", for the two workflows that need it.
+#
+# `release.yml` had this probe inline and `check.yml` needed the same one, which is the point at
+# which a copied step becomes two chances to disagree about where Inno Setup lives. Extracted here
+# rather than pasted, for the reason Wsl.HasDriveLetter is one method with two callers.
+#
+# It is deliberately not `crazy-max/ghaction-setup-inno` or any other third party: the whole of it
+# is a Test-Path over three directories, and a release that signs nothing should not be reaching
+# for an action nobody here reads.
+
+name: Inno Setup
+description: Make ISCC.exe available on this runner, and say where it is.
+
+outputs:
+  iscc:
+    description: The full path to ISCC.exe.
+    value: ${{ steps.find.outputs.iscc }}
+
+runs:
+  using: composite
+  steps:
+    - id: find
+      shell: pwsh
+      run: |
+        # The runner image usually ships it. Installing unconditionally would add a minute to every
+        # push for nothing, so this looks in the same three places build\build-installer.cmd looks
+        # in, and only reaches for chocolatey if none of them has it. ${env:...} braces are
+        # required: ProgramFiles(x86) has parentheses in its name.
+        function Find-Iscc {
+          @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LocalAppData\Programs\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+        }
+
+        $found = Find-Iscc
+        if ($found) {
+          Write-Output "already here: $found"
+        } else {
+          Write-Output "not on this image; installing"
+          choco install innosetup --no-progress -y
+          # Probed again rather than assumed: chocolatey choosing a different prefix would otherwise
+          # be discovered by the compile step failing with an empty path, which names nothing.
+          $found = Find-Iscc
+          if (-not $found) {
+            throw "innosetup installed and ISCC.exe is in none of the three known locations"
+          }
+          Write-Output "installed: $found"
+        }
+
+        "iscc=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8

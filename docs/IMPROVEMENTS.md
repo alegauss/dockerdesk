@@ -90,33 +90,6 @@ quietly mean.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD102 Nothing on the ordinary path reads installer.iss
-
-`release.yml` runs `ISCC.exe` over `build/installer.iss`, and it triggers on `push:
-tags: ["v*"]` alone. `check.yml` runs on every push and pull request and never compiles
-it. So the first thing that reads the installer script is the release, and a syntax
-error in it stops the release rather than the commit that caused it — with the tag
-already pushed.
-
-This is DD88's defect in a second file. The site build was broken for 21 commits because
-its workflow was `workflow_dispatch` only, and it was invisible for exactly this reason:
-nothing on the ordinary path read it.
-
-`PackagingTests` is not the answer and should not be mistaken for one. It asserts over
-the script as *text* — that a line says `ValueType: none`, that an AppId is spelled a
-certain way — so it proves the file says what the author meant and cannot say whether
-Inno accepts it. DD97 shipped `ValueType: none` with `uninsdeletevalue` on that evidence
-alone.
-
-The obvious repair is compiling the script in `check.yml`. What has to be decided with
-it is the cost: the runner has no Inno by default and `choco install innosetup` on every
-push is minutes. `release.yml` already carries the three-path probe and the install, so
-the step exists to be copied; caching it, or running it only when `build/` changed, are
-judgements about how often that file moves.
-
-Worth knowing: the compile needs the published `.exe` to exist, because `[Files]` names
-it. A check that builds anyway has already paid for that.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

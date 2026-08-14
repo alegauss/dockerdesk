@@ -337,3 +337,48 @@ shape is not obviously better than the caller spelling it, and deleting it says 
 thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
+
+### §DD88 A gate nothing fires
+
+The site workflow says it plainly: "the gate is the build — there is no separate
+typecheck/lint step here, because `npm run build` already is one." That is right, and
+the workflow runs `on: workflow_dispatch` alone, for the good reason S9 gives: a deploy
+on every push is one nobody can hold still while reviewing it.
+
+The two decisions are compatible and were not separated. DD54 renamed the projects, and
+`site/scripts/surface.mjs` and `prerender.mjs` kept pointing at `src/DockerDesk.Tray`.
+The build has failed at its first step ever since — 21 commits — and nothing said so,
+because the only thing that runs it is the thing that also publishes.
+
+Found by running it while shipping DD59, which is the wrong way to find it: the next
+person to press the publish button would have met a red build and no idea which of
+twenty-one commits owed them a fix.
+
+So the split is between the gate and the deploy, not between running and not running.
+Build on push, publish on dispatch — the same `npm run build` in both, with the deploy
+job keeping its manual trigger and its S9 argument intact.
+
+What this is not is a new check. `check.yml` gates the .NET solution on every push
+already, and the site being exempt is the accident rather than the policy.
+
+### §DD89 Two publishes, one of them live
+
+`docs/` holds the pre-DD48 single-page site: `index.html`, `llms.txt`, `robots.txt`,
+`sitemap.xml`. It is what GitHub Pages serves today, because the Pages source is still
+the folder and not the Actions workflow — the site job says so in a box at the top, and
+that was the right call while the new site was being built.
+
+The cost is that every claim now exists twice. DD59's rename had to be applied to both.
+DD71's sweep had to be applied to both. DD84 generated a nine-route sitemap into `dist/`
+while the one being served still lists a single URL. And the copy in `docs/` describes
+`src/FreeWilly.Preflight` and `src/FreeWilly.Engine`, which are projects this tree does
+not have and has not had since DD54 — a page a reader is being served right now.
+
+Nothing regenerates it, so it drifts by default rather than by neglect.
+
+The switch is one repository setting, and after it the built site is the only publish.
+What has to happen first is deciding what `docs/` becomes: deleted, so `git log` is the
+only record of it, or kept as the artefact it is. Deleting the four files also removes
+the `robots.txt` and `sitemap.xml` that DD84 replaced, which is the half that is
+unambiguous — two sitemaps for one site is a contradiction whichever one a crawler reads
+first.

@@ -8,6 +8,9 @@
 
 ## Block C — The window (claude-tray's elements)
 
+- 📋 **DD112** (deps: —) **The set of folded-away projects is never narrowed, so a project brought back under its old name comes back folded** — Every other keyed state on this page is pruned against what the daemon still returns; this one grows for the window's life and remembers across a project's absence. → §DD112
+- 📋 **DD113** (deps: —) **The fixture machine's compose project declares no dependencies, so the ordering DD107 added is never exercised by it** — Every capture and every fixture run sees a project with no edges, so ComposeOrder takes its fallback path and looks exactly as it would if it were not there. → §DD113
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

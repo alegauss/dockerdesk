@@ -64,7 +64,19 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
             try
             {
                 var containers = await _api.ContainersAsync().ConfigureAwait(true);
-                _activity.Prune(containers.Select(c => c.Id));
+
+                // The project headers' ids too (DD107): a header carries its own pending state and
+                // its own count of refusals, and the daemon has never heard of `compose:shop`, so
+                // pruning against container ids alone would forget both on the very next event.
+                _activity.Prune(
+                [
+                    .. containers.Select(container => container.Id),
+                    .. containers
+                        .Select(container => ContainerRow.From(container).Project)
+                        .Where(project => project is not null)
+                        .Distinct(StringComparer.Ordinal)
+                        .Select(project => ContainerRow.ProjectId(project!)),
+                ]);
 
                 // Resolved once for the whole render rather than per row: this list is rebuilt on
                 // every engine event, and a FindResource per row is a dictionary walk per row.
@@ -104,7 +116,11 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// <summary>Draw the rows in hand, shaped.</summary>
     private void Show()
     {
+        // The headers are made by the grouping, so they are dressed after it rather than with the
+        // containers: a project waiting on its fan-out, or carrying the count that came back
+        // refused, is state about the header and there is no header until here (DD107).
         var shown = ContainerRow.Grouped(_rows, _shape, _collapsed);
+        shown = [.. shown.Select(row => row.IsProject ? _activity.Dress(row) : row)];
 
         _live.Show(shown);
         NameHeading.Content = ContainerRow.Columns.Name + _shape.GlyphFor(ContainerRow.Columns.Name);
@@ -383,8 +399,10 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
         }
 
         // force is what the dialog was about: without it the daemon answers 409 for a running
-        // container and the row would say so after the user already agreed to the kill.
-        Send(row, ContainerVerb.Remove, force: row.IsLive);
+        // container and the row would say so after the user already agreed to the kill. On a project
+        // it is decided per child rather than here — the fan-out asks each container whether it is
+        // live, so a stopped one is not removed under a flag it never needed.
+        Send(row, ContainerVerb.Remove, force: row.IsProject || row.IsLive);
     }
 
     private void Act(object sender, ContainerVerb verb)
@@ -397,12 +415,95 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
 
     private void Send(ContainerRow row, ContainerVerb verb, bool force = false)
     {
+        if (row.IsProject)
+        {
+            SendProject(row, verb, force);
+            return;
+        }
+
         // Pending first, and without asking the daemon anything: this is the half-second between
         // the click and the engine's first word, and it is the half-second the row has to account
         // for.
         _activity.Began(row.Id, verb);
         Redress();
         _ = CallAsync(row.Id, verb, force);
+    }
+
+    /// <summary>
+    /// Do one verb to every container of a project (DD107).
+    /// </summary>
+    /// <remarks>
+    /// DD8's four verbs fanned across the children, and no new engine surface: <c>docker compose
+    /// stop</c> wants the project's files and this window holds a container list, not a working
+    /// directory. Every child id is already in hand.
+    ///
+    /// <para><b>In order</b>, which is the difference between this and a loop: compose starts what is
+    /// depended on first and stops it last, and <see cref="ComposeOrder"/> reads that off the label
+    /// the containers already carry. Sequential for the same reason — a fan-out that issued all four
+    /// calls at once would have computed an order and then not used it.</para>
+    ///
+    /// <para><b>The parent's wait ends when the calls do</b>, not when the containers are down. Each
+    /// child keeps DD8's own rule and stays pending until its event confirms it; the header has no
+    /// event of its own to wait for, and leaving it spinning until the last child settled would hang
+    /// it forever on a container that will never emit one.</para>
+    /// </remarks>
+    private void SendProject(ContainerRow header, ContainerVerb verb, bool force)
+    {
+        var children = _rows
+            .Where(row => string.Equals(row.Project, header.Project, StringComparison.Ordinal))
+            .ToList();
+
+        var ordered = verb is ContainerVerb.Start
+            ? ComposeOrder.ToStart(children)
+            : ComposeOrder.ToStop(children);
+
+        _activity.Began(header.Id, verb);
+        foreach (var child in ordered)
+        {
+            _activity.Began(child.Id, verb);
+        }
+
+        Redress();
+        _ = FanOutAsync(header.Id, ordered, verb, force);
+    }
+
+    private async Task FanOutAsync(
+        string headerId, IReadOnlyList<ContainerRow> ordered, ContainerVerb verb, bool force)
+    {
+        var refused = 0;
+        foreach (var child in ordered)
+        {
+            try
+            {
+                await ContainerAction
+                    .InvokeAsync(_api, verb, child.Id, force && child.IsLive)
+                    .ConfigureAwait(true);
+            }
+            catch (DockerApiException failure)
+            {
+                // On the child, in the engine's words — DD8's line is per row and stays there. Three
+                // of four stopped is not the project's failure, it is one container's, and the
+                // header repeating that container's sentence would say it twice and name neither.
+                _activity.Failed(child.Id, failure.Detail ?? failure.Message);
+                refused++;
+            }
+        }
+
+        if (refused == 0)
+        {
+            _activity.Settled(headerId);
+        }
+        else
+        {
+            // A count and a pointer, never a sentence borrowed from one child.
+            var some = refused.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var all = ordered.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            _activity.Failed(
+                headerId,
+                $"{some} of {all} were refused — the row that failed says why.");
+        }
+
+        Redress();
     }
 
     private async Task CallAsync(string id, ContainerVerb verb, bool force)

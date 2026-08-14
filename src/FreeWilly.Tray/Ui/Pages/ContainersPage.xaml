@@ -214,7 +214,7 @@
                      reading it changes nothing that could be in flight. -->
                 <Button Content="Logs" Tag="{Binding}" Click="OpenLogs"
                         Style="{DynamicResource RowAction}"
-                        Visibility="{Binding IsContainer, Converter={StaticResource Shown}}" />
+                        Visibility="{Binding LogsVisibility}" />
                 <!-- The one verb this row is opened for: a running container to be stopped, a
                      stopped one to be started. The other three are one click deeper. -->
                 <Button Content="{Binding PrimaryVerb}" Tag="{Binding}" Click="PrimaryAction"

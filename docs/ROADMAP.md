@@ -10,8 +10,6 @@
 
 ## Block D — Container operations (what a user came to do)
 
-- 📋 **DD107** (deps: DD106 ✅) **A project is stopped one service at a time, so its row carries no verb and four clicks do what one should** — The parent row is only worth drawing if acting on it acts on the project, and fanning four verbs across children needs an order and somewhere a partial failure can go. → §DD107
-
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)

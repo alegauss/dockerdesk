@@ -57,6 +57,12 @@ public sealed record ContainerRow(
     /// </remarks>
     public string? Project { get; init; }
 
+    /// <summary>The compose service this container is an instance of, or nothing (DD107).</summary>
+    public string? Service { get; init; }
+
+    /// <summary>The services this one waits for, as its own label names them (DD107).</summary>
+    public IReadOnlyList<string> DependsOn { get; init; } = [];
+
     /// <summary>
     /// Whether this row is a project's header rather than a container (DD106).
     /// </summary>
@@ -172,22 +178,32 @@ public sealed record ContainerRow(
     /// <summary>Whether the last action on this row failed.</summary>
     public bool HasFailure => Failure is not null;
 
+    /// <summary>
+    /// Whether anything this row stands for is up (DD107).
+    /// </summary>
+    /// <remarks>
+    /// The one place a project's verb differs from a container's, and everything below reads it
+    /// rather than <see cref="IsLive"/>: a header carries no state of its own, so what decides
+    /// whether it offers Stop or Start is how many of its containers are running. One partly-up
+    /// project offers Stop, because the button that finishes the job is the useful one.
+    /// </remarks>
+    public bool AnyUp => IsProject ? Running > 0 : IsLive;
+
     /// <summary>Whether the row offers Start.</summary>
-    public bool CanStart => !IsPending && !IsLive;
+    public bool CanStart => !IsPending && !AnyUp;
 
     /// <summary>Whether the row offers Stop.</summary>
-    public bool CanStop => !IsPending && IsLive;
+    public bool CanStop => !IsPending && AnyUp;
 
     /// <summary>Whether the row offers Restart.</summary>
-    public bool CanRestart => !IsPending && IsLive;
+    public bool CanRestart => !IsPending && AnyUp;
 
     /// <summary>Whether the row offers Remove. Anything not already busy can be removed.</summary>
     /// <remarks>
-    /// A project's header is not one of those (DD106): the overflow's visibility hangs off this, and
-    /// a header offering Shell, Restart and Remove would address them to an id no daemon has. Acting
-    /// on a project as a project is DD107 and is a different verb.
+    /// A project too, since DD107 gave the header verbs of its own — the removal is fanned across
+    /// its containers and its dialog names the count rather than a container.
     /// </remarks>
-    public bool CanRemove => IsContainer && !IsPending;
+    public bool CanRemove => !IsPending;
 
     /// <summary>
     /// Whether a shell can be opened: running, and nothing else in flight.
@@ -197,7 +213,7 @@ public sealed record ContainerRow(
     /// then hangs until somebody unpauses it, with no window and no error — which is worse than a
     /// button that is visibly off.
     /// </remarks>
-    public bool CanShell => !IsPending && IsRunning;
+    public bool CanShell => IsContainer && !IsPending && IsRunning;
 
     /// <summary>
     /// Why the Shell button is off, or what it does when it is on.
@@ -209,6 +225,9 @@ public sealed record ContainerRow(
     /// </remarks>
     public string ShellReason => this switch
     {
+        // Before the pending case: a project has no shell whether or not something is in flight on
+        // it, and "wait for the action" would promise one that never arrives.
+        { IsProject: true } => "A project has no shell. Open one on a container under it.",
         { IsPending: true } => "Wait for the action already running on this container.",
         { IsRunning: true } => "Open a shell in this container.",
         { State: "paused" } => "This container is paused. Unpause it before opening a shell.",
@@ -298,7 +317,21 @@ public sealed record ContainerRow(
     public string PrimaryVerb => CanStop ? "Stop" : "Start";
 
     /// <summary>Whether the primary verb is offered at all.</summary>
-    public bool HasPrimary => IsContainer && (CanStop || CanStart);
+    public bool HasPrimary => CanStop || CanStart;
+
+    /// <summary>
+    /// Whether the Logs button is drawn, and how it is not (DD107).
+    /// </summary>
+    /// <remarks>
+    /// Hidden rather than collapsed, which is the whole reason this is a
+    /// <see cref="System.Windows.Visibility"/> and not another <c>bool</c> through the converter the
+    /// rest of the row uses. A project has no log of its own, but collapsing the button closes the
+    /// gap and shifts the header's Stop a button's width left of every Stop below it — and a control
+    /// that does not sit under the one it matches is what L3 is about. The space is kept; only the
+    /// button goes.
+    /// </remarks>
+    public System.Windows.Visibility LogsVisibility =>
+        IsContainer ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden;
 
     /// <summary>Dress this row in the theme's brushes.</summary>
     /// <param name="style">The brushes, resolved once for the whole render.</param>
@@ -490,11 +523,7 @@ public sealed record ContainerRow(
         // Already on the list response, which is the whole reason the hierarchy costs no second call
         // (DD106). Blank is treated as absent: a label present and empty names no project, and a
         // group headed by the empty string is a group nobody can read.
-        var project = container.Labels is { } labels
-            && labels.TryGetValue(Core.Agent.ContextPack.ProjectLabel, out var named)
-            && !string.IsNullOrWhiteSpace(named)
-                ? named
-                : null;
+        var project = Label(container, Core.Agent.ContextPack.ProjectLabel);
 
         return new ContainerRow(
             container.DisplayName,
@@ -505,8 +534,19 @@ public sealed record ContainerRow(
             container.Id)
         {
             Project = project,
+            Service = Label(container, Core.Agent.ContextPack.ServiceLabel),
+            DependsOn = ComposeOrder.DependenciesIn(
+                Label(container, ComposeOrder.DependsOnLabel)),
         };
     }
+
+    /// <summary>One label, or nothing where it is absent or blank.</summary>
+    private static string? Label(ContainerSummary container, string name) =>
+        container.Labels is { } labels
+        && labels.TryGetValue(name, out var value)
+        && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : null;
 }
 
 /// <summary>What the window says when the list is empty.</summary>

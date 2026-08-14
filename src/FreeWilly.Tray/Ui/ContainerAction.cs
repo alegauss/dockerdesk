@@ -61,7 +61,12 @@ public static class ContainerAction
     public static bool AsksBeforeRemoving(ContainerRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        return row.IsLive;
+
+        // A project always asks, running or not (DD107). The reasoning that lets a stopped container
+        // go without one — cheap to recreate from its image — does not survive being multiplied: a
+        // misplaced click there takes a whole stack, and undoing it means finding the compose file
+        // this window has never seen.
+        return row.IsProject || row.IsLive;
     }
 
     /// <summary>
@@ -76,6 +81,19 @@ public static class ContainerAction
     public static string RemovalPrompt(ContainerRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
+
+        if (row.IsProject)
+        {
+            // The count, not a container: the thing being agreed to is the number, and a dialog that
+            // named one service while removing four would be technically true and actively
+            // misleading. Volumes are named because they are what does NOT go — `compose down -v` is
+            // a different act, and a Remove button must not quietly mean it (DD107).
+            var containers = row.Total.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var plural = row.Total == 1 ? "container" : "containers";
+            return $"Remove the {row.Name} project?\n\nAll {containers} {plural} go, and anything "
+                + "running is killed first. Its volumes stay — nothing here deletes those.";
+        }
+
         return $"Remove {row.Name}?\n\nIt is {row.State} and will be killed first. "
             + "Anything written inside it that is not on a volume goes with it.";
     }

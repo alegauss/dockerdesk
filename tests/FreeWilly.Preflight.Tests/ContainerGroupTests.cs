@@ -115,17 +115,87 @@ public sealed class ContainerGroupTests
     public void A_header_answers_nothing_it_has_no_answer_for()
     {
         // The row is one template with a trigger, so the columns a project cannot fill must read as
-        // blank rather than as a container with no image — and its action column must offer no verb
-        // addressed to an id the daemon has never heard of.
+        // blank rather than as a container with no image.
         var header = Grouped(Rows(Summary("shop-api-1", project: "shop")))[0];
 
         Assert.Equal("", header.Image);
         Assert.Equal("", header.State);
         Assert.Empty(header.Ports);
-        Assert.False(header.HasPrimary);
-        Assert.False(header.CanRemove);
-        Assert.False(header.CanShell);
         Assert.Equal(default, header.Indent);
+
+        // A shell is the one verb a project genuinely has none of, and a disabled control that says
+        // why is a limitation while one that does not is a bug the user is left to guess at.
+        Assert.False(header.CanShell);
+        Assert.Contains("no shell", header.ShellReason, StringComparison.Ordinal);
+    }
+
+    // ---- one verb, the whole project (DD107) ---------------------------------------------------
+
+    [Fact]
+    public void A_project_with_something_up_is_opened_to_be_stopped()
+    {
+        var header = Grouped(Rows(
+            Summary("shop-api-1", project: "shop"),
+            Summary("shop-old-1", "exited", "shop")))[0];
+
+        // Partly up offers Stop, because the button that finishes the job is the useful one.
+        Assert.True(header.AnyUp);
+        Assert.True(header.HasPrimary);
+        Assert.Equal("Stop", header.PrimaryVerb);
+        Assert.True(header.CanRestart);
+    }
+
+    [Fact]
+    public void A_project_that_is_wholly_down_is_opened_to_be_started()
+    {
+        var header = Grouped(Rows(
+            Summary("shop-api-1", "exited", "shop"),
+            Summary("shop-db-1", "exited", "shop")))[0];
+
+        Assert.False(header.AnyUp);
+        Assert.Equal("Start", header.PrimaryVerb);
+        Assert.False(header.CanStop);
+        Assert.False(header.CanRestart);
+    }
+
+    [Fact]
+    public void Removing_a_project_always_asks_and_the_question_is_about_the_count()
+    {
+        // The thing being agreed to is the number. A dialog naming one service while removing four
+        // would be technically true and actively misleading — and the reasoning that lets a stopped
+        // container go without a dialog does not survive being multiplied.
+        var header = Grouped(Rows(
+            Summary("shop-api-1", "exited", "shop"),
+            Summary("shop-db-1", "exited", "shop"),
+            Summary("shop-worker-1", "exited", "shop")))[0];
+
+        Assert.True(ContainerAction.AsksBeforeRemoving(header));
+
+        var prompt = ContainerAction.RemovalPrompt(header);
+        Assert.Contains("All 3 containers", prompt, StringComparison.Ordinal);
+        Assert.Contains("shop", prompt, StringComparison.Ordinal);
+
+        // Volumes stay. `compose down -v` is a different act and a Remove button must not quietly
+        // mean it.
+        Assert.Contains("volumes stay", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_project_of_one_container_is_asked_about_in_the_singular() =>
+        Assert.Contains(
+            "All 1 container go",
+            ContainerAction.RemovalPrompt(Grouped(Rows(Summary("only-1", project: "shop")))[0]),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void A_container_is_still_asked_about_exactly_as_it_was()
+    {
+        // The half of this that must not have moved: DD107 gave a project a dialog and changed
+        // nothing about the one a container already had.
+        var row = ContainerRow.From(Summary("lonely", "exited"));
+
+        Assert.False(ContainerAction.AsksBeforeRemoving(row));
+        Assert.Contains("Remove lonely?", ContainerAction.RemovalPrompt(row), StringComparison.Ordinal);
     }
 
     // ---- the sort runs twice ---------------------------------------------------------------------

@@ -62,6 +62,7 @@
 - ✅ **DD8** **The list is read-only: a container cannot be started, stopped, restarted or removed from it** — Start, stop, restart and remove on every row: the click lands in a pending state, the event stream is what ends it, and a refusal shows the daemon's own sentence where the button is.
 - ✅ **DD9** **A container that exits immediately shows a state and nothing about the cause, so the user leaves for a terminal** — A window per container: frame headers stripped, stderr told from stdout, follow on by default, copy-all to the clipboard, and a buffer capped at 5,000 lines that drops from the front.
 - ✅ **DD10** **There is no way into a running container: no shell, so anything the log does not say is unreachable** — The terminal the user already has, running docker exec: the image is asked which shell it has first, so one with neither says so on the row instead of opening a window that closes.
+- ✅ **DD107** **A project is stopped one service at a time, so its row carries no verb and four clicks do what one should** — A project's row carries the four verbs, fanned across its containers in compose's own dependency order, with each refusal on the child that refused and the count on the header.
 
 ## Block E — Images, volumes and networks
 

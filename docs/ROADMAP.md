@@ -20,8 +20,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD57** (deps: DD54 ✅, DD55 ✅) **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — Inno Setup identifies a product by AppId alone, so keeping the id upgrades the old entry under a new label and changing it leaves two products installed. → §DD57
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 - 📋 **DD58** (deps: DD54 ✅) **The agent surface is invoked as dockerdesk and quoted that way in allowlist patterns matched literally** — An allowlist pattern is a string a user pasted into their own settings, so this project cannot migrate it, and DD32 has to write the new name rather than the old one. → §DD58

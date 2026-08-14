@@ -59,6 +59,55 @@ public sealed class PackagingTests
         Assert.Equal(current, parsed!.ToString());
     }
 
+    /// <summary>The installer script, read as text — the only way to assert on Inno's decisions.</summary>
+    private static string InstallerScript()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null
+            && !File.Exists(Path.Combine(directory.FullName, "FreeWilly.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.True(directory is not null, "the repository root was not found above the test binaries");
+        return File.ReadAllText(Path.Combine(directory!.FullName, "build", "installer.iss"));
+    }
+
+    [Fact]
+    public void The_AppId_is_the_one_already_on_machines_and_never_changes()
+    {
+        // DD57's decision, and the one thing in that file that must survive every future tidy: Inno
+        // identifies a product by AppId and by nothing else. The old name is inside this GUID and
+        // stays there, because it is an identity rather than a spelling. Change it and a machine
+        // carrying the published build ends up with two entries in Add/Remove Programs, two Run
+        // values and two roots — and the old uninstaller then offers to delete the engine root the
+        // new install is using.
+        Assert.Contains(
+            "AppId={{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}",
+            InstallerScript(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_old_autostart_value_is_removed_rather_than_left_running()
+    {
+        // The other half of DD57, and a regression DD54's rename introduced: the Run value's name
+        // moved with the sweep, so an upgraded machine kept a `DockerDesk` value pointing at an
+        // executable this build no longer produces. Logon would fail silently while the window
+        // reported autostart as off.
+        var script = InstallerScript();
+
+        Assert.Contains("#define LegacyRunValue \"DockerDesk\"", script, StringComparison.Ordinal);
+        Assert.Contains(
+            "ValueName: \"{#LegacyRunValue}\"; Flags: deletevalue uninsdeletevalue",
+            script,
+            StringComparison.Ordinal);
+
+        // And the runtime owns the same pair, so turning it on or off from the window converges too.
+        Assert.Equal("FreeWilly", Core.Engine.Autostart.EntryName);
+        Assert.Equal("DockerDesk", Core.Engine.Autostart.LegacyEntryName);
+    }
+
     [Fact]
     public void The_version_the_assembly_states_is_the_one_the_installer_would_read() =>
         // GetStringFileInfo(PRODUCT_VERSION) reads the informational version, which is what

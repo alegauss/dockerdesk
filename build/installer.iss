@@ -1,4 +1,4 @@
-; Inno Setup script for DockerDesk (DD14).
+; Inno Setup script for FreeWilly (DD14).
 ;
 ; Build, from the repository root:
 ;   build\build-installer.cmd
@@ -10,9 +10,18 @@
 ; Every relative path below resolves against THIS file's directory (build\), so the ones pointing
 ; at the repository root are "..\"-relative.
 
-#define MyAppName "DockerDesk"
-#define MyAppPublisher "DockerDesk contributors"
+#define MyAppName "FreeWilly"
+#define MyAppPublisher "FreeWilly contributors"
+
+; Still the old repository. Renaming it moves every published URL at once and is not this file's to
+; do — DD59 waits on the GitHub rename itself.
 #define MyAppUrl "https://github.com/alegauss/dockerdesk"
+
+; The Run value an install made before the rename left behind. Deleted on install rather than
+; adopted: unlike the distribution and the app root, a Run value holds nothing — it is a label on a
+; command line — so the only thing to preserve is that logon does not try to start an executable
+; this build no longer produces (DD57).
+#define LegacyRunValue "DockerDesk"
 #define MyAppExeName "FreeWilly.exe"
 #define MyPublishDir "..\src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"
 
@@ -22,6 +31,17 @@
 #define MyAppVersion GetStringFileInfo(MyPublishDir + "\" + MyAppExeName, PRODUCT_VERSION)
 
 [Setup]
+; DD57, and the decision this task had to make: an old installation is UPGRADED IN PLACE, so this
+; string never changes. Inno identifies a product by AppId and by nothing else, so the name inside
+; this GUID is not a spelling — it is the identity of every copy already on a machine, and the old
+; name being visible in it is the price of that. Do not tidy it.
+;
+; Changing it is the one move that cannot be undone from here: the new setup would not see the old
+; install, so a machine would carry two entries in Add/Remove Programs, two Run values, and two
+; roots — and the old uninstaller, run afterwards, offers to delete the engine root that the new
+; install is now using. DD55 depends on this staying put from the other end: Inno records the
+; install directory against this id, which is how an upgrade stays in %LOCALAPPDATA%\DockerDesk for
+; EnginePaths.RootFor to adopt.
 AppId={{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -45,8 +65,8 @@ PrivilegesRequiredOverridesAllowed=dialog
 ; DD55: the new name is what a fresh install gets, and an upgrade never sees it. Inno records the
 ; directory against the AppId, so a machine that already has this product reuses %LOCALAPPDATA%\
 ; DockerDesk and EnginePaths.RootFor adopts exactly that — which is the only reason the two agree
-; without either of them storing a flag. Changing the AppId would break that, and it is DD57's to
-; weigh.
+; without either of them storing a flag. DD57 weighed changing the AppId and did not: see the note
+; over it.
 DefaultDirName={localappdata}\FreeWilly
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -117,8 +137,14 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Registry]
 ; Autostart, per-user and off unless it was asked for.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
-    ValueType: string; ValueName: "DockerDesk"; ValueData: """{app}\{#MyAppExeName}"""; \
+    ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; \
     Flags: uninsdeletevalue; Tasks: startupicon
+
+; And the one an older install left, removed on every install rather than only when the task is
+; ticked (DD57). Left behind it points at an executable this build no longer produces, so logon
+; fails silently while the window reports autostart as off — two answers about one setting.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: none; ValueName: "{#LegacyRunValue}"; Flags: deletevalue uninsdeletevalue
 
 ; EnginePaths says putting the CLI folder on PATH is the installer's job, and this is it. HKCU, so
 ; no elevation; expandsz, because that is what Windows keeps Path as and rewriting it as a plain
@@ -153,7 +179,7 @@ var
   Current: string;
 begin
   // Idempotent: a reinstall must not append the same folder a second time. Semicolons on both ends
-  // so \DockerDesk\bin is not matched inside \DockerDesk\bin2.
+  // so \FreeWilly\bin is not matched inside \FreeWilly\bin2.
   if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', Current) then
     Current := '';
   Result := Pos(';' + Lowercase(ExpandConstant('{app}\bin')) + ';',
@@ -221,7 +247,7 @@ begin
   // The report itself is not pasted into this dialog. LoadStringFromFile reads AnsiString, the report
   // is UTF-8 with em dashes and arrows in every row, and a message box full of mojibake is worse than
   // no message box. The default viewer reads UTF-8 correctly, so it gets to show it.
-  if MsgBox('DockerDesk is installed, but this machine cannot host the engine yet.' + #13#10#13#10
+  if MsgBox('FreeWilly is installed, but this machine cannot host the engine yet.' + #13#10#13#10
           + 'Nothing has been downloaded, and nothing is broken — the preflight found at least one '
           + 'row that blocks an install, and each one names the single action that changes it.'
           + #13#10#13#10
@@ -268,8 +294,8 @@ begin
     Exit;
 
   if MsgBox('Also delete this install''s WSL2 distribution?' + #13#10#13#10
-          + 'It holds every image, container and volume DockerDesk created, and there is no '
-          + 'undo. Choosing No leaves it on disk, and reinstalling DockerDesk picks it up '
+          + 'It holds every image, container and volume FreeWilly created, and there is no '
+          + 'undo. Choosing No leaves it on disk, and reinstalling FreeWilly picks it up '
           + 'again.' + #13#10#13#10
           + ExpandConstant('{app}'),
             mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then

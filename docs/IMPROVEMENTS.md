@@ -107,29 +107,6 @@ a byte-identical PNG, which a row mid-fade at the one-second settle would break.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD57 The installer is one identity and six spellings
-
-`build\installer.iss` states the product six times and identifies it once. `AppId` on
-line 25 is `{{6B0E4D2A-9C77-4A31-8F5E-DOCKERDESK001}` — the old name is inside the GUID
-itself — and Inno Setup treats that string, and only that string, as the product's
-identity. Keep it and every future setup upgrades the old entry under a new label;
-change it and a machine carrying the old build ends up with two entries in Add/Remove
-Programs, two Run-key values, and one uninstaller that deletes the other's executable.
-
-The rest is spelling that follows: `MyAppName`, `MyAppPublisher`, `MyAppExeName`,
-`MyPublishDir`, `SetupIconFile`, `DefaultDirName={localappdata}\DockerDesk`, the
-`OutputBaseFilename` that produces `DockerDesk-Setup.exe`, the Run-key `ValueName`, the
-`DistroName` the uninstaller unregisters, and the two message boxes that name the
-product back to the user. `release.yml` names the setup artefact, and
-`dist\DockerDesk-0.1.0.exe` is in the tree already.
-
-The decision this task makes and records is whether an old installation is upgraded in
-place or asked to uninstall first. Either is defensible, and the choice is coupled to
-DD55's: the uninstaller's own prompt offers to keep the engine root so that reinstalling
-picks it up, which is the path a rename breaks quietly. What is not defensible is
-shipping a setup that leaves two products behind, since the version this replaces was
-published and is on machines.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ### §DD58 The invocation name is quoted in a file this project does not own

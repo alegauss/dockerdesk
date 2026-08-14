@@ -53,6 +53,7 @@
 - ✅ **DD32** **An agent meeting this machine has no way to know the surface exists, so it reaches for docker** — A skill naming the verbs, an allowlist line and a generated brief ship with the install, which proposes all three and writes none of them into your configuration.
 - ✅ **DD53** **The test guest cannot be returned to a clean snapshot, so the machine a check was measured on is gone once it drifts** — vm.ps1 gained a revert action that names the snapshot and what reverting discards, and refuses without -Yes rather than prompting - so a state a row was measured on is reachable again.
 - ✅ **DD54** **Every project, namespace and assembly in the tree spells DockerDesk, so a rename starts at the solution file** — The build spells FreeWilly throughout - projects, namespaces, assembly, icon and the harness - while the app root and the WSL distribution stay behind for DD55 to migrate.
+- ✅ **DD57** **The installer identifies the product by an AppId with the old name inside it, so a rename installs a second one** — An old install is upgraded in place: the AppId never changes, the labels around it do, and the Run value the old name owned is deleted rather than left starting a missing exe.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

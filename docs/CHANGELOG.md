@@ -23,6 +23,7 @@
 - ✅ **DD96** **A bind source only compose up can respell, so every other route to the daemon still mounts an empty directory** — `read doctor`'s mounts row says an unreachable bind source is created empty rather than refused, and gives the spelling this engine needs.
 - ✅ **DD101** **A bind source that looks like a distribution path and is not there stays unchecked, and it is the expensive failure** — `read doctor` asks the engine's distribution whether a bind source it cannot settle from the string is there, and warns without claiming which of empty and unreachable it is.
 - ✅ **DD120** **A start that cannot work leaves the tray breathing Starting until it is quit, and never says what went wrong** — The tray refuses a start with no distribution and names the verb that fixes it, and gives up on one that outlasts the engine's own budget.
+- ✅ **DD122** **A provision fails on the step that unpacks the engine, on a machine where nothing is wrong but a slow first boot** — The caller names which kind of call it is: the reads keep the preflight's fifteen seconds, the import and the unpack get five minutes, and the failure says which budget was exceeded.
 
 ## Block B — The daemon client (talk to the engine)
 

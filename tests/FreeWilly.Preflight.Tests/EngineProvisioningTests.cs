@@ -296,6 +296,45 @@ public sealed class EngineProvisioningTests : IDisposable
     }
 
     [Fact]
+    public async Task The_two_steps_that_do_work_are_not_held_to_the_budget_written_for_a_question()
+    {
+        // DD122. Every wsl.exe call shared the preflight's fifteen seconds, and the provision
+        // inherited it. Measured on a clean Windows 11 machine: every artefact downloaded and
+        // verified, the import succeeded, and InstallEngine was killed at fifteen seconds — leaving
+        // a registered distribution with no engine in it and a machine on which `docker` is not a
+        // command. The message named a timeout, so it read as a hang; the remedy it printed was to
+        // run the same thing again against the same budget.
+        var wsl = new FakeWsl();
+        wsl.Answer(0, "Ubuntu\n");            // --list --quiet: a question, and still one
+        var provisioner = Provisioner(wsl, out _, WithRealArtefacts());
+
+        var outcome = await provisioner.ProvisionAsync();
+        Assert.True(outcome.Succeeded, outcome.Failure?.Detail);
+
+        // The import writes a virtual disk; the install cold-boots what it just wrote and untars
+        // 85 MB inside it. Neither is a question, and asserting the budget rather than a number
+        // keeps this about the distinction rather than about five minutes.
+        Assert.Equal(WslBudget.Work, wsl.BudgetForVerb("--import"));
+        Assert.Equal(WslBudget.Work, wsl.BudgetForVerb("-d"));
+
+        // And the reads keep the short one, which is the half that makes it a fix rather than a
+        // larger constant: a preflight that waits minutes to report a stuck machine is not one.
+        Assert.Equal(WslBudget.Probe, wsl.BudgetForVerb("--list"));
+        Assert.True(WslBudget.Probe < WslBudget.Work, "the two budgets are the same number again");
+    }
+
+    [Fact]
+    public void The_sentence_about_a_budget_names_the_budget_that_was_exceeded()
+    {
+        // With one constant it could not: "did not finish within 15 seconds" read the same whether
+        // it was a question nothing answered or an unpack that needed a minute, so a log could not
+        // tell a slow machine from a stuck one. The unit follows the budget, because "300 seconds"
+        // is a number a reader converts before it means anything.
+        Assert.Equal("15 seconds", Core.Preflight.Windows.ConsoleTool.Spell(WslBudget.Probe));
+        Assert.Equal("5 minutes", Core.Preflight.Windows.ConsoleTool.Spell(WslBudget.Work));
+    }
+
+    [Fact]
     public async Task Both_plugins_land_where_the_cli_looks_for_one()
     {
         // DD73 and DD74. A subcommand exists only where a plugin named for it is under a config

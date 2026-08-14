@@ -17,15 +17,36 @@ internal sealed record ProcessOutput(int? ExitCode, string Output, string? Failu
 internal static class ConsoleTool
 {
     /// <summary>How long a preflight probe waits for a tool before giving up on it.</summary>
+    /// <remarks>
+    /// Short on purpose, and DD122 is why it stayed short. A probe asks a question — <c>wsl
+    /// --status</c>, <c>--list</c> — and a machine that has not answered one in fifteen seconds is
+    /// not slow, it is stuck; a preflight that waits minutes to say so has stopped being a
+    /// preflight. What DD122 changed is that this is no longer the only budget there is.
+    /// </remarks>
     internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>Run a tool under the probe budget.</summary>
+    /// <param name="fileName">The executable, as a full path.</param>
+    /// <param name="arguments">Its arguments.</param>
+    /// <returns>The exit code and output, or the reason there is neither.</returns>
+    internal static ProcessOutput Run(string fileName, params string[] arguments) =>
+        Run(Timeout, fileName, arguments);
 
     /// <summary>
     /// Run <paramref name="fileName"/> with <paramref name="arguments"/> and return what it wrote.
     /// </summary>
+    /// <param name="budget">How long it may take before it is killed and reported as unfinished.</param>
     /// <param name="fileName">The executable, as a full path.</param>
     /// <param name="arguments">Its arguments.</param>
     /// <returns>The exit code and output, or the reason there is neither.</returns>
-    internal static ProcessOutput Run(string fileName, params string[] arguments)
+    /// <remarks>
+    /// The budget is a parameter since DD122, because one number cannot serve both callers. It was
+    /// <see cref="Timeout"/> for everything, and the provision inherited a budget written for a
+    /// question: measured on a clean Windows 11 machine, every artefact downloaded and verified, the
+    /// distribution imported, and the step that unpacks the engine inside it killed at fifteen
+    /// seconds — because a distribution that has never run boots cold and then untars 85 MB.
+    /// </remarks>
+    internal static ProcessOutput Run(TimeSpan budget, string fileName, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo(fileName)
         {
@@ -55,11 +76,15 @@ internal static class ConsoleTool
             using var stderr = new MemoryStream();
             var copyErr = process.StandardError.BaseStream.CopyToAsync(stderr);
 
-            if (!process.WaitForExit((int)Timeout.TotalMilliseconds))
+            if (!process.WaitForExit((int)budget.TotalMilliseconds))
             {
                 TryKill(process);
+
+                // The budget is in the sentence, so a log tells a slow machine from a stuck one.
+                // With one constant it could not: "did not finish within 15 seconds" read the same
+                // whether it was a question nothing answered or an unpack that needed a minute.
                 return new ProcessOutput(
-                    null, "", $"{fileName} did not finish within {Timeout.TotalSeconds:0} seconds");
+                    null, "", $"{fileName} did not finish within {Spell(budget)}");
             }
 
             Task.WaitAll(copyOut, copyErr);
@@ -72,6 +97,18 @@ internal static class ConsoleTool
             return new ProcessOutput(null, "", $"{fileName}: {exception.Message}");
         }
     }
+
+    /// <summary>How a budget is written into the sentence that says it was exceeded.</summary>
+    /// <param name="budget">The budget.</param>
+    /// <returns>Seconds under a minute, minutes at or above one.</returns>
+    /// <remarks>
+    /// "300 seconds" is a number a reader converts before it means anything, and the two budgets
+    /// this now has sit on either side of the unit that reads naturally for each.
+    /// </remarks>
+    internal static string Spell(TimeSpan budget) =>
+        budget < TimeSpan.FromMinutes(1)
+            ? $"{budget.TotalSeconds:0} seconds"
+            : $"{budget.TotalMinutes:0} minutes";
 
     private static void TryKill(Process process)
     {

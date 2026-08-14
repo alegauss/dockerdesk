@@ -14,6 +14,9 @@ internal sealed class FakeWsl : IWsl
     /// <summary>Every argument list this was called with, in order.</summary>
     internal List<string[]> Invocations { get; } = [];
 
+    /// <summary>The budget each of those calls named, in the same order (DD122).</summary>
+    internal List<TimeSpan> Budgets { get; } = [];
+
     /// <summary>Whatever is left unconsumed answers success with no output.</summary>
     internal WslResult Default { get; set; } = new(0, "", null);
 
@@ -25,15 +28,25 @@ internal sealed class FakeWsl : IWsl
     }
 
     /// <inheritdoc/>
-    public WslResult Run(params string[] arguments)
+    public WslResult Run(TimeSpan budget, params string[] arguments)
     {
         Invocations.Add(arguments);
+        Budgets.Add(budget);
         return _answers.Count > 0 ? _answers.Dequeue() : Default;
     }
 
     /// <summary>The invocation whose first argument is <paramref name="verb"/>, or null.</summary>
     internal string[]? WithVerb(string verb) =>
         Invocations.FirstOrDefault(argv => argv.Length > 0 && argv[0] == verb);
+
+    /// <summary>The budget the call whose first argument is <paramref name="verb"/> named.</summary>
+    /// <param name="verb">The first argument, e.g. <c>--import</c>.</param>
+    /// <returns>Its budget, or null where no call opened with that argument.</returns>
+    internal TimeSpan? BudgetForVerb(string verb)
+    {
+        var at = Invocations.FindIndex(argv => argv.Length > 0 && argv[0] == verb);
+        return at < 0 ? null : Budgets[at];
+    }
 }
 
 /// <summary>An <see cref="IArtefactFetcher"/> that writes bytes a test chose.</summary>

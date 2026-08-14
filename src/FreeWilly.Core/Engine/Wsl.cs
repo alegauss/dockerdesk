@@ -13,16 +13,65 @@ public sealed record WslResult(int? ExitCode, string Output, string? Failure)
 }
 
 /// <summary>
+/// How long one <c>wsl.exe</c> call is given, which depends on what it was asked to do (DD122).
+/// </summary>
+/// <remarks>
+/// Two budgets rather than one, because the calls are two kinds of thing. Everything here used to
+/// share <see cref="Probe"/> — the preflight's own number — and the provision inherited it: measured
+/// on a clean Windows 11 machine, the download and the import succeeded and the step that unpacks
+/// the engine was killed at fifteen seconds, leaving a registered distribution with no engine in it
+/// and a machine on which <c>docker</c> is not a command.
+///
+/// <para>Raising the one constant was the fix not taken. A probe that hangs has to fail fast or the
+/// preflight stops being a preflight, so what changed is that the caller names which kind of call it
+/// is making — and the two are told apart at the call site, where the difference is known.</para>
+/// </remarks>
+public static class WslBudget
+{
+    /// <summary>
+    /// A question: <c>--list</c>, <c>--terminate</c>, <c>--status</c>.
+    /// </summary>
+    /// <remarks>
+    /// The preflight's own budget, and deliberately the same object rather than the same number
+    /// written twice. These answer at once or they are stuck; there is no slow-but-fine here.
+    /// </remarks>
+    public static TimeSpan Probe => Preflight.Windows.ConsoleTool.Timeout;
+
+    /// <summary>
+    /// Work: importing a distribution, or unpacking an engine inside one that has never booted.
+    /// </summary>
+    /// <remarks>
+    /// Five minutes, and it is a ceiling rather than an estimate — the wait ends when the call does,
+    /// so this only bounds the failing case. What it has to cover is the slowest legitimate run: a
+    /// cold first boot of a just-imported distribution, on a laptop, followed by untarring 85 MB
+    /// onto a virtual disk that is being grown as it is written.
+    /// </remarks>
+    public static readonly TimeSpan Work = TimeSpan.FromMinutes(5);
+}
+
+/// <summary>
 /// <c>wsl.exe</c>, behind a seam. Importing a distribution and unpacking an engine into it cannot
 /// be done to a test machine on demand, so what the provisioner is tested on is the invocations it
 /// builds rather than their effect.
 /// </summary>
 public interface IWsl
 {
-    /// <summary>Run <c>wsl.exe</c> with these arguments.</summary>
+    /// <summary>Run <c>wsl.exe</c> with these arguments, under a budget the caller names.</summary>
+    /// <param name="budget">How long it may take. See <see cref="WslBudget"/>.</param>
     /// <param name="arguments">The arguments, already split — never a command line to be parsed.</param>
     /// <returns>What it produced.</returns>
-    WslResult Run(params string[] arguments);
+    WslResult Run(TimeSpan budget, params string[] arguments);
+
+    /// <summary>Run <c>wsl.exe</c> with these arguments, as a question.</summary>
+    /// <param name="arguments">The arguments, already split — never a command line to be parsed.</param>
+    /// <returns>What it produced.</returns>
+    /// <remarks>
+    /// The probe budget, spelled once here rather than at each of the call sites that want it. Most
+    /// callers are asking a question, so the short budget stays the one you get without saying —
+    /// a caller that forgets to think about it should inherit the safe answer, and for a timeout the
+    /// safe answer is the one that gives up rather than the one that hangs.
+    /// </remarks>
+    WslResult Run(params string[] arguments) => Run(WslBudget.Probe, arguments);
 }
 
 /// <summary>The real <c>wsl.exe</c>.</summary>
@@ -81,10 +130,10 @@ public sealed class Wsl : IWsl
     }
 
     /// <inheritdoc/>
-    public WslResult Run(params string[] arguments)
+    public WslResult Run(TimeSpan budget, params string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        var output = ConsoleTool.Run(LauncherPath, arguments);
+        var output = ConsoleTool.Run(budget, LauncherPath, arguments);
         return new WslResult(output.ExitCode, output.Output, output.Failure);
     }
 

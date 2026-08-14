@@ -329,7 +329,9 @@ public sealed class EngineProvisioner
                 $"{_paths.DistributionName} is already registered, left as it is");
         }
 
-        var result = _wsl.Run(ImportArguments(rootfsPath));
+        // Work, not a question (DD122): this writes a virtual disk from a rootfs tarball, and on a
+        // machine where WSL2 has not run yet it starts the subsystem to do it.
+        var result = _wsl.Run(WslBudget.Work, ImportArguments(rootfsPath));
         return result.Succeeded
             ? new StepResult(ProvisioningStep.ImportDistribution, true,
                 $"{_paths.DistributionName} imported into {_paths.Distribution}")
@@ -339,7 +341,11 @@ public sealed class EngineProvisioner
 
     private StepResult InstallEngine(string engineTarballPath)
     {
+        // The step DD122 was filed for, and the slowest call this product makes. The distribution
+        // was imported a moment ago and has never been booted, so this pays for a cold start and
+        // then untars 85 MB of engine onto a disk being grown as it is written.
         var result = _wsl.Run(
+            WslBudget.Work,
             "-d", _paths.DistributionName, "-u", "root", "--",
             "/bin/sh", "-c", InstallScript(engineTarballPath));
 

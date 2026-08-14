@@ -338,29 +338,6 @@ thing honestly.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-### §DD88 A gate nothing fires
-
-The site workflow says it plainly: "the gate is the build — there is no separate
-typecheck/lint step here, because `npm run build` already is one." That is right, and
-the workflow runs `on: workflow_dispatch` alone, for the good reason S9 gives: a deploy
-on every push is one nobody can hold still while reviewing it.
-
-The two decisions are compatible and were not separated. DD54 renamed the projects, and
-`site/scripts/surface.mjs` and `prerender.mjs` kept pointing at `src/DockerDesk.Tray`.
-The build has failed at its first step ever since — 21 commits — and nothing said so,
-because the only thing that runs it is the thing that also publishes.
-
-Found by running it while shipping DD59, which is the wrong way to find it: the next
-person to press the publish button would have met a red build and no idea which of
-twenty-one commits owed them a fix.
-
-So the split is between the gate and the deploy, not between running and not running.
-Build on push, publish on dispatch — the same `npm run build` in both, with the deploy
-job keeping its manual trigger and its S9 argument intact.
-
-What this is not is a new check. `check.yml` gates the .NET solution on every push
-already, and the site being exempt is the accident rather than the policy.
-
 ### §DD89 Two publishes, one of them live
 
 `docs/` holds the pre-DD48 single-page site: `index.html`, `llms.txt`, `robots.txt`,

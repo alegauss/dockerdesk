@@ -1,8 +1,8 @@
-# DD50 — the publish job for the site (site/), separate from the .NET solution.
+# DD50 — the site (site/), separate from the .NET solution.
 #
-# S9 — publishing is deliberate: this fires on workflow_dispatch only. A deploy on every
-# push is one nobody can hold still while reviewing it, and the site is the one artefact
-# where a defect is public immediately.
+# S9 — publishing is deliberate: the deploy fires on workflow_dispatch only. A deploy on
+# every push is one nobody can hold still while reviewing it, and the site is the one
+# artefact where a defect is public immediately.
 #
 # S8 — the gate is the build: there is no separate typecheck/lint step here, because
 # `npm run build` already is one. It runs the roadmap generation (roadkeep), tsc, the client
@@ -10,8 +10,15 @@
 # head patch and the route-pair assertion are the route and head gates. A gate that runs
 # twice is one that can be satisfied by the copy nobody kept current.
 #
+# DD88 — those two are separate decisions, and for 21 commits they were one. The build ran
+# only when somebody published, so DD54's rename left `surface.mjs` pointing at a path that
+# no longer existed and the build was red the whole time with nothing to say so. It is found
+# now by the person who pushes rather than by the person who publishes: the gate runs on
+# every push and pull request, and the deploy still waits to be asked. The same
+# `npm run build` serves both, because a second copy of it is the thing S8 warns about.
+#
 # ┌─────────────────────────────────────────────────────────────────────────────────────┐
-# │ ONE-TIME REPOSITORY SETTING — this job is inert until it is changed:                 │
+# │ ONE-TIME REPOSITORY SETTING — the deploy is inert until it is changed:               │
 # │   Settings → Pages → Build and deployment → Source: "GitHub Actions"                 │
 # │ Until then Pages keeps deploying the old docs/ folder, so nothing goes dark while    │
 # │ the new site is being built. Both are served at alegauss.github.io/freewilly/, which │
@@ -20,16 +27,18 @@
 
 name: site
 
-on:
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
+# Least privilege by default. The Pages grants live on the job that publishes, so a push —
+# which now runs this workflow every time — is never handed the token that can deploy.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# A publish must not overlap another publish, and two gate runs on two branches have nothing
+# to do with each other. Keying the group on the event is what keeps a push from cancelling
+# a deploy that is halfway through.
 concurrency:
-  group: pages
+  group: ${{ github.event_name == 'workflow_dispatch' && 'pages' || format('site-gate-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -67,18 +76,39 @@ jobs:
         working-directory: site
         run: npm test
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      # Only what is about to be published is kept. On a push the build is the whole point
+      # and the output is not wanted anywhere.
+      - name: Keep the built site for the deploy
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
         with:
+          name: site-dist
           path: site/dist
+          retention-days: 1
 
   deploy:
     name: deploy to Pages
     needs: build
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # The bytes the gate already built and tested, rather than a second build: two builds
+      # of one commit is two answers about it, and the published one would be the untested.
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
       - id: deploy
         uses: actions/deploy-pages@v4

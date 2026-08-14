@@ -35,7 +35,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD88** (deps: —) **npm run build is the site's only gate and no push ever runs it, so it stayed broken for 21 commits** — The publish workflow is workflow_dispatch only, so a rename that moved a path the build reads went unnoticed until somebody happened to run the build by hand. → §DD88
 - 📋 **DD89** (deps: —) **The folder Pages actually serves is a hand-written copy of a page the site replaced, and no build regenerates it** — Its sitemap lists one URL, its prose describes two projects this tree does not have, and every correction to the real site has to be made a second time by hand. → §DD89
 
 ## Non-goals

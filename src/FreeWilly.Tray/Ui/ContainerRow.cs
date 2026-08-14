@@ -559,6 +559,42 @@ public sealed record ContainerRow(
         };
     }
 
+    /// <summary>
+    /// The folded-away projects that the daemon still has (DD112).
+    /// </summary>
+    /// <param name="folded">The projects somebody folded away.</param>
+    /// <param name="rows">Every container the daemon just returned.</param>
+    /// <returns>The same set, without the projects that are gone.</returns>
+    /// <remarks>
+    /// <b>A project's absence forgets its fold, and that was a decision rather than an omission.</b>
+    /// The argument for the other answer is real — somebody who folds <c>shop</c> away is saying
+    /// they are not working on <c>shop</c>, and L7 says the window remembers what the user set on
+    /// purpose. What settles it is that bringing a project up is an explicit act whose whole point is
+    /// to run it: a header that appears already folded hides the very thing that was just asked for,
+    /// and the fold it is honouring was set on a different instance of the project. L7's subjects —
+    /// a window size, a sort column — have no lifecycle, and a project does.
+    ///
+    /// <para>It also stops the set growing for the life of the window, which is the smaller half.</para>
+    ///
+    /// <para><b>Only where the daemon actually answered.</b> This is called beside
+    /// <c>RowActivity.Prune</c> and for its reason: an engine that went away returns no list, so
+    /// nothing on that path is evidence a project is gone, and narrowing against it would forget
+    /// every fold in hand on the strength of one refused call.</para>
+    /// </remarks>
+    public static HashSet<string> FoldedStillThere(
+        IReadOnlySet<string> folded, IEnumerable<ContainerRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(folded);
+        ArgumentNullException.ThrowIfNull(rows);
+
+        var present = rows
+            .Select(row => row.Project)
+            .Where(project => project is not null)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return [.. folded.Where(present.Contains)];
+    }
+
     /// <summary>Narrow a list to what the filter keeps.</summary>
     private static IEnumerable<ContainerRow> Kept(IEnumerable<ContainerRow> rows, ListShape shape) =>
         rows.Where(row => shape.Keeps(

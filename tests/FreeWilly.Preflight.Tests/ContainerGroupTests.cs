@@ -468,6 +468,54 @@ public sealed class ContainerGroupTests
         Assert.Equal(["compose:aa", "compose:bb", "b-1-id"], shown.Select(row => row.Id));
     }
 
+    // ---- a fold does not outlive the project it was set on (DD112) -------------------------------
+
+    [Fact]
+    public void A_project_that_is_gone_takes_its_fold_with_it()
+    {
+        // The decision, and it was one rather than an omission: bringing a project up is an explicit
+        // act whose whole point is to run it, so a header that appears already folded hides the very
+        // thing that was just asked for — and the fold it would be honouring was set on a different
+        // instance of the project.
+        var folded = new HashSet<string>(StringComparer.Ordinal) { "shop", "blog" };
+        var stillHere = Rows(Summary("blog-web-1", project: "blog"), Summary("loose-1"));
+
+        Assert.Equal(["blog"], ContainerRow.FoldedStillThere(folded, stillHere));
+    }
+
+    [Fact]
+    public void A_fold_survives_every_refresh_that_still_has_the_project()
+    {
+        // The other half, and the one that would make this a regression rather than a fix: the list
+        // is rebuilt on every engine event (DD70), so a fold that did not survive an ordinary
+        // refresh would spring open while somebody was reading it — which is DD37's whole rule.
+        var folded = new HashSet<string>(StringComparer.Ordinal) { "shop" };
+        var rows = Rows(Summary("shop-api-1", project: "shop"), Summary("shop-db-1", project: "shop"));
+
+        Assert.Equal(["shop"], ContainerRow.FoldedStillThere(folded, rows));
+    }
+
+    [Fact]
+    public void Nothing_folded_stays_nothing()
+    {
+        Assert.Empty(ContainerRow.FoldedStillThere(
+            new HashSet<string>(StringComparer.Ordinal),
+            Rows(Summary("shop-api-1", project: "shop"))));
+    }
+
+    [Fact]
+    public void A_folded_project_is_still_folded_while_its_last_container_is_shown()
+    {
+        // The count on a folded header is the only thing left saying anything about the project, so
+        // the fold has to outlast every refresh down to the last container — it is the container
+        // list going empty of it, and not the project shrinking, that forgets.
+        var folded = new HashSet<string>(StringComparer.Ordinal) { "shop" };
+        var one = Rows(Summary("shop-api-1", "exited", "shop"));
+
+        Assert.Equal(["shop"], ContainerRow.FoldedStillThere(folded, one));
+        Assert.Empty(ContainerRow.FoldedStillThere(folded, Rows(Summary("loose-1"))));
+    }
+
     // ---- two rows behind one type (DD111) --------------------------------------------------------
 
     private static IReadOnlyList<System.Reflection.PropertyInfo> Members() =>

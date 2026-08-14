@@ -6,29 +6,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-### §DD112 The set that is never pruned
-
-`RowActivity.Prune` exists because the list is rebuilt from the daemon on every event
-and state keyed by id would otherwise outlive the containers it is about. The page's
-other keyed set has no such thing: `_collapsed` holds a project name from the moment
-somebody folds it away and never lets go.
-
-Two consequences, and the second is the one that is wrong. It grows — one string per
-project ever folded, for the life of the window. And it *remembers*: a project taken
-down, and later brought up under the same name, comes back folded, carrying a chevron
-pointing the way somebody left it a day ago.
-
-Whether that second one is a defect or a feature is the thing to decide rather than
-assume. An argument exists for keeping it — a person who folds `shop` away is saying
-they are not working on `shop` — and it is not obviously weaker than the argument for
-dropping it. What is not defensible is that it happens by omission: nothing chose it,
-and no line says which was meant.
-
-The mechanism either way is the one already here. `Prune` is handed the ids that are
-still present on every refresh and the page now has the projected rows in hand when it
-calls it (DD110), so the projects that still exist are known at exactly the point the
-collapsed set would be narrowed against them.
-
 ### §DD113 A fixture that cannot show the ordering
 
 `SampleMachine` is what `--capture-window --fixture` draws, and DD38's whole point is

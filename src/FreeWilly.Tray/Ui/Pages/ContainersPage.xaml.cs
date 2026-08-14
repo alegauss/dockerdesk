@@ -85,6 +85,11 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
                         .Select(project => ContainerRow.ProjectId(project!)),
                 ]);
 
+                // The page's other keyed set, narrowed here and nowhere else, for the reason above:
+                // this is the one place the daemon has actually answered, so it is the only evidence
+                // that a project is gone rather than unreachable (DD112).
+                _collapsed = ContainerRow.FoldedStillThere(_collapsed, projected);
+
                 // Resolved once for the whole render rather than per row: this list is rebuilt on
                 // every engine event, and a FindResource per row is a dictionary walk per row.
                 var style = RowStyle.For(this);
@@ -183,10 +188,11 @@ internal partial class ContainersPage : System.Windows.Controls.UserControl
     /// <remarks>
     /// Beside <see cref="_shape"/> and for exactly its reason: DD37 says presentation cannot live in
     /// the ListView because the list is rebuilt on every engine event, and a collapse held there
-    /// would spring open while somebody was reading it. Keyed by the project's name rather than by
-    /// the header's id, because the name is what survives the project going away and coming back.
+    /// would spring open while somebody was reading it. Keyed by the project's name, which is the
+    /// only handle a project has — and narrowed on every answered refresh, so a project's absence
+    /// forgets its fold rather than holding it against the next one to use that name (DD112).
     /// </remarks>
-    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
+    private HashSet<string> _collapsed = new(StringComparer.Ordinal);
 
     /// <summary>Fold a project away, or open it again.</summary>
     /// <remarks>

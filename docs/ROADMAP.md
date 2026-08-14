@@ -23,6 +23,8 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- 📋 **DD97** (deps: —) **Two features write one Run value: the installer's start-with-Windows and the engine's autostart, with different commands** — Whichever ran last wins, so turning the engine autostart on stops the tray starting, and turning it off silently undoes a box the user ticked in the installer. → §DD97
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 - 📋 **DD78** (deps: —) **The shaped token figure is banded because two of its inputs are read from the machine and not a fixture** — A 15% band is wide enough to hide a regression a build could ship, and the request count recorded beside it is exact for want of the same seam. → §DD78

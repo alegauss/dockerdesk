@@ -16,6 +16,8 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- 📋 **DD123** (deps: —) **The Select Additional Tasks page draws its checkboxes clipped, so a tick is a fragment and an untick is a sliver** — Measured at 200% scaling on 4K: Inno's own task list draws each box narrower than the glyph, and three of the four tasks there are on by default. → §DD123
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -1,0 +1,139 @@
+<!-- The build history, and one build in full beneath it (DD126). Its own header, its own filter and
+     its own empty state (DD35, L2).
+
+     It exists because buildx ends every build by printing a link to a Docker Desktop dashboard that
+     is not on this machine. The ref in that link is real — it names a record the daemon kept — so
+     this is where the link now lands, and the list is here because a record nobody can browse to is
+     a page reachable only by accident. -->
+<UserControl x:Class="FreeWilly.Tray.Ui.Pages.BuildsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:FreeWilly.Tray.Ui"
+             x:ClassModifier="internal">
+<Grid Margin="0,10,0,0">
+  <Grid.RowDefinitions>
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="*" />
+    <RowDefinition Height="Auto" />
+  </Grid.RowDefinitions>
+
+  <Grid Grid.Row="0" Margin="10,0,10,10">
+    <TextBlock x:Name="BuildTotalsLine" VerticalAlignment="Center" FontSize="13"
+               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <TextBox x:Name="BuildFilter" Style="{DynamicResource FilterBox}"
+               TextChanged="FilterChanged" ToolTip="Narrow by name, status or build id" />
+    </StackPanel>
+  </Grid>
+
+  <Grid Grid.Row="1" x:Name="BuildHeaderRow" Margin="10,0,10,6">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="2.4*" />
+      <ColumnDefinition Width="1*" />
+      <ColumnDefinition Width="1.2*" />
+      <ColumnDefinition Width="0.8*" />
+      <ColumnDefinition Width="1*" />
+    </Grid.ColumnDefinitions>
+    <Button Grid.Column="0" Tag="NAME" Click="SortBy"
+            Style="{DynamicResource SortHeading}" Content="NAME" x:Name="NameHeading" />
+    <Button Grid.Column="1" Tag="STATUS" Click="SortBy"
+            Style="{DynamicResource SortHeading}" Content="STATUS" x:Name="StatusHeading" />
+    <Button Grid.Column="2" Tag="WHEN" Click="SortBy"
+            Style="{DynamicResource SortHeading}" Content="WHEN" x:Name="WhenHeading" />
+    <Button Grid.Column="3" Tag="DURATION" Click="SortBy"
+            Style="{DynamicResource SortHeading}" Content="DURATION" x:Name="DurationHeading" />
+    <TextBlock Grid.Column="4" Text="STEPS" VerticalAlignment="Center" FontSize="11"
+               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+  </Grid>
+
+  <ListView Grid.Row="2" x:Name="Builds" BorderThickness="0"
+            Background="Transparent" SelectionChanged="BuildSelected"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <ListView.ItemContainerStyle>
+      <Style TargetType="ListViewItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="10,8" />
+      </Style>
+    </ListView.ItemContainerStyle>
+    <ListView.ItemTemplate>
+      <DataTemplate>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <!-- Same as BuildHeaderRow's, character for character; a test asserts it. -->
+            <ColumnDefinition Width="2.4*" />
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="1.2*" />
+            <ColumnDefinition Width="0.8*" />
+            <ColumnDefinition Width="1*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="{Binding Name}"
+                     TextTrimming="CharacterEllipsis"
+                     Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+          <!-- A chip, because status is the column actually scanned (L3). The tint is resolved once
+               per render rather than per row, and it carries the daemon's own word. -->
+          <Border Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                  CornerRadius="5" Padding="8,2" Background="{Binding ChipFill}">
+            <TextBlock Text="{Binding Status}" FontSize="11"
+                       Foreground="{Binding ChipText}" />
+          </Border>
+          <TextBlock Grid.Column="2" Text="{Binding When}"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          <TextBlock Grid.Column="3" Text="{Binding DurationText}"
+                     Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+          <TextBlock Grid.Column="4" Text="{Binding Steps}"
+                     TextTrimming="CharacterEllipsis"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Grid>
+      </DataTemplate>
+    </ListView.ItemTemplate>
+  </ListView>
+
+  <StackPanel Grid.Row="2" x:Name="BuildsEmpty" VerticalAlignment="Center"
+              HorizontalAlignment="Center" Visibility="Collapsed">
+    <TextBlock x:Name="BuildsEmptyHeadline" FontSize="20" HorizontalAlignment="Center"
+               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+    <TextBlock x:Name="BuildsEmptyDetail" Margin="0,8,0,0" FontSize="13"
+               HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="420"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+  </StackPanel>
+
+  <!-- The detail, under the list rather than beside it: the fields are long paths and a digest, and
+       a narrow column would trim exactly the tail that identifies them. Absent rather than blank
+       until a row is picked. -->
+  <Border Grid.Row="3" x:Name="Detail" Visibility="Collapsed"
+          BorderThickness="0,1,0,0" Padding="10,10,10,12"
+          BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+          Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}">
+    <StackPanel>
+      <Grid>
+        <TextBlock x:Name="DetailName" FontSize="14" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+        <TextBlock x:Name="DetailId" HorizontalAlignment="Right" FontSize="12"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+      </Grid>
+      <ItemsControl x:Name="DetailFields" Margin="0,8,0,0">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <!-- A DockPanel and not a Grid: the two column blocks in this file are the header and
+                 the row under it, which a test pairs character for character, and a third block
+                 here is one it cannot pair. The caption is fixed-width either way. -->
+            <DockPanel Margin="0,0,0,4" LastChildFill="True">
+              <TextBlock DockPanel.Dock="Left" Width="140" Text="{Binding Name}" FontSize="12"
+                         VerticalAlignment="Top"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              <TextBlock Text="{Binding Value}" FontSize="12" TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </DockPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock x:Name="DetailFailure" Margin="0,4,0,0" TextWrapping="Wrap" FontSize="12"
+                 Visibility="Collapsed"
+                 Foreground="{x:Static ui:Palette.DangerBrush}" />
+    </StackPanel>
+  </Border>
+</Grid>
+</UserControl>

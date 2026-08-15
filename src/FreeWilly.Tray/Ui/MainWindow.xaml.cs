@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using FreeWilly.Core.Api;
+using FreeWilly.Core.Builds;
 using FreeWilly.Core.Engine;
 using FreeWilly.Core.Licensing;
 using FreeWilly.Tray.Ui.Pages;
@@ -31,10 +32,16 @@ internal partial class MainWindow : Window
     private readonly Func<EngineState> _engineState;
     private readonly Action _startEngine;
     private readonly WindowRecall _recall;
+    private readonly IBuildHistory _builds;
 
     private ImagesPage? _images;
     private VolumesPage? _volumes;
+    private BuildsPage? _buildsPage;
     private AboutPage? _about;
+
+    /// <summary>The builds destination, built on first use and then kept (DD126).</summary>
+    /// <remarks>A property because two reach it: the nav strip, and <see cref="ShowBuild"/>.</remarks>
+    private BuildsPage BuildsDestination => _buildsPage ??= Add(new BuildsPage(_builds));
 
     /// <summary>The containers list. Built with the window: it is the destination it opens on.</summary>
     internal ContainersPage Containers { get; }
@@ -43,12 +50,19 @@ internal partial class MainWindow : Window
     /// <param name="api">The Engine API client.</param>
     /// <param name="engineState">What the engine is doing, asked at render time.</param>
     /// <param name="startEngine">What the empty state's button does.</param>
-    internal MainWindow(IEngineClient api, Func<EngineState> engineState, Action startEngine)
+    /// <param name="builds">
+    /// Where build records are read from (DD126). The pinned Buildx by default; <c>--fixture</c>
+    /// passes one needing no daemon, which is what makes that page capturable (L6).
+    /// </param>
+    internal MainWindow(
+        IEngineClient api, Func<EngineState> engineState, Action startEngine,
+        IBuildHistory? builds = null)
     {
         InitializeComponent();
         _api = api;
         _engineState = engineState;
         _startEngine = startEngine;
+        _builds = builds ?? new BuildHistory();
 
         Containers = new ContainersPage(api, engineState, startEngine);
         DestinationHost.Children.Add(Containers);
@@ -139,6 +153,10 @@ internal partial class MainWindow : Window
                 page = _volumes;
                 _ = _volumes.RefreshVolumesAsync();
                 break;
+            case "Builds":
+                page = BuildsDestination;
+                _ = BuildsDestination.RefreshBuildsAsync();
+                break;
             case "About":
                 _about ??= Add(new AboutPage(_api));
                 page = _about;
@@ -159,6 +177,19 @@ internal partial class MainWindow : Window
     {
         DestinationHost.Children.Add(page);
         return page;
+    }
+
+    /// <summary>Open the builds destination on one record, because a link named it (DD126).</summary>
+    /// <param name="reference">The ref, as <see cref="BuildAddress.RefIn"/> read it.</param>
+    /// <remarks>
+    /// The nav is ticked first, so arriving by link leaves the window in the state arriving by click
+    /// does — otherwise the strip disagrees with what is on screen.
+    /// </remarks>
+    internal void ShowBuild(string reference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        NavBuilds.IsChecked = true;
+        _ = BuildsDestination.ShowBuildAsync(reference);
     }
 
     /// <summary>Re-read the containers, and the engine line above them.</summary>

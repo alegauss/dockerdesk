@@ -183,6 +183,31 @@ Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
 Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "DOCKER_CONFIG"; \
     ValueData: "{app}"; Tasks: pathentry; Flags: uninsdeletevalue
 
+; The docker-desktop:// handler (DD126). Buildx ends every build with
+; `View build details: docker-desktop://dashboard/build/<builder>/<node>/<ref>`; the line is
+; hardcoded in the binary this project pins and nothing configures it away — measured against
+; DOCKER_CLI_HINTS, BUILDX_EXPERIMENTAL and BUILDX_NO_DEFAULT_ATTESTATIONS. The ref in it is real
+; and names a record the daemon kept, so only the address was dead.
+;
+; This is another vendor's scheme, and taking it is the one thing here that argues against: Wsl's
+; ToWindowsPath already refuses to map Docker Desktop's paths on the grounds that it would be this
+; tool claiming another engine's layout. What answers it — HKCU rather than HKCR, so this is one
+; user's choice and needs no elevation; uninsdeletekey, so it leaves when this does; the preflight
+; refuses to install beside a rival at all; and a Docker Desktop installed afterwards overwrites
+; this, which is the right way round for the conflict to resolve.
+;
+; Unconditional rather than gated on a task: a handler that is registered only sometimes is a link
+; that works on some machines, which is worse to diagnose than one that never worked.
+Root: HKCU; Subkey: "Software\Classes\docker-desktop"; ValueType: string; \
+    ValueName: ""; ValueData: "URL:Docker build details"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\docker-desktop"; ValueType: string; \
+    ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\docker-desktop\DefaultIcon"; ValueType: string; \
+    ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+; "%1" quoted, because the URL is one argument and an unquoted one splits on the first space.
+Root: HKCU; Subkey: "Software\Classes\docker-desktop\shell\open\command"; ValueType: string; \
+    ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" --open-build ""%1"""
+
 [Run]
 ; postinstall and checked by default: what the user just installed is an icon, and not starting it
 ; leaves them looking at nothing. skipifsilent, because an unattended install pushed to a machine

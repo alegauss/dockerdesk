@@ -4,17 +4,22 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+- 📋 **DD128** (deps: DD3 ✅) **Quitting the tray leaves the engine and its WSL virtual machine running, so the memory stays held** — Quit runs the same stop the menu item does, so the one way out of the tray also gives back the memory the machine was lending it. → §DD128
+- 📋 **DD129** (deps: DD128) **A logoff, a shutdown or an End task never reaches the quit path, so the engine outlives the session** — The stop is hung off the session ending as well, so the exits a user does not think of as quitting leave nothing running. → §DD129
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
-
-- 📋 **DD126** (deps: DD34 ✅, DD38 ✅) **The build details link buildx prints opens nothing, because it addresses a dashboard this machine does not have** — The scheme is registered to this tool and the ref opens a page of its own, so the printed link resolves to the record the daemon already kept. → §DD126
 
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks
 
 ## Block F — Installer and distribution (free, Apache 2.0)
+
+- 📋 **DD130** (deps: —) **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — The preflight runs on a wizard page before the first file is copied, so an install that cannot work stops where nothing has been changed yet. → §DD130
+- 📋 **DD131** (deps: DD130) **A machine without WSL2 gets a message box naming a command, which assumes the reader knows what WSL2 is** — The blocked install lands on a page that names the feature in plain words, numbers the steps, links Microsoft's own instructions and re-checks in place. → §DD131
+- 📋 **DD132** (deps: DD131) **Turning the missing feature on is left to the user, so an install that could finish itself ends in a terminal** — Setup turns WSL2 on itself behind a single elevation prompt, asks for the reboot the feature needs and picks the install up on the other side. → §DD132
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

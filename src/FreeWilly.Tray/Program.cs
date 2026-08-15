@@ -109,6 +109,47 @@ internal sealed class TrayApplication : ApplicationContext
     /// </remarks>
     internal void QuitFromSignal() => _ui.Post(_ => Quit(), null);
 
+    /// <summary>
+    /// Open the build a link left in the handoff, raising the window for it (DD126).
+    /// </summary>
+    /// <remarks>
+    /// Posted for the reason <see cref="RaiseWindow"/> is: the signal arrives on a background thread
+    /// and every line below touches the window. Taking the ref is what clears it, so a link that
+    /// arrives while the window is already open does not leave one behind for the next launch.
+    ///
+    /// <para>Silent where there is nothing waiting. The signal and the file are written by two
+    /// separate calls, and a raced or failed write should leave the window as it was rather than
+    /// clearing whatever build is on screen.</para>
+    /// </remarks>
+    internal void ShowBuildFromSignal() => _ui.Post(_ => ShowPendingBuild(), null);
+
+    /// <summary>Open one build, named directly rather than through the handoff (DD126).</summary>
+    /// <param name="reference">The ref, already read out of the link.</param>
+    /// <remarks>
+    /// The path for the launch that opened the link itself: the ref never left this process, so
+    /// there is no file to take. Posted like the signal's, because it runs before the message loop
+    /// has started and the window has to be created on it.
+    /// </remarks>
+    internal void ShowBuild(string reference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        _ui.Post(_ => Open(reference), null);
+    }
+
+    private void ShowPendingBuild()
+    {
+        if (new FreeWilly.Core.Builds.BuildHandoff().Take() is { } reference)
+        {
+            Open(reference);
+        }
+    }
+
+    private void Open(string reference)
+    {
+        OpenWindow();
+        _open?.ShowBuild(reference);
+    }
+
     private void OpenWindow()
     {
         if (_open is not null)
@@ -318,10 +359,53 @@ internal sealed class TrayApplication : ApplicationContext
 /// </remarks>
 internal static class Program
 {
+    /// <summary>
+    /// A ref this process must open itself, where the handoff file could not be written (DD126).
+    /// </summary>
+    /// <remarks>
+    /// The file is how a ref reaches a tray in another process, and it is also the ordinary path
+    /// here — the tray takes it a moment later. This field is only the fallback for a machine whose
+    /// root is not writable, where the ref never leaves this process and so needs no file at all.
+    /// </remarks>
+    private static string? _pendingBuild;
+
     [STAThread]
     private static int Main(string[] args)
     {
         var route = Cli.CommandLine.Of(args);
+
+        // A build link, which is the shell invoking this install's handler for docker-desktop://
+        // (DD126). Resolved before the tray branch because it may end in either place: a running tray
+        // is told to open it, and a machine with none becomes one showing it.
+        if (route.Surface is Cli.Surface.OpenBuild)
+        {
+            if (FreeWilly.Core.Builds.BuildAddress.RefIn(route.Arguments[0]) is not { } reference)
+            {
+                Cli.ParentConsole.Attach();
+                Console.Error.WriteLine(
+                    $"{Cli.CommandLine.ExecutableName}: that is not a build link.");
+                return 2;
+            }
+
+            // Written before the signal, so the tray that hears it has something to take.
+            var handoff = new FreeWilly.Core.Builds.BuildHandoff();
+
+            if (handoff.Leave(reference) && Cli.SingleTray.AskTheLiveOneToShowABuild())
+            {
+                return 0;
+            }
+
+            // Nothing was listening, so this process becomes the tray and opens the build itself.
+            // Falling through rather than exiting is what makes a link work on a machine where the
+            // tray is not running, which is most machines most of the time.
+            //
+            // The file is taken back first. It was written for a reader that turned out not to
+            // exist, and leaving it would make the next ordinary launch open a build nobody asked
+            // for — the ref travels in this process from here, which needs no file.
+            handoff.Take();
+            route = route with { Surface = Cli.Surface.Tray, OpenWindow = true };
+            _pendingBuild = reference;
+        }
 
         if (route.Surface is Cli.Surface.Tray)
         {
@@ -361,6 +445,16 @@ internal static class Program
                 var tray = new TrayApplication(openWindow: route.OpenWindow);
                 only!.OnRaise(tray.RaiseWindow);
                 only.OnQuit(tray.QuitFromSignal);
+                only.OnBuild(tray.ShowBuildFromSignal);
+
+                // The link this launch arrived on, if it arrived on one (DD126). Only then: reading
+                // the handoff on every start would make a file left by an earlier run open a build
+                // on an ordinary launch.
+                if (_pendingBuild is { } direct)
+                {
+                    tray.ShowBuild(direct);
+                }
+
                 Application.Run(tray);
             }
 

@@ -462,6 +462,52 @@ public sealed class PackagingTests
     }
 
     [Fact]
+    public void The_installer_registers_this_install_as_the_build_link_handler()
+    {
+        // DD126. Buildx prints a docker-desktop:// link at the end of every build and nothing
+        // configures that away, so on a machine without Docker Desktop the link opens an error.
+        // Registering the scheme is what makes it resolve to the record the daemon already kept.
+        var directives = InstallerDirectives().ToList();
+
+        // HKCU and not HKCR: this is one user's choice about their own machine, needs no elevation,
+        // and a Docker Desktop installed afterwards overwrites it — which is the right way round.
+        var command = Assert.Single(
+            directives,
+            line => line.Contains(
+                @"Subkey: ""Software\Classes\docker-desktop\shell\open\command""",
+                StringComparison.Ordinal));
+
+        Assert.Contains("Root: HKCU", command, StringComparison.Ordinal);
+
+        // The verb comes from the code rather than being retyped, so a rename cannot leave the
+        // registry pointing at a verb this executable no longer has.
+        Assert.Contains(
+            Core.Builds.BuildAddress.Scheme,
+            command,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"{CommandLine.OpenBuildVerb} \"\"%1\"\"",
+            command,
+            StringComparison.Ordinal);
+
+        // A URL is one argument. Unquoted, it splits on the first space and the handler is handed
+        // half a link.
+        Assert.Contains(@"""""%1""""", command, StringComparison.Ordinal);
+
+        // Declared a URL scheme, or the shell does not treat it as one at all.
+        Assert.Contains(
+            directives,
+            line => line.Contains(@"ValueName: ""URL Protocol""", StringComparison.Ordinal));
+
+        // And it leaves when this does: a handler pointing at a deleted executable is worse than
+        // none, because the link then fails in a way that names this product.
+        Assert.Contains(
+            directives,
+            line => line.Contains(@"Subkey: ""Software\Classes\docker-desktop""", StringComparison.Ordinal)
+                    && line.Contains("uninsdeletekey", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Turning_the_engine_autostart_off_leaves_the_trays_entry_alone()
     {
         // The failure itself, driven rather than restated. `Disable` removes rather than blanks,
@@ -508,16 +554,22 @@ public sealed class PackagingTests
         // it wants the tray on its own or every logon puts a window in somebody's face. The two
         // spellings are in two files and nothing else would notice them drifting apart.
         //
-        // The line rather than the whole literal: Inno doubles its own quotes, so an exact match
-        // asserts that escaping as much as it asserts the argument, and the argument is the claim.
+        // Found by its key rather than by "the line mentioning the executable": DD126 registers a
+        // protocol handler that also names it, so that predicate stopped identifying anything. The
+        // Run key is what this test is about, and it is the thing to match on.
+        //
+        // Not the whole literal: Inno doubles its own quotes, so an exact match asserts that
+        // escaping as much as it asserts the argument, and the argument is the claim.
         var runValue = Assert.Single(
-            InstallerScript().Split('\n'),
-            line => line.Contains("ValueData:", StringComparison.Ordinal)
-                && line.Contains("MyAppExeName", StringComparison.Ordinal));
+            InstallerDirectives(),
+            line => line.Contains(
+                        @"Subkey: ""Software\Microsoft\Windows\CurrentVersion\Run""",
+                        StringComparison.Ordinal)
+                    && line.Contains("ValueData:", StringComparison.Ordinal));
 
-        Assert.EndsWith(
-            $"{Tray.Cli.CommandLine.TrayOnlyVerb}\"; \\",
-            runValue.TrimEnd('\r'),
+        Assert.Contains(
+            $"{Tray.Cli.CommandLine.TrayOnlyVerb}\"",
+            runValue,
             StringComparison.Ordinal);
 
         // And it really is silence: the flag the script writes has to be the one that means it.

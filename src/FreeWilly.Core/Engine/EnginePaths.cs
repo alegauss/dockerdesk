@@ -156,6 +156,18 @@ public sealed class EnginePaths
     /// </remarks>
     public string WindowState => Path.Combine(Root, "window.json");
 
+    /// <summary>
+    /// The build a second launch is asking the running window to open (DD126).
+    /// </summary>
+    /// <remarks>
+    /// A file because the signal cannot carry one. One tray owns the window, so a
+    /// <c>docker-desktop://</c> link opened while it is running has to hand the ref across a process
+    /// boundary — and the object that already does the handing is a named event, which carries no
+    /// payload. Beside <see cref="WindowState"/> for the same reason: a value written by one run and
+    /// read by another, whose absence is a meaningful answer.
+    /// </remarks>
+    public string PendingBuild => Path.Combine(Root, "open-build.txt");
+
     /// <summary>Create every directory this layout names. Idempotent.</summary>
     public void Create()
     {

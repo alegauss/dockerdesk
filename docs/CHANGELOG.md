@@ -65,6 +65,7 @@
 - ✅ **DD112** **The set of folded-away projects is never narrowed, so a project brought back under its old name comes back folded** — A fold is narrowed on every answered refresh, so a project's absence forgets it rather than holding it against the next project to use that name — decided, not left to omission.
 - ✅ **DD113** **The fixture machine's compose project declares no dependencies, so the ordering DD107 added is never exercised by it** — The sample project declares `depends_on` the way compose spells it, so a fixture run orders its services rather than taking the fallback, and the capture is unchanged.
 - ✅ **DD127** **A compose project's header never folds, because its hit target is arranged at nothing** — Clicking a compose project's header folds its containers away and clicking it again brings them back.
+- ✅ **DD126** **The build details link buildx prints opens nothing, because it addresses a dashboard this machine does not have** — The docker-desktop scheme is registered to this install, and the ref in the link opens a Builds destination listing the history with the named record shown in full.
 
 ## Block D — Container operations (what a user came to do)
 

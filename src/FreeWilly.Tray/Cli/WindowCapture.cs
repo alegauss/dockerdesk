@@ -80,6 +80,12 @@ internal static class WindowCapture
         // machine and in CI. The window is handed one or the other and never learns which.
         IEngineClient api = fixture ? new SampleMachine() : new DockerApi();
 
+        // The builds page reads its own history rather than the Engine API, so it needs its own
+        // fixture or --fixture would photograph a page that shells out to the real Buildx and shows
+        // whatever this machine happened to build (DD126, L6). Null is the live one.
+        FreeWilly.Core.Builds.IBuildHistory? builds =
+            fixture ? new FreeWilly.Core.Fixtures.SampleBuilds() : null;
+
         // Before the window exists, because the water starts drifting the moment it is told the
         // engine is up and this verb's fixture says exactly that (DD69, DD70). A picture that caught a
         // random phase would make every capture differ from the last, which is the one property
@@ -87,7 +93,7 @@ internal static class WindowCapture
         Ui.Motion.Still = true;
 
         var window = new Ui.MainWindow(
-            api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { })
+            api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { }, builds)
         {
             WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
             // Off the desktop entirely. Not merely unfocused: there is no screen region for anything

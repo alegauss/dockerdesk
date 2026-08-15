@@ -131,6 +131,12 @@
                 <RadioButton x:Name="NavVolumes" Style="{StaticResource NavDest}"
                              GroupName="Destination" Content="Volumes"
                              Tag="Volumes" Checked="Destination_Checked" />
+                <!-- What has been built here (DD126). Also where the docker-desktop:// link buildx
+                     prints at the end of every build lands, since the ref in it names a record the
+                     daemon kept and only the address was dead. -->
+                <RadioButton x:Name="NavBuilds" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Builds"
+                             Tag="Builds" Checked="Destination_Checked" />
                 <!-- The terms and the versions, where a bug report starts. A destination rather
                      than the dialog it used to be (DD83, L2): a modal that has to be dismissed is
                      the wrong shape for a page somebody reads while typing somewhere else. -->

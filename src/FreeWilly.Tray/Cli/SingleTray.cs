@@ -42,16 +42,28 @@ internal sealed class SingleTray : IDisposable
     /// </remarks>
     private const string QuitName = "FreeWilly.tray.quit";
 
+    /// <summary>What a <c>docker-desktop://</c> link sets to open a build in the live one (DD126).</summary>
+    /// <remarks>
+    /// A third object, for the reason the second one was added: an auto-reset event carries no
+    /// payload, so a handle shared with <see cref="RaiseName"/> would make "show yourself" and "show
+    /// this build" the same signal. The ref itself travels beside it in
+    /// <see cref="Core.Builds.BuildHandoff"/>, which is what an event cannot carry.
+    /// </remarks>
+    private const string BuildName = "FreeWilly.tray.build";
+
     private readonly Mutex _held;
     private readonly EventWaitHandle _raise;
     private readonly EventWaitHandle _quit;
+    private readonly EventWaitHandle _build;
     private readonly CancellationTokenSource _stopping = new();
 
-    private SingleTray(Mutex held, EventWaitHandle raise, EventWaitHandle quit)
+    private SingleTray(
+        Mutex held, EventWaitHandle raise, EventWaitHandle quit, EventWaitHandle build)
     {
         _held = held;
         _raise = raise;
         _quit = quit;
+        _build = build;
     }
 
     /// <summary>
@@ -85,7 +97,8 @@ internal sealed class SingleTray : IDisposable
         only = new SingleTray(
             mutex,
             new EventWaitHandle(false, EventResetMode.AutoReset, RaiseName),
-            new EventWaitHandle(false, EventResetMode.AutoReset, QuitName));
+            new EventWaitHandle(false, EventResetMode.AutoReset, QuitName),
+            new EventWaitHandle(false, EventResetMode.AutoReset, BuildName));
         return true;
     }
 
@@ -103,6 +116,13 @@ internal sealed class SingleTray : IDisposable
     /// machine with no tray running is already in the state the caller wanted.
     /// </returns>
     internal static bool AskTheLiveOneToQuit() => Signal(QuitName);
+
+    /// <summary>Ask whatever holds the tray to open the build left in the handoff (DD126).</summary>
+    /// <returns>
+    /// <see langword="true"/> where something was there to hear it. False means this process should
+    /// become the tray itself rather than exiting, or the link would do nothing at all.
+    /// </returns>
+    internal static bool AskTheLiveOneToShowABuild() => Signal(BuildName);
 
     /// <summary>Set one of the two named events, if anything is listening on it.</summary>
     private static bool Signal(string name)
@@ -168,6 +188,13 @@ internal sealed class SingleTray : IDisposable
     /// </param>
     internal void OnQuit(Action quit) => Listen(_quit, "freewilly-tray-quit", quit);
 
+    /// <summary>Run <paramref name="show"/> when a build link asks for one (DD126).</summary>
+    /// <param name="show">
+    /// What opens the build. Called off the UI thread like the other two, and it reads the ref from
+    /// the handoff itself — the signal only says one is waiting.
+    /// </param>
+    internal void OnBuild(Action show) => Listen(_build, "freewilly-tray-build", show);
+
     /// <summary>Watch one named event until the claim is disposed.</summary>
     private void Listen(EventWaitHandle signal, string name, Action act)
     {
@@ -199,6 +226,7 @@ internal sealed class SingleTray : IDisposable
         _held.Dispose();
         _raise.Dispose();
         _quit.Dispose();
+        _build.Dispose();
         _stopping.Dispose();
     }
 }

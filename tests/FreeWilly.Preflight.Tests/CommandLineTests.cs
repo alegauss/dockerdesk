@@ -303,4 +303,36 @@ public sealed class CommandLineTests
     [Fact]
     public void A_null_command_line_is_a_defect_here_rather_than_a_route() =>
         Assert.Throws<ArgumentNullException>(() => CommandLine.Of(null!));
+
+    [Fact]
+    public void A_build_link_routes_to_the_window_carrying_the_link_alone()
+    {
+        // The shell invokes a handler with the URL as the only thing after the verb (DD126). The
+        // verb is dropped, and the window opens: a link that showed only a tray icon would look
+        // like the click did nothing.
+        var route = CommandLine.Of([CommandLine.OpenBuildVerb, "docker-desktop://dashboard/build/a/b/c"]);
+
+        Assert.Equal(Surface.OpenBuild, route.Surface);
+        Assert.True(route.OpenWindow);
+        Assert.Equal(["docker-desktop://dashboard/build/a/b/c"], route.Arguments);
+    }
+
+    [Theory]
+    [InlineData()]
+    [InlineData("a", "b")]
+    public void A_build_link_with_anything_but_one_argument_is_not_one(params string[] rest)
+    {
+        // Same refusal as --quit's and for the same reason: this reaches into a running process, and
+        // guessing what an argument it does not have was meant to qualify is worse than saying so.
+        Assert.Equal(
+            Surface.Unknown,
+            CommandLine.Of([CommandLine.OpenBuildVerb, .. rest]).Surface);
+    }
+
+    [Fact]
+    public void The_build_link_verb_is_named_in_the_help()
+    {
+        // A verb documented in one of two lists is a verb somebody cannot find.
+        Assert.Contains(CommandLine.OpenBuildVerb, CommandLine.HelpText, StringComparison.Ordinal);
+    }
 }

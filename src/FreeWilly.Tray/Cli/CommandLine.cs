@@ -30,6 +30,9 @@ public enum Surface
     /// <summary>Ask the tray this session is running to exit, on the console (DD121).</summary>
     Quit,
 
+    /// <summary>Open one build, because a <c>docker-desktop://</c> link named it (DD126).</summary>
+    OpenBuild,
+
     /// <summary>A verb this executable does not have.</summary>
     Unknown,
 }
@@ -108,6 +111,17 @@ public static class CommandLine
 
     /// <summary>The verb that renders the window to a PNG without showing it (DD22).</summary>
     public const string CaptureWindowVerb = "--capture-window";
+
+    /// <summary>
+    /// The verb a <c>docker-desktop://</c> build link arrives on (DD126).
+    /// </summary>
+    /// <remarks>
+    /// Registered as this install's handler for that scheme, so what follows is whatever any process
+    /// on the machine put in a link — which is why the argument is read by
+    /// <see cref="Core.Builds.BuildAddress.RefIn"/> and refused rather than passed on when it does
+    /// not name a build.
+    /// </remarks>
+    public const string OpenBuildVerb = "--open-build";
 
     /// <summary>
     /// The verb that holds the tray's context menu open (DD67).
@@ -197,6 +211,15 @@ public static class CommandLine
             return new Route(Surface.CaptureWindow, OpenWindow: false, arguments[1..]);
         }
 
+        // Exactly one argument, the link. A handler is invoked by the shell with the URL as the only
+        // thing after the verb, and anything else arriving here is not the shell.
+        if (string.Equals(first, OpenBuildVerb, StringComparison.Ordinal))
+        {
+            return arguments.Length == 2
+                ? new Route(Surface.OpenBuild, OpenWindow: true, arguments[1..])
+                : new Route(Surface.Unknown, OpenWindow: false, arguments);
+        }
+
         if (string.Equals(first, ShowMenuVerb, StringComparison.Ordinal))
         {
             // The verb is dropped: what follows is the engine state and --seconds.
@@ -251,6 +274,9 @@ public static class CommandLine
                            render the window to a PNG off-screen, photographing nothing else
           {ShowMenuVerb} [state] [--seconds n]
                            hold the tray's context menu open, for scripts\Capture-Window.ps1
+          {OpenBuildVerb} <link>
+                           open one build in the window; this install's handler for the
+                           docker-desktop:// link buildx prints at the end of a build
 
           {PreflightVerb}      what this machine can host; add --json for an installer
           --plan           the pinned versions, digests and paths; reaches nothing

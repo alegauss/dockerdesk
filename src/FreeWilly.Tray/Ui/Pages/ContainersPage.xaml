@@ -252,8 +252,14 @@
                  covers. Collapsed on a container, which is the trigger — so it catches nothing on a
                  row that has its own buttons. The whole strip rather than the chevron alone: a
                  nine-pixel glyph is a target somebody has to aim at, and the row already reads as
-                 one thing. Verbs on a project are DD107; this only folds it away. -->
+                 one thing. Verbs on a project are DD107; this only folds it away.
+
+                 Both alignments are stated, and they are the whole of DD127: the Fluent Button style
+                 sets Left and Center, a templated Border with no child measures to nothing, and a
+                 hit target arranged at 0x0 catches no click at all — so the header looked like it
+                 folded and never did. Stated locally because a local value is what beats a style. -->
             <Button Grid.Column="0" Grid.ColumnSpan="5" Tag="{Binding}" Click="ToggleProject"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                     Background="Transparent" BorderThickness="0" Cursor="Hand"
                     ToolTip="Show or hide this project's containers"
                     Visibility="{Binding IsProject, Converter={StaticResource Shown}}">

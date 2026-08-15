@@ -8,6 +8,8 @@
 
 ## Block C — The window (claude-tray's elements)
 
+- 📋 **DD126** (deps: DD34 ✅, DD38 ✅) **The build details link buildx prints opens nothing, because it addresses a dashboard this machine does not have** — The scheme is registered to this tool and the ref opens a page of its own, so the printed link resolves to the record the daemon already kept. → §DD126
+
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

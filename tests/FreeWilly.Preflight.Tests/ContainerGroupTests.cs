@@ -599,6 +599,45 @@ public sealed class ContainerGroupTests
         }
     }
 
+    // ---- the fold has to be reachable (DD127) ----------------------------------------------------
+
+    [Fact]
+    public void The_headers_hit_target_is_stretched_over_the_row()
+    {
+        // Everything above passed while the fold could not be used at all, which is why this guard is
+        // on the markup and not on another shaping. The hit target is a Button with a template of one
+        // empty Border, so it measures to nothing — and the Fluent Button style, which it picks up
+        // implicitly, sets Left and Center. Arranged at its desired size that is 0x0: visible, hit
+        // testable, and catching no click anywhere on the header.
+        //
+        // Measured on the rendered row rather than reasoned about: 785x24 with both alignments, 0x0
+        // without. A local value is what beats a style, so both are stated on the element.
+        var markup = Markup();
+        var at = markup.IndexOf("Click=\"ToggleProject\"", StringComparison.Ordinal);
+        Assert.True(at > 0, "the header's fold has no hit target in ContainersPage.xaml");
+
+        var element = markup[markup.LastIndexOf('<', at)..markup.IndexOf('>', at)];
+        Assert.Contains("HorizontalAlignment=\"Stretch\"", element, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment=\"Stretch\"", element, StringComparison.Ordinal);
+
+        // And still transparent rather than unset: a null Background is not hit tested at all, which
+        // is the same click going nowhere by the other route.
+        Assert.Contains("Background=\"Transparent\"", element, StringComparison.Ordinal);
+    }
+
+    private static string Markup()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FreeWilly.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.True(directory is not null, "the repository root was not found above the test binaries");
+        return File.ReadAllText(
+            Path.Combine(directory!.FullName, "src/FreeWilly.Tray/Ui/Pages/ContainersPage.xaml"));
+    }
+
     // ---- and the flat list is unchanged ------------------------------------------------------------
 
     [Fact]

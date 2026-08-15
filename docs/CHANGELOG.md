@@ -64,6 +64,7 @@
 - ✅ **DD111** **One row type describes a container and a project header, and nothing says which members a header answers** — `ContainerRow.Members` names what a container answers, what a project answers and what both do, and a test fails a member in no set or answered by the wrong row.
 - ✅ **DD112** **The set of folded-away projects is never narrowed, so a project brought back under its old name comes back folded** — A fold is narrowed on every answered refresh, so a project's absence forgets it rather than holding it against the next project to use that name — decided, not left to omission.
 - ✅ **DD113** **The fixture machine's compose project declares no dependencies, so the ordering DD107 added is never exercised by it** — The sample project declares `depends_on` the way compose spells it, so a fixture run orders its services rather than taking the fallback, and the capture is unchanged.
+- ✅ **DD127** **A compose project's header never folds, because its hit target is arranged at nothing** — Clicking a compose project's header folds its containers away and clicking it again brings them back.
 
 ## Block D — Container operations (what a user came to do)
 

@@ -112,7 +112,12 @@ public sealed class EnginePipeRelay : IAsyncDisposable
             // must close the client's read, and a client that hangs up must not leave the channel
             // holding a process.
             using var pair = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-            var toEngine = Pump(client, channel.ToEngine, pair.Token);
+
+            // The client's direction reads its HTTP on the way past, so a bind source spelled the
+            // Windows way is respelled the distribution's (DD125). Everything it does not understand
+            // it forwards byte for byte, so this stays a pipe. The daemon's direction is the plain
+            // copy it always was: nothing in a response names a source this had to change.
+            var toEngine = EngineRequestFilter.PumpAsync(client, channel.ToEngine, pair.Token);
             var toClient = Pump(channel.FromEngine, client, pair.Token);
             await Task.WhenAny(toEngine, toClient).ConfigureAwait(false);
             await pair.CancelAsync().ConfigureAwait(false);

@@ -19,7 +19,12 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- 📋 **DD145** (deps: —) **A wizard page is checked by reading Pascal, so an overlap is found by somebody running an installer** — A committed harness renders one page from the script's own code and reports every rectangle, so a layout defect fails a test instead. → §DD145
+- 📋 **DD146** (deps: —) **A successful install keeps no record of what it was cleared on, and the uninstall deletes a file nothing writes** — The report is written once {app} exists, so an install that went through keeps the reading it was allowed on. → §DD146
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
+
+- 📋 **DD144** (deps: —) **The agent budget gate is red on a clean checkout: the shaped surface measures 812 tokens against 813 recorded** — The measurement and the record are reconciled and the commit names what the token bought, so the gate means something again. → §DD144
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

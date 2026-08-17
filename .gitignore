@@ -43,3 +43,7 @@
 # Python bytecode, from the roadkeep launcher and anything that imports it (DD116).
 __pycache__/
 *.pyc
+
+# Test run artefacts. dotnet test --logger trx writes here, and run-commit.cmd stages
+# everything by design, so one diagnostic run otherwise lands in a commit about something else.
+TestResults/

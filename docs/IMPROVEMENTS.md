@@ -106,6 +106,69 @@ and print every file that went into it.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+### §DD145 Measuring a wizard page instead of reading it
+
+Four tasks have built a wizard page in Pascal — DD121's uninstall form, DD123's tasks
+page, DD131's blocked-install page and DD132's button on it — and every one was checked
+by reading the script. The failures that misses are the ones it has already produced: a
+caption assigned before its width wrapped at column zero, a page that rendered correctly
+above a screenful of blank space, and a Copy button nine pixels below the box it belongs
+to, because an edit sizes itself to its font and a button does not. Each was found by
+running an installer, and the last only because a throwaway harness happened to exist
+that afternoon.
+
+That harness is the proposal. A page's geometry is readable from inside Setup: a script
+that builds the page, reports every control's rectangle and visibility, then closes
+itself needs no clicks, no screenshot and nobody watching. Built and deleted three times
+in one session, it answered which controls overlapped, which were hidden in which state,
+and what the buttons said — the whole of what reading Pascal cannot.
+
+So it is committed rather than rebuilt: one script rendering a named page under a named
+state, and a test that fails on an overlap, on a control off the bottom of the surface,
+or on a caption that does not match the state asked for. The [Code] section is the input
+either way, so the harness compiles the text the installer ships and cannot drift from
+it.
+
+### §DD146 The report a successful install stopped keeping
+
+A loose end DD130 left behind rather than a defect it introduced. The preflight used to
+run at ssPostInstall and wrote `{app}\preflight.txt` whatever it found, so every install
+left a record of what the machine looked like when it was cleared. Moving the read in
+front of the copy moved the write with it, and the write now happens only when something
+blocks — because that is when somebody needs the file, and on a blocked fresh install
+there is no `{app}` to put it in.
+
+What that costs is the successful case. An install that went through leaves nothing
+saying what was read, so the first question after a machine starts misbehaving — was
+this row green when it was installed, or has something changed since — has no answer on
+disk. The uninstall still deletes `{app}\preflight.txt`, and a delete of a file nothing
+writes is the kind of line that outlives the reason for it.
+
+The read has already happened by then and its verdict is remembered, so the write is
+where the directory finally exists: `{app}` is created during the copy, and
+ssPostInstall is the step that knows both. What is written is the same string the page
+would have shown, which keeps one rendering rather than two, and the blocked path keeps
+writing to TEMP exactly as it does now.
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
+
+### §DD144 The one token the budget gate has been red on
+
+The gate has been red for longer than anybody has looked at it. `MeasureShapedTaskAsync`
+answers 812 tokens and `agent-budget.json` records 813, so
+`The_shaped_surface_costs_what_the_budget_records` fails on every run of the suite —
+including a clean checkout with nothing else wrong, which is how a failing test stops
+being read as a failure.
+
+One token is exactly the size of drift this assertion was sharpened to catch. DD78 made
+it exact rather than banded, and the reasoning was that a 15% band around two inputs
+read off Windows hid a response that had grown by a hundred tokens. A gate that is
+permanently one token out has the same effect by a different route: the suite is red
+either way, so the next real change to the surface arrives at a test nobody trusts.
+
+So the work is not to move the number. It is to find out what moved it — which verb, and
+what the extra token bought — and then to record the measurement with that answer in the
+commit, which is what the assertion's own failure message asks for. Whichever direction
+that goes, the fix ends with the gate meaning what it says again.
 
 ## Block H — The public surface (the site a reader and an agent both read)

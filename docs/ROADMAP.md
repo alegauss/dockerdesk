@@ -16,6 +16,8 @@
 
 ## Block E — Images, volumes and networks
 
+- 📋 **DD139** (deps: DD138 ✅) **One named volume anywhere hides the bind mounts again, because only the empty state ever mentions them** — The totals line carries the same bind-mount count as a third clause, so a partial list says it is partial whether or not it has rows. → §DD139
+
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 - 📋 **DD130** (deps: —) **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — The preflight runs on a wizard page before the first file is copied, so an install that cannot work stops where nothing has been changed yet. → §DD130

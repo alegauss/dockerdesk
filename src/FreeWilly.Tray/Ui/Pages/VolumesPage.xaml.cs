@@ -36,6 +36,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
     internal async Task RefreshVolumesAsync()
     {
         IReadOnlyList<VolumeRow> rows = [];
+        var binds = BindMounts.None;
         string? failure = null;
         if (_engineState() is EngineState.Running)
         {
@@ -45,6 +46,10 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
                 var containers = await _api.ContainersAsync().ConfigureAwait(true);
                 _volumeActivity.Prune(volumes.Select(volume => volume.Name));
                 rows = [.. VolumeRow.From(volumes, containers).Select(_volumeActivity.Dress)];
+
+                // The same containers the join needed, asked a second question (DD138): what they
+                // mount that this list will never carry.
+                binds = BindMounts.For(containers);
             }
             catch (DockerApiException refused)
             {
@@ -52,7 +57,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
             }
         }
 
-        ShowVolumes(rows, failure);
+        ShowVolumes(rows, binds, failure);
         if (rows.Count == 0)
         {
             return;
@@ -66,7 +71,7 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
             // have deleted a row while the daemon was counting.
             if (Volumes.ItemsSource is IEnumerable<VolumeRow> showing)
             {
-                ShowVolumes([.. VolumeRow.WithSizes(showing, measured)], failure: null);
+                ShowVolumes([.. VolumeRow.WithSizes(showing, measured)], _binds, failure: null);
             }
         }
         catch (DockerApiException)
@@ -87,9 +92,13 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
 
     private string? _failure;
 
-    private void ShowVolumes(IReadOnlyList<VolumeRow> rows, string? failure)
+    /// <summary>What the containers mount that this list does not carry (DD138).</summary>
+    private BindMounts _binds = BindMounts.None;
+
+    private void ShowVolumes(IReadOnlyList<VolumeRow> rows, BindMounts binds, string? failure)
     {
         _rows = rows;
+        _binds = binds;
         _failure = failure;
         Show();
     }
@@ -129,9 +138,13 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
         (VolumesEmptyHeadline.Text, VolumesEmptyDetail.Text) = (_failure, _engineState()) switch
         {
             (not null, _) => ("The volumes could not be read", _failure!),
+            // "Nothing has been created yet" is true about volumes and false about a machine whose
+            // storage is all bind mounts, which is the sentence DD138 was filed for.
             (_, EngineState.Running) => (
                 "No volumes",
-                "Nothing has been created yet. A named volume or a `docker run -v` appears here."),
+                _binds.Any
+                    ? _binds.Detail
+                    : "Nothing has been created yet. A named volume or a `docker run -v` appears here."),
             _ => ("The engine is not running", "Start it to see what is on disk."),
         };
     }

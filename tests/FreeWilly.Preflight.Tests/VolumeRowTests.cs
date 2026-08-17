@@ -89,6 +89,82 @@ public sealed class VolumeRowTests
         Assert.True(VolumeRow.From([Volume("shop_pgdata")], [container])[0].IsMounted);
     }
 
+    // ---- the storage this list does not carry (DD138) --------------------------------------------
+
+    private static ContainerSummary Binding(string name, params string[] destinations) =>
+        new()
+        {
+            Id = $"c-{name}",
+            Names = [$"/{name}"],
+            Mounts = [.. destinations.Select(d => new MountPoint { Type = "bind", Destination = d })],
+        };
+
+    [Fact]
+    public void A_machine_whose_storage_is_all_bind_mounts_is_told_so_rather_than_that_nothing_exists()
+    {
+        // The compose file this was filed for declares no volume at all, so the list is correctly
+        // empty and "nothing has been created yet" reads as lost data.
+        var binds = BindMounts.For([Binding("aem-author", "/opt/aem/repository", "/opt/aem/launchpad")]);
+
+        Assert.True(binds.Any);
+        Assert.Equal(2, binds.Count);
+        Assert.Contains("2 bind mounts are in use", binds.Detail, StringComparison.Ordinal);
+        Assert.Contains("held by aem-author", binds.Detail, StringComparison.Ordinal);
+        Assert.Contains("nothing has gone missing", binds.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_tab_with_no_bind_mounts_has_nothing_to_say_about_them()
+    {
+        Assert.False(BindMounts.For([Mounting("web", "data")]).Any);
+        Assert.False(BindMounts.For([]).Any);
+    }
+
+    [Fact]
+    public void Bind_mounts_are_counted_per_destination_and_not_per_container()
+    {
+        // The reader is being told how much storage this list is not showing, so the same host
+        // folder mounted by two containers is two mounts.
+        var binds = BindMounts.For([Binding("web", "/srv"), Binding("worker", "/srv")]);
+
+        Assert.Equal(2, binds.Count);
+        Assert.Equal(["web", "worker"], binds.Containers);
+    }
+
+    [Fact]
+    public void One_bind_mount_reads_as_a_singular()
+    {
+        var binds = BindMounts.For([Binding("web", "/srv")]);
+
+        Assert.Contains("1 bind mount is in use", binds.Detail, StringComparison.Ordinal);
+        Assert.Contains("held by web", binds.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_container_mounting_both_kinds_is_counted_only_for_its_binds()
+    {
+        var container = new ContainerSummary
+        {
+            Id = "c1",
+            Names = ["/web"],
+            Mounts =
+            [
+                new MountPoint { Type = "volume", Name = "shop_pgdata" },
+                new MountPoint { Type = "bind", Destination = "/app" },
+            ],
+        };
+
+        Assert.Equal(1, BindMounts.For([container]).Count);
+    }
+
+    [Fact]
+    public void A_stopped_container_still_holds_its_host_folder()
+    {
+        var container = Binding("web", "/srv") with { State = "exited" };
+
+        Assert.Equal(1, BindMounts.For([container]).Count);
+    }
+
     // ---- anonymous, and the compose convention --------------------------------------------------
 
     [Fact]

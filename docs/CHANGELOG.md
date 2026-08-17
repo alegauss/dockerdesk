@@ -84,6 +84,7 @@
 
 - ✅ **DD11** **Tens of gigabytes of layers accumulate and nothing says which images are dangling or still in use** — Images sorted by size, each row saying whether a container holds it or it is dangling, with per-image removal and a dangling-only prune that names the space before the click and after it.
 - ✅ **DD12** **Volumes are invisible: a user cannot see which exist, what they cost on disk, or which containers mount them** — Volumes with their sizes and what mounts them, the compose project read off the name, and a deletion that names all of it first because a volume is the one thing here that does not come back.
+- ✅ **DD138** **A compose file that binds host folders leaves the volumes tab saying nothing has been created, which reads as lost data** — With the list empty the tab now says how many bind mounts are in use, who holds them and that they are host folders the engine does not own, rather than that nothing was created.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 

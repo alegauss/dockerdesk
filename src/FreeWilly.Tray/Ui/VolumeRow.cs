@@ -219,6 +219,84 @@ public sealed record VolumeRow(
         && name.All(character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
 }
 
+/// <summary>
+/// The bind mounts in play, which are the storage this list does not carry (DD138).
+/// </summary>
+/// <remarks>
+/// A bind mount is a folder on this machine and not an object the daemon owns, so it appears in no
+/// <c>/volumes</c> answer and <see cref="VolumeRow.From"/> drops it on purpose: the only verb on
+/// that list is delete, and a directory somebody chose is not ours to offer.
+///
+/// <para>The exclusion is right and the silence about it is not. A compose file written the way
+/// most of them are — <c>./volumes/data:/var/lib/…</c> — declares no volume at all, so a project
+/// with gigabytes on disk reaches a tab saying nothing has been created, and the conclusion a
+/// reader draws is that the tool lost the data.</para>
+/// </remarks>
+/// <param name="Count">How many bind mounts, counted per destination.</param>
+/// <param name="Containers">The containers holding them, by name.</param>
+public sealed record BindMounts(int Count, IReadOnlyList<string> Containers)
+{
+    /// <summary>No binds anywhere, which is what a tab says nothing about.</summary>
+    public static BindMounts None { get; } = new(0, []);
+
+    /// <summary>Whether there is anything to say.</summary>
+    public bool Any => Count > 0;
+
+    /// <summary>
+    /// Count the bind mounts across the containers already in hand.
+    /// </summary>
+    /// <remarks>
+    /// Per destination rather than per container: two containers mounting the same folder are two
+    /// mounts, because the reader is being told how much storage this list is not showing and not
+    /// how many distinct directories exist.
+    /// </remarks>
+    /// <param name="containers">What the container endpoint returned, stopped ones included.</param>
+    /// <returns>The count and who holds it.</returns>
+    public static BindMounts For(IEnumerable<ContainerSummary> containers)
+    {
+        ArgumentNullException.ThrowIfNull(containers);
+
+        var count = 0;
+        var holders = new List<string>();
+        foreach (var container in containers)
+        {
+            var mine = container.Mounts.Count(
+                mount => mount.Type.Equals("bind", StringComparison.Ordinal));
+            if (mine == 0)
+            {
+                continue;
+            }
+
+            count += mine;
+            if (!holders.Contains(container.DisplayName, StringComparer.Ordinal))
+            {
+                holders.Add(container.DisplayName);
+            }
+        }
+
+        holders.Sort(StringComparer.OrdinalIgnoreCase);
+        return count == 0 ? None : new BindMounts(count, holders);
+    }
+
+    /// <summary>
+    /// What the empty state says instead of claiming nothing was ever created.
+    /// </summary>
+    /// <remarks>
+    /// The containers are named because that is what turns a number into the reader's own machine,
+    /// and the last clause is the one the sentence exists for: an empty list here is not a loss.
+    /// </remarks>
+    public string Detail =>
+        $"{Mounts} in use, {Held}. A bind mount is a folder on this machine rather than storage "
+        + "the engine owns, so it is not on this list and nothing has gone missing.";
+
+    private string Mounts => Count == 1 ? "1 bind mount is" : $"{Count} bind mounts are";
+
+    private string Held =>
+        Containers.Count == 1
+            ? $"held by {Containers[0]}"
+            : $"held by {string.Join(", ", Containers)}";
+}
+
 /// <summary>What the volumes tab says above the list, and what a deletion asks first.</summary>
 /// <param name="Total">Every volume that has been measured, added up.</param>
 /// <param name="AnonymousUnused">What a prune would take.</param>

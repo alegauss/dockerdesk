@@ -2,26 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD129 Every way the tray ends
-
-DD128 hangs the stop off `TrayApplication.Quit`, which is the menu item and the `--quit`
-signal. Those are not the only ways this process ends. A logoff, a shutdown and an End
-task in Task Manager tear it down without any of its handlers running, and the detached
-`--run` it launched has no parent to notice — so the virtual machine survives the
-session that asked for it, which is the same held memory DD128 removes from one exit
-only.
-
-Windows announces two of those three. `SystemEvents.SessionEnding` fires on logoff and
-shutdown, and what the stop needs there is a spawn rather than a wait: launching
-`--stop` is a `Process.Start` and returns long before the distribution is down, which is
-what makes it safe inside a window Windows may end at any moment.
-
-A kill gets no notice and this task does not pretend otherwise. What it buys is that the
-ordinary end of a working day — signing out, shutting the machine down — leaves nothing
-running, and the honest limit is that an engine orphaned by a crash is still there at
-the next launch, where the tray already reports it correctly and the stop item already
-works.
-
 ### §DD137 DD137
 
 The engine host is launched detached and hidden, which is right — a console window the

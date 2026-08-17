@@ -472,7 +472,7 @@ public sealed class TrayTests
         Assert.True(quit >= 0, "the tray no longer has a quit path");
 
         var body = source[quit..];
-        var stopped = body.IndexOf("_holder.Stop()", StringComparison.Ordinal);
+        var stopped = body.IndexOf("StopTheEngine();", StringComparison.Ordinal);
         var hidden = body.IndexOf("_icon.Visible = false;", StringComparison.Ordinal);
 
         Assert.True(
@@ -481,6 +481,13 @@ public sealed class TrayTests
             + "gigabytes this project exists to give back (DD128)");
         Assert.True(hidden >= 0, "the tray no longer hides its icon on the way out");
         Assert.True(stopped < hidden, "the engine is asked to stop after the tray has gone");
+
+        // And that the stop it reaches is the engine's own verb, rather than a second spelling of
+        // it: --stop terminates the distribution, which is what reaches an engine this tray never
+        // started and what gives the virtual machine back.
+        var shared = source.IndexOf("private void StopTheEngine()", StringComparison.Ordinal);
+        Assert.True(shared >= 0, "the shared stop is gone");
+        Assert.Contains("_holder.Stop()", source[shared..], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -504,6 +511,38 @@ public sealed class TrayTests
             offenders.Count == 0,
             "something passes --shutdown to wsl, which takes every distribution on the machine down "
             + $"and not just the one this install owns: {string.Join(", ", offenders)}");
+    }
+
+    // ---- the exits nobody thinks of as quitting (DD129) ---------------------------------------
+
+    [Fact]
+    public void A_logoff_or_a_shutdown_stops_the_engine_too()
+    {
+        // Asserted on the source for the reason the rest of these are: nothing in a test can raise a
+        // real SessionEnding at a live tray, and the consequence of getting it wrong is only visible
+        // on a machine somebody has signed out of.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+
+        Assert.Contains("SessionEnding += OnSessionEnding", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "SessionEnding -= OnSessionEnding",
+            source,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_stop_is_asked_for_once_however_many_ways_the_session_ends()
+    {
+        // A logoff raises SessionEnding and the tray may still process its own quit behind it. Both
+        // reach the same stop, and without the guard the second is a process spawned during a
+        // shutdown against a distribution already terminated.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+        var method = source.IndexOf("private void StopTheEngine()", StringComparison.Ordinal);
+
+        Assert.True(method >= 0, "the two ways out no longer share one stop");
+        Assert.Contains("_engineToldToStop", source[method..], StringComparison.Ordinal);
     }
 
     // ---- what the shell is told at add time (DD82) --------------------------------------------

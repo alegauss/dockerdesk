@@ -20,6 +20,7 @@ internal sealed class TrayApplication : ApplicationContext
     private Icon? _worn;
     private EngineOnLaunch _onLaunch;
     private bool _startRequested;
+    private bool _engineToldToStop;
     private CancellationTokenSource? _landing;
     private EngineState _shown = EngineState.Stopped;
 
@@ -82,6 +83,13 @@ internal sealed class TrayApplication : ApplicationContext
         // watch fires on a thread of its own, so the redraw is posted through the same context the
         // event stream uses; calling Show from there would touch NotifyIcon off the UI thread (DD99).
         _scale.Watch();
+
+        // The exits nobody thinks of as quitting (DD129). A logoff and a shutdown tear this process
+        // down without Quit ever running, and the detached `--run` it launched has no parent to
+        // notice — so the virtual machine outlived the session that asked for it, which is the same
+        // held memory DD128 removed from one exit only. A kill gets no notice and this does not
+        // pretend otherwise; what it buys is that signing out at the end of a day leaves nothing up.
+        Microsoft.Win32.SystemEvents.SessionEnding += OnSessionEnding;
 
         // The indicator is the event loop's own connection state: connected exactly when the engine
         // is answering. No timer, and no second definition of "running".
@@ -396,9 +404,44 @@ internal sealed class TrayApplication : ApplicationContext
     /// </remarks>
     private void Quit()
     {
-        _ = _holder.Stop();
+        StopTheEngine();
         _icon.Visible = false;
         ExitThread();
+    }
+
+    /// <summary>Windows is ending the session, so leave nothing behind (DD129).</summary>
+    /// <param name="sender">Unused.</param>
+    /// <param name="ending">Unused; a logoff and a shutdown are answered the same way.</param>
+    /// <remarks>
+    /// A spawn and never a wait. This runs inside a window Windows may close at any moment, and
+    /// <see cref="EngineHolder.Stop"/> is a <see cref="System.Diagnostics.Process"/> start that
+    /// returns long before the
+    /// distribution is down — which is exactly what makes it safe to do here. Blocking on the
+    /// virtual machine shutting down would risk being killed halfway and is no more effective.
+    ///
+    /// <para>The icon and the message loop are left alone. Windows is already taking them, and
+    /// touching UI from this callback would be doing it from the wrong thread on the way out.</para>
+    /// </remarks>
+    private void OnSessionEnding(object sender, Microsoft.Win32.SessionEndingEventArgs ending) =>
+        StopTheEngine();
+
+    /// <summary>Ask the engine to stop, at most once over this tray's life (DD129).</summary>
+    /// <remarks>
+    /// Guarded because there are now two callers and a session can reach both: Windows raises
+    /// <c>SessionEnding</c> and a tray that then processes its own quit would
+    /// launch a second <c>--stop</c> against a distribution already terminated. Harmless, but it is
+    /// a process spawned during a shutdown for no reason, and the false one would report a failure
+    /// nobody could act on.
+    /// </remarks>
+    private void StopTheEngine()
+    {
+        if (_engineToldToStop)
+        {
+            return;
+        }
+
+        _engineToldToStop = true;
+        _ = _holder.Stop();
     }
 
     protected override void Dispose(bool disposing)
@@ -408,8 +451,10 @@ internal sealed class TrayApplication : ApplicationContext
             StopWatchingTheStart();
             _events.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
-            // SystemEvents is static and holds its subscribers alive, so leaving this attached is a
-            // leak that outlives the tray it was drawing for.
+            // SystemEvents is static and holds its subscribers alive, so leaving these attached is a
+            // leak that outlives the tray they were for — the session hook (DD129) as much as the
+            // scale watch, and it is the same static object holding both.
+            Microsoft.Win32.SystemEvents.SessionEnding -= OnSessionEnding;
             _scale.Dispose();
             _api.Dispose();
             _icon.Dispose();

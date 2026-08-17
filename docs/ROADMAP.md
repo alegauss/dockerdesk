@@ -24,6 +24,8 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
+- 📋 **DD147** (deps: —) **A budget figure is typed rather than produced, so an exact gate can bind a number nobody measured** — The measurement writes the figures it produced, so a recorded number and the run behind it cannot disagree. → §DD147
+
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ## Non-goals

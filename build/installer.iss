@@ -121,6 +121,17 @@ Name: "pathentry"; Description: "Put docker and freewilly on my PATH"; GroupDesc
 ; One file. That is DD14: one .exe to publish, to sign, to install and to hand somebody.
 Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
+; The same file again, and it is the same file: MergeDuplicateFiles is on by default, so two entries
+; naming one source are stored once. Measured on a 20 MB incompressible payload — 23,069,659 bytes
+; with both entries against 23,069,662 with one — which is what makes DD130 affordable, since the
+; alternative reading of "run the check first" is a second executable to publish and sign.
+;
+; dontcopy is what ExtractTemporaryFile requires and is also the whole of this entry's behaviour:
+; nothing is installed by it. The preflight page below puts this copy in {tmp} and runs it there,
+; before Setup has written anything to {app} — so a machine that cannot host an engine is told so
+; while there is still nothing on it to undo.
+Source: "{#MyPublishDir}\{#MyAppExeName}"; Flags: dontcopy
+
 ; DD24. The agent surface is reached as `freewilly read ...`, which is the literal string an
 ; allowlist entry matches - `Bash(freewilly read:*)`. The .exe lives in {app} and only {app}\bin is
 ; on PATH, so without this the one command the whole read/do split exists to make grantable does not
@@ -240,6 +251,22 @@ var
   // DD123. The tasks page, drawn here rather than by Setup, and the four boxes on it.
   TasksPage: TWizardPage;
   WantDesktopIcon, WantStartupIcon, WantEngine, WantPathEntry: TNewCheckBox;
+
+  // DD130. The preflight page, which stands between the tasks page and wpReady — so the last thing
+  // Setup does before the first file is written is read the machine.
+  PreflightPage: TWizardPage;
+  PreflightMemo: TNewMemo;
+
+  // Asked once and remembered, because the wizard walks over this page in both directions and
+  // re-reading the machine on every Back would be a pause with no new answer in it.
+  PreflightAsked: Boolean;
+  PreflightClear: Boolean;
+
+  // What blocks, in the words the product chose. One string, shown on the page and written to the
+  // file — the page has to be able to stand in for the file, because on a fresh install there is no
+  // {app} to write one into.
+  PreflightSaid: string;
+  PreflightReport: string;
 
 // ---------------------------------------------------------------------------------------------
 // The tasks page, drawn rather than asked for (DD123)
@@ -370,29 +397,6 @@ begin
   Result := Copy(Result, 1, Length(Result) - 1);
 end;
 
-function ShouldSkipPage(PageID: Integer): Boolean;
-begin
-  // The broken one, and only ever this one. Skipped rather than removed, because [Tasks] is still
-  // what every `Tasks:` parameter and every /MERGETASKS reads.
-  Result := PageID = wpSelectTasks;
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if CurPageID = TasksPage.ID then
-    WizardSelectTasks(ChosenTasks);
-end;
-
-procedure InitializeWizard;
-begin
-  ProvisionPage := CreateOutputProgressPage(
-    'Container engine',
-    'Setup is putting the engine on this machine. Nothing is started by this.');
-
-  BuildTasksPage;
-end;
-
 // ---------------------------------------------------------------------------------------------
 // PATH
 // ---------------------------------------------------------------------------------------------
@@ -436,54 +440,380 @@ begin
 end;
 
 // ---------------------------------------------------------------------------------------------
-// The preflight, run by the product rather than restated here
+// The preflight, run before the first file rather than after the last (DD130)
 // ---------------------------------------------------------------------------------------------
+//
+// The order is the whole of this section. It used to run at ssPostInstall — after every file had
+// been written, the PATH entry made and the Run value set — so a laptop without WSL2 received a
+// complete installation of a tool whose one job it cannot do, plus a message box explaining that.
+// Skipping the engine download was the only thing the late check still bought.
+//
+// It is still the product answering. `--preflight` is the same code a user runs when a working
+// setup stopped working, and a second opinion written in Pascal would be two reports about one
+// machine that a reader has to reconcile. What moved is when it is asked, not who answers.
+//
+// `--json` and not the text form, and the reason is the encoding. The report a person reads is
+// UTF-8 with em dashes and arrows in it; Inno reads a file as ANSI, so pasting that into a control
+// is the mojibake the old message box was written around. System.Text.Json escapes everything
+// outside ASCII as \uXXXX, so the JSON form arrives intact and Unquote below puts the characters
+// back — which is how the page can show what the report says rather than point at a file.
 
-function RunPreflight: Boolean;
+/// The four hex digits of a \u escape, as a number.
+function Nibbles(const S: string): Integer;
+var
+  I, Digit: Integer;
+  C: Char;
+begin
+  Result := 0;
+  for I := 1 to Length(S) do
+  begin
+    C := Uppercase(S)[I];
+    if (C >= '0') and (C <= '9') then
+      Digit := Ord(C) - Ord('0')
+    else if (C >= 'A') and (C <= 'F') then
+      Digit := 10 + Ord(C) - Ord('A')
+    else
+      Digit := 0;
+    Result := (Result * 16) + Digit;
+  end;
+end;
+
+/// The one character with this code point.
+function CodePoint(Value: Integer): string;
+var
+  Bytes: AnsiString;
+begin
+  // Chr here is a byte, whatever the string it is assigned into. Measured: — came back as
+  // #$14 and the em dash was simply gone from the report. So the character is spelled out in
+  // UTF-8 — which is bytes all the way down — and Utf8Decode turns those into the one character
+  // a control can draw.
+  //
+  // Three bytes is as far as this goes, which covers the whole Basic Multilingual Plane and
+  // therefore every dash, arrow and accent the product's own rows are written with. A surrogate
+  // pair would arrive here as two halves and leave as two replacement characters; nothing in a
+  // preflight row is outside the BMP, and a report that needed an emoji would have a worse problem.
+  if Value < $80 then
+    Bytes := Chr(Value)
+  else if Value < $800 then
+    Bytes := Chr($C0 or (Value shr 6)) + Chr($80 or (Value and $3F))
+  else
+    Bytes := Chr($E0 or (Value shr 12))
+           + Chr($80 or ((Value shr 6) and $3F))
+           + Chr($80 or (Value and $3F));
+
+  Result := Utf8Decode(Bytes);
+end;
+
+/// One JSON string literal's contents, with its escapes turned back into characters.
+function Unquote(const S: string): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  I := 1;
+  while I <= Length(S) do
+  begin
+    if (S[I] = '\') and (I < Length(S)) then
+    begin
+      I := I + 1;
+      case S[I] of
+        // A newline inside a Detail is a line break on the page. \r is dropped rather than emitted,
+        // because the pair would otherwise become two breaks where the writer meant one.
+        'n': Result := Result + #13#10;
+        'r': ;
+        't': Result := Result + ' ';
+        'u':
+          begin
+            Result := Result + CodePoint(Nibbles(Copy(S, I + 1, 4)));
+            I := I + 4;
+          end;
+      else
+        // \" \\ \/ and anything this does not know: the character itself, which is the right answer
+        // for every escape JSON defines apart from the four above.
+        Result := Result + S[I];
+      end;
+    end
+    else
+      Result := Result + S[I];
+    I := I + 1;
+  end;
+end;
+
+/// The value of the named property, if this line carries it.
+function JsonValue(const Raw, Name: string; var Value: string): Boolean;
+var
+  Line, Head: string;
+begin
+  // WriteIndented puts one property on one line, which is what makes a line reader honest here
+  // rather than a parser this file would have to be trusted with. A string value cannot contain a
+  // raw newline — JSON escapes it — so a property never spans two lines whatever it holds.
+  Result := False;
+  Line := Trim(Raw);
+  Head := '"' + Name + '": ';
+  if Pos(Head, Line) <> 1 then
+    Exit;
+
+  Value := Copy(Line, Length(Head) + 1, MaxInt);
+
+  // The comma every property but an object's last one carries.
+  if (Length(Value) > 0) and (Value[Length(Value)] = ',') then
+    Value := Copy(Value, 1, Length(Value) - 1);
+
+  // A string, unquoted; null, true and false are handed back as written, which is what the caller
+  // compares Blocks against.
+  if (Length(Value) >= 2) and (Value[1] = '"') and (Value[Length(Value)] = '"') then
+    Value := Unquote(Copy(Value, 2, Length(Value) - 2));
+
+  Result := True;
+end;
+
+/// Read the report and build the one paragraph per blocking row that the page and the file share.
+procedure ReadTheVerdict(const Path: string);
+var
+  Lines: TArrayOfString;
+  I: Integer;
+  Value, Title, Detail, Remedy: string;
+begin
+  PreflightSaid := '';
+  if not LoadStringsFromFile(Path, Lines) then
+    Exit;
+
+  Title := '';
+  Detail := '';
+  Remedy := '';
+  for I := 0 to GetArrayLength(Lines) - 1 do
+  begin
+    if JsonValue(Lines[I], 'Title', Value) then
+      Title := Value
+    else if JsonValue(Lines[I], 'Detail', Value) then
+      Detail := Value
+    else if JsonValue(Lines[I], 'Remedy', Value) then
+      Remedy := Value
+    else if JsonValue(Lines[I], 'Blocks', Value) then
+    begin
+      // Blocks is the row's own answer to "does this stop an install right now", and it is the last
+      // property of the object — so by the time it is read, the three above belong to this row.
+      // Reading Verdict and Blocking here and deciding again in Pascal is the second opinion this
+      // section exists not to have.
+      if Value = 'true' then
+      begin
+        if PreflightSaid <> '' then
+          PreflightSaid := PreflightSaid + #13#10;
+        PreflightSaid := PreflightSaid + Title + '  ' + Detail + #13#10;
+        if (Remedy <> '') and (Remedy <> 'null') then
+          PreflightSaid := PreflightSaid + '    -> ' + Remedy + #13#10;
+      end;
+
+      Title := '';
+      Detail := '';
+      Remedy := '';
+    end;
+  end;
+end;
+
+/// Where a report outlives Setup. {tmp} does not, and that is the whole of this function.
+function ReportDirectory: string;
+begin
+  // {app} while there is one — a reinstall, or an upgrade — because that is where somebody looks
+  // for this product's own files. On a fresh install blocked by this check there is no {app} and
+  // there must not be: nothing has been written yet, which is the point. TEMP is the user's own and
+  // survives Setup exiting, unlike {tmp}, which Setup deletes on its way out.
+  Result := ExpandConstant('{app}');
+  if not DirExists(Result) then
+    Result := ExpandConstant('{%TEMP}');
+end;
+
+/// Read this machine. Answers whether an engine can be hosted on it, and changes nothing.
+function Preflight: Boolean;
 var
   Code: Integer;
-  ReportPath: string;
+  Machine, Verdict: string;
+  Written: TArrayOfString;
+
+  // LoadStringFromFile hands back bytes, not text. Only the branch below reads it, and only to
+  // quote back whatever the verb printed instead of a report — which is a message from a program
+  // that just failed, so ASCII is the safe assumption and mojibake would be the least of it.
+  Raw: AnsiString;
 begin
-  // The product's own preflight, not a second opinion written in Pascal: two reports about one
-  // machine that read differently are two things for a user to learn. Redirected through cmd, which
-  // is also the only form of a console verb an installer should use — a windowed executable hands its
-  // output to whatever holds its standard handles, and here that is this file.
-  //
-  // Into {app} and not {tmp}: {tmp} is deleted when Setup exits, and this is a report somebody is
-  // going to want in front of them while they change a BIOS setting or install a Windows feature.
-  ReportPath := ExpandConstant('{app}\preflight.txt');
+  if PreflightAsked then
+  begin
+    Result := PreflightClear;
+    Exit;
+  end;
+
+  PreflightAsked := True;
+  PreflightClear := False;
+  PreflightReport := AddBackslash(ReportDirectory) + 'preflight.txt';
+
+  // The one file [Files] already carries, put in {tmp} at the cost of a decompress. Nothing is
+  // installed by this and nothing outside {tmp} is touched, which is what lets the check run before
+  // the wizard has committed to anything.
+  ExtractTemporaryFile('{#MyAppExeName}');
+  Machine := ExpandConstant('{tmp}\{#MyAppExeName}');
+  Verdict := ExpandConstant('{tmp}\preflight.json');
+
+  // Redirected through cmd, which is the only form of a console verb an installer should use: a
+  // windowed executable hands its output to whatever holds its standard handles, and here that is
+  // this file. 2>&1 so a run that fails before it prints a report still leaves its reason in the
+  // file, which is what the unknown-code branch below shows.
   if not Exec(ExpandConstant('{cmd}'),
-              '/C ""' + ExpandConstant('{app}\{#MyAppExeName}') + '" --preflight > "'
-              + ReportPath + '" 2>&1"',
+              '/C ""' + Machine + '" --preflight --json > "' + Verdict + '" 2>&1"',
               '', SW_HIDE, ewWaitUntilTerminated, Code) then
   begin
-    // It never ran, so there is no verdict. Treated as a block: the caller's next move would be to
-    // download a quarter of a gigabyte on the strength of a check that did not happen.
+    // It never ran, so there is no verdict. Treated as a block: the alternative is installing on
+    // the strength of a check that did not happen.
+    PreflightSaid := 'The check could not be started on this machine.';
     Result := False;
     Exit;
   end;
 
-  // Exit code 0 means every blocking row is green, and there is nothing to interrupt anybody with.
-  Result := Code = 0;
+  // 0 means every blocking row is green and 1 means at least one is not — the two the verb
+  // documents. Anything else is a usage error or a crash, and the file holds whatever it said.
+  ReadTheVerdict(Verdict);
+  PreflightClear := Code = 0;
+  if (Code > 1) or ((Code = 1) and (PreflightSaid = '')) then
+  begin
+    Raw := '';
+    LoadStringFromFile(Verdict, Raw);
+    PreflightSaid := 'The check answered ' + IntToStr(Code) + ' and named nothing:'
+                   + #13#10#13#10 + Raw;
+  end;
+
+  Result := PreflightClear;
   if Result then
     Exit;
 
-  // The report is written either way, and the dialog only happens when somebody is there to read it.
-  // A modal box in an unattended install is a machine that looks hung to whoever deployed it.
-  if WizardSilent then
+  // The file, for whoever is reading a deployment rather than a screen. UTF-8 and not
+  // SaveStringToFile, because the rows carry whatever characters the product chose for them and an
+  // ANSI write turns those into question marks.
+  SetArrayLength(Written, 5);
+  Written[0] := 'FreeWilly preflight';
+  Written[1] := '';
+  Written[2] := 'This machine cannot host the container engine yet. Nothing was installed.';
+  Written[3] := '';
+  Written[4] := PreflightSaid;
+  SaveStringsToUTF8File(PreflightReport, Written, False);
+end;
+
+// ---------------------------------------------------------------------------------------------
+// The page it is read on
+// ---------------------------------------------------------------------------------------------
+
+procedure BuildPreflightPage;
+begin
+  // After the tasks page, which puts it immediately before wpReady — the last page before Setup
+  // commits to anything. Shown only when something blocks: a machine that can host an engine gets
+  // no extra click out of this, which is what ShouldSkipPage below is for.
+  PreflightPage := CreateCustomPage(
+    TasksPage.ID,
+    'This machine',
+    'What the engine needs, read before anything is written.');
+
+  PreflightMemo := TNewMemo.Create(PreflightPage);
+  PreflightMemo.Parent := PreflightPage.Surface;
+  PreflightMemo.Left := 0;
+  PreflightMemo.Top := 0;
+  PreflightMemo.Width := PreflightPage.SurfaceWidth;
+  PreflightMemo.Height := PreflightPage.SurfaceHeight;
+
+  // Read-only and scrolling rather than a wrapping label: a remedy is a command somebody has to
+  // type, and a control they can select and copy out of is worth more here than one that cannot be
+  // clicked into. ScrollBars because the number of blocking rows is not this page's to bound.
+  PreflightMemo.ReadOnly := True;
+  PreflightMemo.WordWrap := True;
+  PreflightMemo.ScrollBars := ssVertical;
+end;
+
+// ---------------------------------------------------------------------------------------------
+// The wizard, wired to the two pages above
+// ---------------------------------------------------------------------------------------------
+//
+// Down here rather than beside the pages they steer: Pascal Script resolves a name only if it has
+// already been declared, so every event handler has to stand below everything it calls.
+
+procedure InitializeWizard;
+begin
+  ProvisionPage := CreateOutputProgressPage(
+    'Container engine',
+    'Setup is putting the engine on this machine. Nothing is started by this.');
+
+  // In this order, because the preflight page is positioned after the tasks page and cannot name a
+  // page that does not exist yet.
+  BuildTasksPage;
+  BuildPreflightPage;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  // The broken one, and only ever this one. Skipped rather than removed, because [Tasks] is still
+  // what every `Tasks:` parameter and every /MERGETASKS reads.
+  if PageID = wpSelectTasks then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // A machine that can host an engine has nothing to read here, and a page saying so is a click
+  // this wizard has not earned. The answer is already in hand: NextButtonClick below reads the
+  // machine on the way out of the tasks page, which is the page immediately in front of this one.
+  Result := (PageID = PreflightPage.ID) and PreflightAsked and PreflightClear;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID <> TasksPage.ID then
     Exit;
 
-  // The report itself is not pasted into this dialog. LoadStringFromFile reads AnsiString, the report
-  // is UTF-8 with em dashes and arrows in every row, and a message box full of mojibake is worse than
-  // no message box. The default viewer reads UTF-8 correctly, so it gets to show it.
-  if MsgBox('FreeWilly is installed, but this machine cannot host the engine yet.' + #13#10#13#10
-          + 'Nothing has been downloaded, and nothing is broken — the preflight found at least one '
-          + 'row that blocks an install, and each one names the single action that changes it.'
-          + #13#10#13#10
-          + ReportPath + #13#10#13#10
-          + 'Open it now?',
-            mbInformation, MB_YESNO) = IDYES then
-    ShellExec('open', ReportPath, '', '', SW_SHOWNORMAL, ewNoWait, Code);
+  WizardSelectTasks(ChosenTasks);
+
+  // Read here, so the page after this one already knows whether it has anything to show. It costs a
+  // decompress of the one file plus the probes the verb runs, and the cursor says so — a wizard
+  // that stops responding for a second with no explanation is the same defect in a smaller form.
+  WizardForm.Cursor := crHourGlass;
+  try
+    Preflight;
+  finally
+    WizardForm.Cursor := crDefault;
+  end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID <> PreflightPage.ID then
+    Exit;
+
+  // Reached only when something blocks, so the page never has to phrase a pass.
+  PreflightMemo.Text :=
+    'Nothing has been installed, and nothing on this machine has been changed.'#13#10#13#10
+    + PreflightSaid + #13#10
+    + 'This is written to:'#13#10
+    + PreflightReport + #13#10#13#10
+    + 'Fix what is named above and run Setup again. Back changes what would be installed; it does '
+    + 'not change this answer.';
+
+  // The verdict decides whether Next is available at all, which is what makes this a stop rather
+  // than a warning somebody clicks past onto a machine that cannot run what it is about to receive.
+  WizardForm.NextButton.Enabled := False;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  // The unattended half, and the only half an unattended install has: it never sees a page, so the
+  // stop has to be here. Raised before Setup copies its first file, and returning a message aborts
+  // with exit code 7 — "Preparing to Install determined that Setup cannot proceed" — which is a
+  // deployment's answer and is distinct from every code a cancelled or failed install produces.
+  // Measured on a probe installer: exit 7, and nothing written.
+  //
+  // An interactive install cannot reach this blocked, because Next is disabled on the page above.
+  // It is carried anyway rather than gated on WizardSilent: a stop that exists in one of the two
+  // paths is the kind that is discovered by the path nobody tested.
+  Result := '';
+  if Preflight then
+    Exit;
+
+  Result := 'This machine cannot host the container engine yet, so nothing was installed.'
+          + #13#10#13#10 + PreflightSaid + #13#10 + PreflightReport;
 end;
 
 // ---------------------------------------------------------------------------------------------
@@ -568,11 +898,12 @@ begin
   if CurStep <> ssPostInstall then
     Exit;
 
-  // The order is the argument. The preflight decides whether this machine can host an engine at
-  // all, and unpacking one onto a machine that cannot is the failure it exists to prevent — so a
-  // red row skips the download rather than spending it. `RunPreflight` has already shown the user
-  // its report by the time it answers False.
-  if not RunPreflight then
+  // The order is the argument, and DD130 moved where it is settled: the preflight ran before the
+  // first file was written, so reaching this line at all means the machine cleared it. The guard
+  // stays because the property it states is the one that matters — an engine is never unpacked
+  // onto a machine that cannot host one — and `Preflight` remembers its answer, so restating it
+  // here costs nothing and cannot disagree with the page that showed it.
+  if not Preflight then
     Exit;
 
   if WizardIsTaskSelected('engine') then

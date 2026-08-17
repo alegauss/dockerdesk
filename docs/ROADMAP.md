@@ -19,8 +19,7 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD130** (deps: —) **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — The preflight runs on a wizard page before the first file is copied, so an install that cannot work stops where nothing has been changed yet. → §DD130
-- 📋 **DD131** (deps: DD130) **A machine without WSL2 gets a message box naming a command, which assumes the reader knows what WSL2 is** — The blocked install lands on a page that names the feature in plain words, numbers the steps, links Microsoft's own instructions and re-checks in place. → §DD131
+- 📋 **DD131** (deps: DD130 ✅) **A machine without WSL2 gets a message box naming a command, which assumes the reader knows what WSL2 is** — The blocked install lands on a page that names the feature in plain words, numbers the steps, links Microsoft's own instructions and re-checks in place. → §DD131
 - 📋 **DD132** (deps: DD131) **Turning the missing feature on is left to the user, so an install that could finish itself ends in a terminal** — Setup turns WSL2 on itself behind a single elevation prompt, asks for the reboot the feature needs and picks the install up on the other side. → §DD132
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)

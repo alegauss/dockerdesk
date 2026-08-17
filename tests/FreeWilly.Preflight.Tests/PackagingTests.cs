@@ -585,20 +585,149 @@ public sealed class PackagingTests
         // engine to a verb the wizard never named: `docker` was not a command, Start engine had no
         // distribution to boot, and the install looked finished.
         //
-        // The order is the whole assertion. `RunPreflight` answers whether this machine can host an
+        // The order is the whole assertion. `Preflight` answers whether this machine can host an
         // engine, and the provision is behind that answer — unpacking one onto a machine that cannot
         // host it is the failure the preflight exists to prevent, and it costs a quarter of a
         // gigabyte to discover the hard way.
+        //
+        // DD130 moved where that answer is settled — before the first file rather than after the
+        // last — and left this property standing, which is why the assertion is unchanged apart
+        // from the name. `Preflight` remembers its verdict, so the guard here reads the same answer
+        // the wizard page showed and cannot come to a different one.
         var script = InstallerScript();
 
-        Assert.Contains("if not RunPreflight then", script, StringComparison.Ordinal);
+        Assert.Contains("if not Preflight then", script, StringComparison.Ordinal);
         Assert.Contains("WizardIsTaskSelected('engine')", script, StringComparison.Ordinal);
         Assert.Contains("'--provision'", script, StringComparison.Ordinal);
 
-        var guard = script.IndexOf("if not RunPreflight then", StringComparison.Ordinal);
+        var guard = script.IndexOf("if not Preflight then", StringComparison.Ordinal);
         var provision = script.IndexOf(
             "WizardIsTaskSelected('engine')", StringComparison.Ordinal);
         Assert.True(guard < provision, "the provision is no longer behind the preflight");
+    }
+
+    // ---- DD130: the preflight runs before the install, not after it ----------------------------
+
+    /// <summary>The preflight half of the script, which is the only part these read.</summary>
+    private static string PreflightSection()
+    {
+        var script = InstallerScript();
+        var start = script.IndexOf(
+            "// The preflight, run before the first file rather than after the last",
+            StringComparison.Ordinal);
+
+        Assert.True(start > 0, "the preflight section was renamed and these guards now read nothing");
+
+        // Up to the wiring and no further. The section after that one provisions the engine, and it
+        // does ask a question — about a download that failed on a machine the preflight cleared,
+        // which is a different subject and a legitimate dialog.
+        var end = script.IndexOf(
+            "// The wizard, wired to the two pages above", StringComparison.Ordinal);
+
+        Assert.True(end > start, "the preflight section no longer ends where these guards think");
+        return script[start..end];
+    }
+
+    [Fact]
+    public void The_machine_is_read_off_a_copy_that_no_install_had_to_happen_to_place()
+    {
+        // DD130, and the defect is an order rather than a missing check. The preflight ran at
+        // ssPostInstall — after every file had been written, the PATH entry made and the Run value
+        // set — so a laptop without WSL2 received a complete installation of a tool whose one job it
+        // cannot do, plus a message box explaining that. Skipping the engine download was all the
+        // late check still bought.
+        //
+        // What makes the check runnable early is where the executable comes from: {tmp}, extracted
+        // from the archive, rather than {app}, which only holds an executable once the copy this is
+        // supposed to gate has already happened.
+        var script = InstallerScript();
+
+        Assert.Contains(
+            "ExtractTemporaryFile('{#MyAppExeName}')", script, StringComparison.Ordinal);
+        Assert.Contains(@"{tmp}\{#MyAppExeName}", script, StringComparison.Ordinal);
+
+        // The old caller, named so it cannot come back: running the installed copy is exactly the
+        // dependency on a completed install that this removes.
+        Assert.DoesNotContain(
+            @"{app}\{#MyAppExeName}') + '"" --preflight",
+            script,
+            StringComparison.Ordinal);
+
+        // ExtractTemporaryFile reads the archive and only the archive, and only an entry carrying
+        // `dontcopy` is in it to be read. MergeDuplicateFiles is what keeps that free: measured on
+        // the real payload, the second entry costs 1,607 bytes rather than a second 75 MB copy.
+        Assert.Contains(
+            InstallerDirectives(),
+            line => line.Contains("Flags: dontcopy", StringComparison.Ordinal)
+                    && line.Contains("{#MyAppExeName}", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_verdict_is_the_products_own_and_is_read_in_the_form_that_survives_the_trip()
+    {
+        // Still the product answering, which is the half DD130 did not change: a second opinion
+        // written in Pascal would be two reports about one machine for a reader to reconcile.
+        //
+        // `--json` and not the text form, and the reason is the encoding rather than the structure.
+        // The report a person reads is UTF-8 with em dashes and arrows in it, Inno reads a file as
+        // ANSI, and the old code carried a comment explaining why the report could therefore only be
+        // pointed at and never shown. System.Text.Json escapes everything outside ASCII as \uXXXX,
+        // so the JSON form arrives intact — which is what lets the page say what the report says.
+        var section = PreflightSection();
+
+        Assert.Contains("--preflight --json", section, StringComparison.Ordinal);
+
+        // Which the script therefore has to decode, and the decode has to build a whole character.
+        // Measured: Inno's Chr truncates to a byte, so — came out as #$14 and the em dash was
+        // simply missing from the page.
+        Assert.Contains("Utf8Decode(", section, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_blocked_machine_cannot_be_clicked_past_and_is_never_asked_a_question()
+    {
+        // The verdict decides whether Next is available at all. A warning somebody dismisses is the
+        // old behaviour wearing a page: it ends with the files written either way.
+        var script = InstallerScript();
+        var section = PreflightSection();
+
+        Assert.Contains("WizardForm.NextButton.Enabled := False;", script, StringComparison.Ordinal);
+
+        // The page stands between the tasks page and wpReady, which is the last place a wizard can
+        // stop before Setup commits to anything.
+        Assert.Contains("CreateCustomPage(", section, StringComparison.Ordinal);
+        Assert.Contains("TasksPage.ID,", section, StringComparison.Ordinal);
+
+        // And no dialog anywhere in it. The old check asked "Open it now?" from ssPostInstall, which
+        // is a question about a machine that had already been changed; the page carries what that
+        // message box pointed at.
+        Assert.DoesNotContain("MsgBox", section, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_unattended_install_stops_on_the_same_verdict_without_growing_a_modal()
+    {
+        // A silent install never sees the page, so the stop has to exist somewhere it does reach.
+        // PrepareToInstall is raised before Setup copies its first file, and returning a message
+        // aborts with exit code 7 — "Preparing to Install determined that Setup cannot proceed" —
+        // which is a distinct answer a deployment can read. Measured on a probe installer: exit 7,
+        // and nothing written.
+        var script = InstallerScript();
+
+        var prepare = script.IndexOf(
+            "function PrepareToInstall(", StringComparison.Ordinal);
+        Assert.True(prepare > 0, "nothing gates the install for a caller that never sees a page");
+
+        var body = script[prepare..];
+        body = body[..body.IndexOf("\nend;", StringComparison.Ordinal)];
+
+        Assert.Contains("if Preflight then", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("MsgBox", body, StringComparison.Ordinal);
+
+        // And the report outlives Setup. {tmp} does not — Setup deletes it on the way out — and on
+        // a fresh install stopped by this check there is no {app} either, because nothing has been
+        // written yet. That is the point, so the fallback is the user's own TEMP.
+        Assert.Contains("{%TEMP}", PreflightSection(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -765,14 +894,14 @@ public sealed class PackagingTests
         var script = InstallerScript();
 
         Assert.Contains("WizardSelectTasks(ChosenTasks)", script, StringComparison.Ordinal);
-        Assert.Contains("Result := PageID = wpSelectTasks;", script, StringComparison.Ordinal);
+        Assert.Contains("if PageID = wpSelectTasks then", script, StringComparison.Ordinal);
         Assert.Contains("WizardIsTaskSelected('engine')", script, StringComparison.Ordinal);
 
         // Every box states its answer either way, which `Term` is what guarantees: naming only the
         // ticked ones would let a default survive an untick, and the default that costs somebody a
         // quarter of a gigabyte is one of these four.
         var chosen = script[script.IndexOf("function ChosenTasks:", StringComparison.Ordinal)..];
-        chosen = chosen[..chosen.IndexOf("function ShouldSkipPage", StringComparison.Ordinal)];
+        chosen = chosen[..chosen.IndexOf("// PATH", StringComparison.Ordinal)];
 
         foreach (var name in new[] { "desktopicon", "startupicon", "engine", "pathentry" })
         {

@@ -109,6 +109,7 @@
 - ✅ **DD119** **The installer finishes with no engine on the machine, so docker is not a command and the first start hangs** — Setup provisions the engine on its own page, behind a ticked task and behind the preflight, and the uninstall takes back what it placed.
 - ✅ **DD121** **Uninstalling while FreeWilly runs leaves the .exe and its root on disk, and never offers to stop the engine first** — A page states what closes and asks about the distribution; the uninstall stops the engine and quits the tray by the product's own verbs, and empties the root before Inno reads it.
 - ✅ **DD123** **The Select Additional Tasks page draws its checkboxes clipped, so a tick is a fragment and an untick is a sliver** — The page is drawn from plain checkboxes, which render at that scaling; [Tasks] stays the answer Setup acts on, so every Tasks: parameter and /MERGETASKS keep working.
+- ✅ **DD130** **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — Setup reads the machine from a copy in {tmp} on a page before wpReady, so a laptop without WSL2 is stopped with nothing written, and an unattended one exits 7 with the report on disk.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

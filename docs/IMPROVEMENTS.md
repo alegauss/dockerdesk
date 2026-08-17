@@ -106,28 +106,6 @@ and print every file that went into it.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD130 The preflight runs before the install, not after it
-
-The order is the defect. `CurStepChanged` runs the preflight at `ssPostInstall`, which
-is after every file has been written, the PATH entry made and the Run value set — so a
-machine without WSL2 receives a complete installation of a tool whose one job it cannot
-do, plus a message box and a text file explaining that. The engine download is correctly
-skipped, and that is the only thing the late check still buys.
-
-So the read moves in front of the copy. `[Files]` is one entry by DD14, so
-`ExtractTemporaryFile` puts that same executable in `{tmp}` cheaply, and a wizard page
-inserted before `wpReady` runs `--preflight --json` there. The verdict decides whether
-Next is available at all; nothing about the judgement changes, because it is the same
-code answering — the refusal to write a second opinion in Pascal stands, and this is
-what makes it affordable to keep.
-
-Two behaviours have to survive the move. A silent install must not grow a modal it never
-had: it stops with a distinct exit code and the report on disk, which is what an
-unattended deployment can read. And the report keeps being written to `{app}` when there
-is an `{app}` to write it to, because somebody is going to want it open while they
-change a setting — when Setup stops before creating that directory, `{tmp}` is gone with
-Setup and the page itself has to carry what the file would have said.
-
 ### §DD131 The page a blocked install lands on
 
 What a blocked machine gets today is a message box naming `wsl.exe --install

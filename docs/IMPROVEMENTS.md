@@ -46,6 +46,90 @@ running, and the honest limit is that an engine orphaned by a crash is still the
 the next launch, where the tray already reports it correctly and the stop item already
 works.
 
+### §DD134 DD134
+
+The engine host polls the status every two seconds and comes down when the answer is not
+Running. That poll is a real Engine API request over the pipe, and the relay spawns a
+fresh `wsl.exe` running `socat` for every connection it accepts — so what the poll
+measures is Windows process creation, not the daemon. DD133 raised the tolerance from
+one quiet poll to six, which lengthened the stall needed to trigger it without removing
+the mechanism underneath.
+
+Measured on 17 August 2026: a daemon that had logged `Daemon has completed
+initialization` and never logged a shutdown was cut off eleven minutes later, and the
+virtual machine powered itself off sixty seconds after that on WSL's own idle timeout.
+Nothing was wrong with the engine. The host decided it was gone and terminated the
+distribution to prove it.
+
+The remedy is to stop reading silence as evidence. A ping that does not answer says the
+pipe is not reachable, which is a fact about the relay and the machine's load. Whether
+the daemon is alive is a different question, and it has its own answers that cost
+nothing: the held process, and whether the distribution is still registered. Only those
+two bring the engine down. A quiet ping rebuilds the relay and never touches the daemon,
+so the worst a slow machine can now cost is a reconnect.
+
+### §DD135 DD135
+
+Starting the tray and starting the engine have always been two acts, and the second one
+is a menu item. That is the honest reading of the standing non-goal: both the app and
+the engine run when asked. In practice the user who opens FreeWilly opens it to use
+containers, and the menu item is a step they perform every session with the same answer.
+
+So the engine comes up with the tray, under a setting that ships on. The setting is what
+keeps the non-goal intact rather than merely argued away: turning it off restores
+exactly the behaviour the project describes, and nothing starts at boot that the user
+did not already choose to start — the tray's own logon entry is a separate setting and
+stays that way.
+
+This is not the engine autostart entry under the Run key. That one puts a `--run` host
+on the machine at logon whether or not anybody opens the tray, and it keeps its meaning
+untouched. What changes here is narrower: once the tray is running, the engine it exists
+to manage is running too.
+
+A start that cannot land still says so rather than retrying — a distribution that is not
+registered is a install problem, and the tray already has the sentence for it.
+
+### §DD136 DD136
+
+WSL2 does not survive every suspend. A laptop that sleeps with containers running wakes
+with the virtual machine gone, and until now the only thing that noticed was the user
+finding a dead `docker ps`. The engine host was already awake and polling; what it
+lacked was permission to do anything about it except give up.
+
+Two triggers, because they catch different failures. The Windows resume event is the
+precise one: it names the moment the machine came back, and a reconcile hung off it
+needs no polling interval to be lucky. It is also the one case where a grace period is
+required rather than tidy — `wsl.exe` is unreliable for a stretch after a resume, so the
+first attempt waits for the launcher to answer before concluding anything about the
+daemon.
+
+The poll is the general one. It catches the distribution terminated by hand, the daemon
+that exited on its own, and every cause nobody has thought of, at the cost of finding
+them a little later. With DD134 in place the poll can tell those apart from a slow ping,
+which is what makes acting on it safe.
+
+A restart is attempted, not guaranteed, and repeated failure backs off rather than
+spinning. An engine that cannot come up is a fact to report, and a loop that hides it by
+trying forever is the failure mode this has to avoid being.
+
+### §DD137 DD137
+
+The engine host is launched detached and hidden, which is right — a console window the
+user did not ask for is not an improvement. The cost is that everything it says goes
+nowhere. When it stops, the line naming what it saw is written to a window that was
+never readable and is gone by the time anybody asks.
+
+That was the expensive part of the failure DD134 repairs. The daemon's own log survives
+inside the distribution and was decisive; the host's account of why it walked away was
+not recoverable at all, and the difference between "the host decided the engine was
+dead" and "something killed the host" had to be argued from Hyper-V events and a
+sixty-second gap rather than read.
+
+So the host keeps a log of its own beside the install, next to the provisioning log that
+is already there. What goes in it is small: what it did, what it saw when it stopped,
+and each restart it attempted with the reason. Not a trace of every poll — a file that
+grows without bound is its own defect, and a quiet engine should write nothing.
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

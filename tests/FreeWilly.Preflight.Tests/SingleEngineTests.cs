@@ -115,4 +115,34 @@ public sealed class SingleEngineTests
         // enough to each other that a copied constant would go unnoticed.
         Assert.NotEqual(SingleTray.Name, SingleEngine.Name);
     }
+
+    [Fact]
+    public void A_stop_announced_with_no_host_listening_is_not_a_failure()
+    {
+        RequireTheEngineSlot();
+
+        // `--stop` on a machine with no engine host running is already in the state the caller
+        // wanted, and DD136's signal must not turn that into an error — the teardown behind it still
+        // runs either way.
+        Assert.False(SingleEngine.TellTheLiveOneToStop());
+    }
+
+    [Fact]
+    public void The_host_hears_a_stop_that_announced_itself()
+    {
+        RequireTheEngineSlot();
+
+        // The whole of why the signal exists (DD136). Once the host puts back an engine it loses,
+        // `--stop` terminating the distribution is indistinguishable from WSL2 dying under a
+        // suspend — so without this arriving, a deliberate stop would be undone by a restart.
+        Assert.True(SingleEngine.TryClaim(out var host));
+        using (host)
+        {
+            using var heard = new ManualResetEventSlim(false);
+            host!.OnStop(heard.Set);
+
+            Assert.True(SingleEngine.TellTheLiveOneToStop(), "nothing was listening for the stop");
+            Assert.True(heard.Wait(TimeSpan.FromSeconds(5)), "the host never heard the stop");
+        }
+    }
 }

@@ -91,12 +91,15 @@ internal static class EngineCommand
 
         using (only)
         {
-            return Serve();
+            return Serve(only!);
         }
     }
 
     /// <summary>The engine host proper, once this process is the one that holds the slot.</summary>
-    private static int Serve()
+    /// <param name="only">
+    /// The claim, which since DD136 also carries the one thing <c>--stop</c> has to say out loud.
+    /// </param>
+    private static int Serve(SingleEngine only)
     {
         using var stopping = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
@@ -104,6 +107,29 @@ internal static class EngineCommand
             e.Cancel = true;
             stopping.Cancel();
         };
+
+        // An asked-for stop is the one ending this host must not argue with (DD136). Without it,
+        // `--stop` terminating the distribution from another process is indistinguishable in here
+        // from WSL2 dying under a suspend — and the whole point of what follows is that the second
+        // one gets the engine back.
+        var asked = new CancellationTokenSource();
+        only.OnStop(asked.Cancel);
+
+        // A resume is not itself a failure, so this only shortens the wait for one. The virtual
+        // machine is often gone when the machine comes back while the wsl.exe handle on this side
+        // is still perfectly alive, which reads as a healthy daemon that has stopped answering —
+        // true, and slow to act on. Setting this makes the next turn of the loop reconcile instead
+        // of counting to six first.
+        var resumed = new ManualResetEventSlim(false);
+        void OnPower(object? _, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            if (e.Mode is Microsoft.Win32.PowerModes.Resume)
+            {
+                resumed.Set();
+            }
+        }
+
+        Microsoft.Win32.SystemEvents.PowerModeChanged += OnPower;
 
         var lifecycle = NewLifecycle();
         try
@@ -119,36 +145,7 @@ internal static class EngineCommand
             Console.WriteLine();
             Console.WriteLine("Serving the engine. Ctrl+C stops it.");
 
-            // Watch, rather than sleep forever. Two defects came from sleeping, both measured: a
-            // `--stop` from another process left this one serving a pipe with nothing behind it, and
-            // the wsl.exe children held here kept the distribution alive after it was terminated. So
-            // the engine stopping by any means has to bring this down too.
-            //
-            // A run of quiet polls and not one of them, since DD133: the poll is an Engine API
-            // request that spawns a wsl.exe of its own, so on the machine a long build makes it
-            // times out against a healthy daemon. Believing one of those cost the build its engine.
-            var watch = new EngineWatch();
-            try
-            {
-                while (!stopping.IsCancellationRequested)
-                {
-                    Task.Delay(TimeSpan.FromSeconds(2), stopping.Token)
-                        .GetAwaiter().GetResult();
-                    var now = lifecycle.StatusAsync(stopping.Token).GetAwaiter().GetResult();
-                    if (!watch.KeepServing(now))
-                    {
-                        Console.WriteLine($"  {watch.WhyItStopped(now)}");
-                        break;
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine();
-            }
-
-            Report(lifecycle.StopAsync().GetAwaiter().GetResult());
-            return Ok;
+            return Supervise(lifecycle, stopping, asked, resumed);
         }
         catch (OperationCanceledException)
         {
@@ -157,8 +154,119 @@ internal static class EngineCommand
         }
         finally
         {
+            Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPower;
+            resumed.Dispose();
+            asked.Dispose();
             lifecycle.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
+    }
+
+    /// <summary>
+    /// Keep the engine up until somebody asks for it to stop, or it proves it cannot be (DD136).
+    /// </summary>
+    /// <param name="lifecycle">The engine.</param>
+    /// <param name="stopping">Ctrl+C.</param>
+    /// <param name="asked">A <c>--stop</c> that announced itself.</param>
+    /// <param name="resumed">Set when Windows says the machine came back.</param>
+    /// <returns>The exit code.</returns>
+    /// <remarks>
+    /// What this replaced watched for the engine going away and came down with it, which was right
+    /// while nothing was allowed to put it back. It is the wrong shape for a laptop: WSL2 does not
+    /// survive every suspend, and a host that is awake, polling, and watching the daemon disappear
+    /// is the one thing on the machine in a position to do something about it.
+    ///
+    /// <para><b>Every ending is still reachable.</b> Ctrl+C and an announced <c>--stop</c> come down
+    /// at once and restart nothing, because both are somebody saying what they want. Running out of
+    /// attempts comes down too, and says so — an engine that cannot start is a fact the user needs,
+    /// and a loop that hides it behind another retry is worse than the failure.</para>
+    /// </remarks>
+    private static int Supervise(
+        EngineLifecycle lifecycle,
+        CancellationTokenSource stopping,
+        CancellationTokenSource asked,
+        ManualResetEventSlim resumed)
+    {
+        var watch = new EngineWatch();
+        var revival = new EngineRevival();
+
+        using var ending = CancellationTokenSource.CreateLinkedTokenSource(
+            stopping.Token, asked.Token);
+
+        try
+        {
+            while (!ending.IsCancellationRequested)
+            {
+                Task.Delay(TimeSpan.FromSeconds(2), ending.Token).GetAwaiter().GetResult();
+                var now = lifecycle.StatusAsync(ending.Token).GetAwaiter().GetResult();
+
+                // A resume only skips the waiting. It never decides on its own that the engine is
+                // gone — the status still has to say so — because a machine that came back with a
+                // perfectly good daemon must not have it restarted for waking up.
+                var justResumed = resumed.IsSet;
+                if (justResumed)
+                {
+                    resumed.Reset();
+                }
+
+                if (watch.KeepServing(now) && !(justResumed && !now.Usable))
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"  {watch.WhyItStopped(now)}");
+                if (!Revive(lifecycle, revival, ending.Token))
+                {
+                    Console.WriteLine($"  {revival.WhyItGaveUp(now)}");
+                    break;
+                }
+
+                // Back to a clean slate: the engine answered, so the run of silence that led here
+                // describes an engine that no longer exists.
+                watch = new EngineWatch();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine();
+        }
+
+        Report(lifecycle.StopAsync().GetAwaiter().GetResult());
+        return Ok;
+    }
+
+    /// <summary>Try to get the engine back, backing off between attempts (DD136).</summary>
+    /// <param name="lifecycle">The engine.</param>
+    /// <param name="revival">How many attempts are left and how long to wait.</param>
+    /// <param name="ending">Cancelled by Ctrl+C or an announced stop.</param>
+    /// <returns><see langword="true"/> where it came back.</returns>
+    /// <remarks>
+    /// The stop before the start is not tidiness. Whatever is left of the previous engine is holding
+    /// the pipe name and a <c>wsl.exe</c> child that may still be alive, and a relay serving a
+    /// socket inside a virtual machine that no longer exists is exactly the state being recovered
+    /// from — starting on top of it would leave two of them.
+    /// </remarks>
+    private static bool Revive(
+        EngineLifecycle lifecycle, EngineRevival revival, CancellationToken ending)
+    {
+        while (revival.WorthAnotherTry)
+        {
+            Task.Delay(revival.Wait, ending).GetAwaiter().GetResult();
+
+            lifecycle.StopAsync(ending).GetAwaiter().GetResult();
+            var back = lifecycle.StartAsync(cancellation: ending).GetAwaiter().GetResult();
+            if (back.Usable)
+            {
+                revival.Revived();
+                Console.WriteLine(
+                    $"  {back.State,-8}  brought the engine back (restart {revival.Revivals})");
+                return true;
+            }
+
+            revival.Failed();
+            Console.WriteLine($"  {back.State,-8}  {back.Detail}");
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -244,8 +352,14 @@ internal static class EngineCommand
 
     private static int Stop()
     {
-        // Terminating the distribution kills the daemon, and whatever `--run` is serving the pipe
-        // notices and comes down with it. So this works from any process, which a pid would not.
+        // Announced before it is done (DD136). Terminating the distribution kills the daemon and
+        // whatever `--run` is serving the pipe notices — which was the whole mechanism, and worked
+        // from any process where a pid would not. What changed is that the host now puts back an
+        // engine it loses, and from in there this teardown is indistinguishable from WSL2 dying
+        // under a suspend. So the one thing it cannot infer is said out loud, and said first, or
+        // the host starts reviving the engine this is in the middle of taking down.
+        _ = SingleEngine.TellTheLiveOneToStop();
+
         var status = NewLifecycle().StopAsync().GetAwaiter().GetResult();
         Report(status);
         return Ok;

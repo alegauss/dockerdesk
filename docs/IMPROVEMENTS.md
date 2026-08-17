@@ -46,29 +46,6 @@ running, and the honest limit is that an engine orphaned by a crash is still the
 the next launch, where the tray already reports it correctly and the stop item already
 works.
 
-### §DD136 DD136
-
-WSL2 does not survive every suspend. A laptop that sleeps with containers running wakes
-with the virtual machine gone, and until now the only thing that noticed was the user
-finding a dead `docker ps`. The engine host was already awake and polling; what it
-lacked was permission to do anything about it except give up.
-
-Two triggers, because they catch different failures. The Windows resume event is the
-precise one: it names the moment the machine came back, and a reconcile hung off it
-needs no polling interval to be lucky. It is also the one case where a grace period is
-required rather than tidy — `wsl.exe` is unreliable for a stretch after a resume, so the
-first attempt waits for the launcher to answer before concluding anything about the
-daemon.
-
-The poll is the general one. It catches the distribution terminated by hand, the daemon
-that exited on its own, and every cause nobody has thought of, at the cost of finding
-them a little later. With DD134 in place the poll can tell those apart from a slow ping,
-which is what makes acting on it safe.
-
-A restart is attempted, not guaranteed, and repeated failure backs off rather than
-spinning. An engine that cannot come up is a fact to report, and a loop that hides it by
-trying forever is the failure mode this has to avoid being.
-
 ### §DD137 DD137
 
 The engine host is launched detached and hidden, which is right — a console window the

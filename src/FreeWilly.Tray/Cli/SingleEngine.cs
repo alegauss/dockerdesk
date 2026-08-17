@@ -18,9 +18,13 @@ namespace FreeWilly.Tray.Cli;
 /// refuses the other user this would be protecting against. What is left is two hosts under one
 /// login, which is the case that was actually observed and which this name covers.</para>
 ///
-/// <para><b>No signals.</b> The tray's claim carries named events because a second launch has
-/// something to ask of the first; a second engine host has nothing to ask. The one already serving
-/// the pipe is the whole of the answer, so this is a claim and a release and no more.</para>
+/// <para><b>One signal, and it exists because DD136 gave the host a reason to tell two identical
+/// observations apart.</b> This used to carry none: a second engine host had nothing to ask, since
+/// the one already serving the pipe was the whole of the answer. What changed is that the host now
+/// restarts an engine it loses — and <c>--stop</c> terminating the distribution from another process
+/// looks, from in here, exactly like WSL2 dying under a suspend. Without something said out loud,
+/// the only two behaviours available are a host that ignores <c>--stop</c> and a host that ignores a
+/// crash. So the stop is announced, and everything else is still inferred.</para>
 /// </remarks>
 internal sealed class SingleEngine : IDisposable
 {
@@ -32,9 +36,23 @@ internal sealed class SingleEngine : IDisposable
     /// </remarks>
     internal const string Name = "FreeWilly.engine";
 
-    private readonly Mutex _held;
+    /// <summary>What <c>--stop</c> sets to tell the live host the stop was asked for (DD136).</summary>
+    /// <remarks>
+    /// Named like the tray's, and unprefixed for the same reason: the host it is talking to is this
+    /// session's. It carries no payload and needs none — the only thing it has to say is "this one
+    /// is deliberate", and the teardown itself still happens the way it always did.
+    /// </remarks>
+    private const string StopName = "FreeWilly.engine.stop";
 
-    private SingleEngine(Mutex held) => _held = held;
+    private readonly Mutex _held;
+    private readonly EventWaitHandle _stop;
+    private readonly CancellationTokenSource _stopping = new();
+
+    private SingleEngine(Mutex held, EventWaitHandle stop)
+    {
+        _held = held;
+        _stop = stop;
+    }
 
     /// <summary>
     /// Take the one engine-host slot, or report that something else has it.
@@ -66,14 +84,70 @@ internal sealed class SingleEngine : IDisposable
             return false;
         }
 
-        only = new SingleEngine(mutex);
+        only = new SingleEngine(
+            mutex, new EventWaitHandle(false, EventResetMode.AutoReset, StopName));
         return true;
+    }
+
+    /// <summary>
+    /// Tell whatever is serving the engine that the stop about to happen was asked for (DD136).
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> where a host was there to hear it. False is not a failure — it means
+    /// no host is running, so there is nothing that could mistake the teardown for a crash.
+    /// </returns>
+    /// <remarks>
+    /// Opened by name rather than created, like the tray's signals: a handle that is not there means
+    /// nothing is listening, which is an answer rather than an error.
+    /// </remarks>
+    internal static bool TellTheLiveOneToStop()
+    {
+        try
+        {
+            using var handle = EventWaitHandle.OpenExisting(StopName);
+            return handle.Set();
+        }
+        catch (Exception exception) when (exception is WaitHandleCannotBeOpenedException
+            or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Run <paramref name="stop"/> when <c>--stop</c> announces itself (DD136).</summary>
+    /// <param name="stop">
+    /// What brings the host down. Called on a thread of its own, so it has to be safe to call from
+    /// one — the host's is a cancellation, which is.
+    /// </param>
+    internal void OnStop(Action stop)
+    {
+        ArgumentNullException.ThrowIfNull(stop);
+
+        // Background, so it cannot hold the process open by itself. The host's ordinary ending is
+        // Ctrl+C, and a foreground thread parked on a handle would outlive it.
+        var listening = new Thread(() =>
+        {
+            var handles = new WaitHandle[] { _stop, _stopping.Token.WaitHandle };
+            if (WaitHandle.WaitAny(handles) == 0)
+            {
+                stop();
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "freewilly-engine-stop",
+        };
+
+        listening.Start();
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
+        _stopping.Cancel();
         _held.ReleaseMutex();
         _held.Dispose();
+        _stop.Dispose();
+        _stopping.Dispose();
     }
 }

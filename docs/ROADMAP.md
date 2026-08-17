@@ -6,7 +6,6 @@
 
 - 📋 **DD128** (deps: DD3 ✅) **Quitting the tray leaves the engine and its WSL virtual machine running, so the memory stays held** — Quit runs the same stop the menu item does, so the one way out of the tray also gives back the memory the machine was lending it. → §DD128
 - 📋 **DD129** (deps: DD128) **A logoff, a shutdown or an End task never reaches the quit path, so the engine outlives the session** — The stop is hung off the session ending as well, so the exits a user does not think of as quitting leave nothing running. → §DD129
-- 📋 **DD136** (deps: DD134 ✅, DD135 ✅) **Nothing brings the engine back when WSL2 stops under sleep, so a resumed machine is left with no daemon** — The host reconciles on the Windows resume event and on its own poll, relaunching the daemon once it is genuinely gone. → §DD136
 - 💭 **DD137** (deps: —) **Why the engine host stopped is printed to a hidden console, so a daemon that vanished leaves no evidence** — The host keeps a small log beside the install, so what it saw and every restart it attempted outlive the window nobody was reading. → §DD137
 
 ## Block B — The daemon client (talk to the engine)

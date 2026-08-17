@@ -29,4 +29,21 @@ public sealed record EngineStatus(EngineState State, string Detail, string? ApiV
 {
     /// <summary>Whether a client can make an API call right now.</summary>
     public bool Usable => State is EngineState.Running;
+
+    /// <summary>
+    /// Whether this reading is evidence about the engine, rather than the absence of evidence
+    /// (DD134).
+    /// </summary>
+    /// <remarks>
+    /// Not every non-Running answer means the same thing, and treating them as though they did is
+    /// what let a loaded machine talk the engine host into killing a working daemon. A reading is
+    /// conclusive when it came from something load cannot forge — the held process handle, or a
+    /// probe that actually answered — and inconclusive when all that happened is that nothing
+    /// replied in time.
+    ///
+    /// <para>The default is the cautious one. A status assembled anywhere that has not thought
+    /// about this says "I do not know", which costs a caller a wait; saying the opposite by default
+    /// would cost them the engine.</para>
+    /// </remarks>
+    public bool Conclusive { get; init; }
 }

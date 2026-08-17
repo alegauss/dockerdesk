@@ -425,4 +425,78 @@ public sealed class EngineLifecycleTests
         Assert.Equal(EngineState.Stopped, before.State);
         Assert.Equal(EngineState.Running, after.State);
     }
+
+    // ---- what a status is entitled to claim (DD134) ------------------------------------------
+
+    [Fact]
+    public async Task A_wsl_list_that_never_answered_is_not_reported_as_an_engine_that_is_gone()
+    {
+        // The half of DD134 that manufactured evidence out of load. `wsl --list` timing out used to
+        // be folded into "not registered", which is the one Stopped the watch was entitled to act
+        // on — so a busy machine could produce the verdict that terminates its own distribution.
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(null, "", "wsl.exe did not answer within 15s");
+        await using var engine = new EngineLifecycle(
+            wsl, new FakeDaemon(), new FakeBackend(null), Pipe(), Owned);
+
+        var status = await engine.StatusAsync();
+
+        Assert.Equal(EngineState.Stopped, status.State);
+        Assert.False(status.Conclusive);
+        Assert.True(engine.DistributionRegistered, "a probe that did not answer is not a denial");
+    }
+
+    [Fact]
+    public async Task A_daemon_this_host_launched_and_lost_is_conclusive()
+    {
+        // The handle is the witness that load cannot slow down or lie with, so once this lifecycle
+        // owns a daemon it stops asking wsl anything on the poll path at all.
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
+        var daemon = new FakeDaemon();
+        await using var engine = new EngineLifecycle(
+            wsl, daemon, new FakeBackend(null), Pipe(), Owned);
+        await engine.StartAsync(TimeSpan.FromSeconds(2));
+
+        daemon.Stop();
+        var status = await engine.StatusAsync();
+
+        Assert.Equal(EngineState.Stopped, status.State);
+        Assert.True(status.Conclusive);
+    }
+
+    [Fact]
+    public async Task A_launched_daemon_that_is_merely_quiet_is_never_conclusive()
+    {
+        // The daemon is up and the pipe said nothing, which is the exact reading the failure of
+        // 17 August 2026 acted on. It has to stay an open question however many times it repeats.
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
+        await using var engine = new EngineLifecycle(
+            wsl, new FakeDaemon(), new FakeBackend(null), Pipe(), Owned);
+        await engine.StartAsync(TimeSpan.FromSeconds(2));
+
+        var status = await engine.StatusAsync();
+
+        Assert.Equal(EngineState.Starting, status.State);
+        Assert.False(status.Conclusive);
+    }
+
+    [Fact]
+    public async Task An_unregistered_distribution_is_conclusive_because_the_probe_answered()
+    {
+        // The other side of the first test here: `wsl --list` ran, succeeded, and did not name the
+        // distribution. That is a fact about the machine rather than about its load, and a host
+        // that keeps serving a pipe for an engine which is not installed helps nobody.
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(0, "Ubuntu\r\n", null);
+        await using var engine = new EngineLifecycle(
+            wsl, new FakeDaemon(), new FakeBackend(null), Pipe(), Owned);
+
+        var status = await engine.StatusAsync();
+
+        Assert.Equal(EngineState.Stopped, status.State);
+        Assert.True(status.Conclusive);
+        Assert.Contains("not registered", status.Detail, StringComparison.Ordinal);
+    }
 }

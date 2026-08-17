@@ -36,6 +36,7 @@ public sealed class EngineLifecycle : IAsyncDisposable
     private readonly IEngineBackend _backend;
     private readonly string _pipeName;
     private EnginePipeRelay? _relay;
+    private bool _launched;
 
     /// <summary>Construct a lifecycle.</summary>
     /// <param name="wsl">The WSL command.</param>
@@ -68,11 +69,37 @@ public sealed class EngineLifecycle : IAsyncDisposable
     /// </summary>
     public string Distribution { get; }
 
-    /// <summary>Whether the distribution this tool owns is registered at all.</summary>
-    public bool DistributionRegistered =>
-        _wsl.Run("--list", "--quiet").Output
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Any(line => line.Trim().Equals(Distribution, StringComparison.OrdinalIgnoreCase));
+    /// <summary>Whether the distribution this tool owns is registered, as far as can be told.</summary>
+    /// <remarks>
+    /// A probe that did not answer reads as registered here, and that is the safe direction for
+    /// every caller of this property: a start tries rather than refusing, and a stop terminates
+    /// rather than skipping. The one place the difference has to be visible reads
+    /// <see cref="Registration"/> instead.
+    /// </remarks>
+    public bool DistributionRegistered => Registration is not false;
+
+    /// <summary>
+    /// Whether the owned distribution is registered, or <see langword="null"/> where the probe did
+    /// not answer (DD134).
+    /// </summary>
+    /// <remarks>
+    /// This shells out to <c>wsl --list</c>, and on the loaded machine the engine host exists for,
+    /// that command times out exactly as readily as the ping beside it. Folding a timeout into
+    /// "not registered" manufactured the one answer the watch was entitled to act on out of nothing
+    /// but load — so the two are told apart here, at the only place that can still tell.
+    /// </remarks>
+    private bool? Registration
+    {
+        get
+        {
+            var listed = _wsl.Run("--list", "--quiet");
+            return listed.Succeeded
+                ? listed.Output
+                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                    .Any(line => line.Trim().Equals(Distribution, StringComparison.OrdinalIgnoreCase))
+                : null;
+        }
+    }
 
     /// <summary>Read the state, by asking the engine rather than by remembering what was asked.</summary>
     /// <param name="cancellation">Cancellation.</param>
@@ -87,15 +114,36 @@ public sealed class EngineLifecycle : IAsyncDisposable
                 $"the engine answered on \\\\.\\pipe\\{_pipeName}", ping.ApiVersion);
         }
 
-        if (!DistributionRegistered)
+        // The held handle before the subprocess, once this lifecycle has launched a daemon of its
+        // own (DD134). HasExited is a local question about a process we own: the machine's load
+        // cannot slow it down, and it cannot answer "gone" about something that is running.
+        // `wsl --list` is neither of those things, and asking it on every poll was itself part of
+        // the load that timed out the ping above.
+        if (_launched)
         {
-            return new EngineStatus(EngineState.Stopped,
-                $"{Distribution} is not registered — the engine is not installed");
+            return _daemon.Alive
+                ? new EngineStatus(EngineState.Starting, $"the daemon is running and {ping.Detail}")
+                : new EngineStatus(EngineState.Stopped, "the daemon exited")
+                {
+                    Conclusive = true,
+                };
         }
 
-        return _daemon.Alive
-            ? new EngineStatus(EngineState.Starting, $"the daemon is running and {ping.Detail}")
-            : new EngineStatus(EngineState.Stopped, "the daemon is not running");
+        // Nothing of ours has been launched, so the question is whether there is anything to launch.
+        var registered = Registration;
+        if (registered is false)
+        {
+            return new EngineStatus(EngineState.Stopped,
+                $"{Distribution} is not registered — the engine is not installed")
+            {
+                Conclusive = true,
+            };
+        }
+
+        return new EngineStatus(EngineState.Stopped,
+            registered is null
+                ? "the daemon is not running here, and wsl --list did not answer"
+                : "the daemon is not running");
     }
 
     /// <summary>
@@ -127,6 +175,11 @@ public sealed class EngineLifecycle : IAsyncDisposable
         {
             _daemon.Launch();
         }
+
+        // From here on this lifecycle owns a daemon, and the handle is a better witness than any
+        // subprocess (DD134). Set after the launch rather than before it, so a Launch that throws
+        // leaves the status reading the machine rather than a process that does not exist.
+        _launched = true;
 
         _relay ??= StartRelay();
 

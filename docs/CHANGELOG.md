@@ -27,6 +27,7 @@
 - ✅ **DD124** **A plain shell has no docker compose, because DOCKER_CONFIG is left for the user to set by hand** — DOCKER_CONFIG is written by the installer beside the PATH entry and repaired by the tray at startup, both gated on this install owning the docker command, so a plain shell has docker compose.
 - ✅ **DD125** **A plain docker compose up cannot bind a Windows path, because the relay forwards the create request unchanged** — The relay's client direction reads the request head, respells every drive-letter bind source in a container-create body, and forwards everything else byte for byte.
 - ✅ **DD133** **The docker_engine named pipe disappears under a long build, then returns on its own** — One engine host per session, and a run of quiet polls rather than one deciding it is gone.
+- ✅ **DD134** **A slow ping through the relay reads as a dead engine, so the host terminates a daemon that is working** — A status now says whether it is evidence, so only a local process handle or a probe that answered ends the watch; a slow ping raises the relay and never terminates the distribution.
 
 ## Block B — The daemon client (talk to the engine)
 

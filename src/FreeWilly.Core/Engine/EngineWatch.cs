@@ -48,12 +48,18 @@ public sealed class EngineWatch
     /// <param name="now">What the poll observed.</param>
     /// <returns><see langword="true"/> to keep serving the pipe.</returns>
     /// <remarks>
-    /// Every state that is not Running is tolerated the same way, and that is deliberate rather than
-    /// lazy. Stopped looks like the certain one — the daemon is gone — but the status reaches it
-    /// through <see cref="EngineLifecycle.DistributionRegistered"/>, which shells out to
-    /// <c>wsl --list</c>; on the busy machine this exists for, that command is as capable of being
-    /// slow as the ping was. There is no non-Running answer here whose cause cannot be load, so
-    /// there is no non-Running answer worth acting on alone.
+    /// Two answers rather than one, since DD134. Before it, every state that was not Running was
+    /// tolerated identically — correct given what a status could say at the time, because Stopped
+    /// was reachable through <c>wsl --list</c> timing out and so carried no more information than
+    /// silence did. The tolerance was the only defence, and it was a clock: hold out long enough
+    /// and a slow machine still talks this into killing a working daemon, which is what it did.
+    ///
+    /// <para>What changed is that a status now says whether it is
+    /// <see cref="EngineStatus.Conclusive"/>. Evidence ends the watch at once, because the only
+    /// readings that qualify came from a local process handle or a probe that answered, and
+    /// counting six of those would just be slow. Everything load can manufacture is inconclusive by
+    /// construction and never reaches that branch — so the run of quiet polls below now guards
+    /// against a stall it can actually be caused by, and nothing else.</para>
     /// </remarks>
     public bool KeepServing(EngineStatus now)
     {
@@ -66,7 +72,7 @@ public sealed class EngineWatch
         }
 
         QuietPolls++;
-        return QuietPolls < ToleratedQuietPolls;
+        return !now.Conclusive && QuietPolls < ToleratedQuietPolls;
     }
 
     /// <summary>What to say about the run of silence that ended the watch.</summary>
@@ -76,10 +82,17 @@ public sealed class EngineWatch
     /// The count is in the sentence because without it the line is the one <c>--run</c> printed
     /// before DD133, and that line was indistinguishable from the false alarm it usually was. A
     /// reader who sees six needs to know the engine was asked six times.
+    ///
+    /// <para>And it is only in the sentence when it means something (DD134). A conclusive reading
+    /// ended the watch on its own merits, so appending "1 polls in a row" to it would suggest a run
+    /// of silence that never happened — and send the reader looking for a load problem instead of
+    /// reading the detail, which in that case already names the cause.</para>
     /// </remarks>
     public string WhyItStopped(EngineStatus last)
     {
         ArgumentNullException.ThrowIfNull(last);
-        return $"{last.State,-8}  {last.Detail} — {QuietPolls} polls in a row";
+        return last.Conclusive
+            ? $"{last.State,-8}  {last.Detail}"
+            : $"{last.State,-8}  {last.Detail} — {QuietPolls} polls in a row";
     }
 }

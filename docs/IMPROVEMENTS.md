@@ -46,28 +46,6 @@ running, and the honest limit is that an engine orphaned by a crash is still the
 the next launch, where the tray already reports it correctly and the stop item already
 works.
 
-### §DD134 DD134
-
-The engine host polls the status every two seconds and comes down when the answer is not
-Running. That poll is a real Engine API request over the pipe, and the relay spawns a
-fresh `wsl.exe` running `socat` for every connection it accepts — so what the poll
-measures is Windows process creation, not the daemon. DD133 raised the tolerance from
-one quiet poll to six, which lengthened the stall needed to trigger it without removing
-the mechanism underneath.
-
-Measured on 17 August 2026: a daemon that had logged `Daemon has completed
-initialization` and never logged a shutdown was cut off eleven minutes later, and the
-virtual machine powered itself off sixty seconds after that on WSL's own idle timeout.
-Nothing was wrong with the engine. The host decided it was gone and terminated the
-distribution to prove it.
-
-The remedy is to stop reading silence as evidence. A ping that does not answer says the
-pipe is not reachable, which is a fact about the relay and the machine's load. Whether
-the daemon is alive is a different question, and it has its own answers that cost
-nothing: the held process, and whether the distribution is still registered. Only those
-two bring the engine down. A quiet ping rebuilds the relay and never touches the daemon,
-so the worst a slow machine can now cost is a reconnect.
-
 ### §DD135 DD135
 
 Starting the tray and starting the engine have always been two acts, and the second one

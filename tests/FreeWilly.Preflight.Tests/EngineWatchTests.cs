@@ -63,16 +63,68 @@ public sealed class EngineWatchTests
     }
 
     [Fact]
-    public void A_stopped_answer_is_tolerated_exactly_like_a_quiet_one()
+    public void An_inconclusive_stopped_answer_is_tolerated_exactly_like_a_quiet_one()
     {
-        // Stopped reads like the certain one — the daemon is gone — but the status arrives there
-        // through `wsl --list`, which on a saturated machine is as capable of being slow as the ping
-        // was. No non-Running answer has a cause that cannot be load, so none is acted on alone.
+        // Stopped reads like the certain one — the daemon is gone — but a status that did not mark
+        // itself conclusive reached Stopped through something load can forge, and on a saturated
+        // machine `wsl --list` is as capable of being slow as the ping was. Absence of evidence.
         var watch = new EngineWatch();
         var stopped = new EngineStatus(EngineState.Stopped, "the daemon is not running");
 
         Assert.True(watch.KeepServing(stopped));
         Assert.Equal(1, watch.QuietPolls);
+    }
+
+    [Fact]
+    public void A_conclusive_answer_ends_the_watch_on_the_first_poll()
+    {
+        // The other half of DD134. Waiting six polls to act on a process handle that has already
+        // reported the daemon exited is not caution, it is twelve wasted seconds — and the point of
+        // the tolerance was never to disbelieve evidence, only to stop inventing it.
+        var watch = new EngineWatch();
+        var gone = new EngineStatus(EngineState.Stopped, "the daemon exited") { Conclusive = true };
+
+        Assert.False(watch.KeepServing(gone));
+    }
+
+    [Fact]
+    public void A_conclusive_answer_is_reported_without_a_count_of_polls()
+    {
+        // "1 polls in a row" beside a conclusive reading describes a run of silence that never
+        // happened, and sends the reader hunting a load problem instead of reading the detail.
+        var watch = new EngineWatch();
+        var gone = new EngineStatus(EngineState.Stopped, "the daemon exited") { Conclusive = true };
+        watch.KeepServing(gone);
+
+        var said = watch.WhyItStopped(gone);
+
+        Assert.Contains("the daemon exited", said, StringComparison.Ordinal);
+        Assert.DoesNotContain("polls in a row", said, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_run_of_slow_polls_can_reach_the_verdict_that_kills_a_working_daemon()
+    {
+        // The measured failure of 17 August 2026, as an assertion. A daemon that had logged its own
+        // initialization and never logged a shutdown was cut off eleven minutes later because the
+        // pings in front of it lost a race for process creation. Whatever else changes, a reading
+        // that only says "nothing answered" must never be the one that terminates the distribution.
+        var watch = new EngineWatch();
+        var slow = new EngineStatus(EngineState.Starting, "the daemon is running and no answer within 3s");
+
+        for (var i = 0; i < EngineWatch.ToleratedQuietPolls * 10; i++)
+        {
+            if (!watch.KeepServing(slow))
+            {
+                // It did come down — which is correct — but only ever on a run of silence, never on
+                // a single reading mistaken for proof.
+                Assert.Equal(EngineWatch.ToleratedQuietPolls, watch.QuietPolls);
+                Assert.False(slow.Conclusive);
+                return;
+            }
+        }
+
+        Assert.Fail("the watch never came down, so the run of quiet polls is not bounded at all");
     }
 
     [Fact]

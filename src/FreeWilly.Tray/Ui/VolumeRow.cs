@@ -289,7 +289,25 @@ public sealed record BindMounts(int Count, IReadOnlyList<string> Containers)
         $"{Mounts} in use, {Held}. A bind mount is a folder on this machine rather than storage "
         + "the engine owns, so it is not on this list and nothing has gone missing.";
 
-    private string Mounts => Count == 1 ? "1 bind mount is" : $"{Count} bind mounts are";
+    /// <summary>
+    /// The clause the totals line carries once the list has rows of its own (DD139).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Detail"/> only ever renders on an empty tab, so one named volume anywhere on the
+    /// machine would hide the binds again. The totals line already states what the rows do not —
+    /// the space on disk, the loose anonymous ones — and this is a third fact of the same kind.
+    ///
+    /// <para>Terse on purpose. This sits in a 13px secondary line beside a filter and a button; the
+    /// sentence that explains what a bind mount is belongs in the empty state, which has the room
+    /// for it. Empty where there are none: a permanent "0 bind mounts" is noise on every machine
+    /// that never had the problem.</para>
+    /// </remarks>
+    public string Note =>
+        Any ? $" · {Counted}, {(Count == 1 ? "a host folder" : "host folders")} not on this list" : "";
+
+    private string Counted => Count == 1 ? "1 bind mount" : $"{Count} bind mounts";
+
+    private string Mounts => Count == 1 ? $"{Counted} is" : $"{Counted} are";
 
     private string Held =>
         Containers.Count == 1

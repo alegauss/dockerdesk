@@ -165,6 +165,46 @@ public sealed class VolumeRowTests
         Assert.Equal(1, BindMounts.For([container]).Count);
     }
 
+    // ---- and the same count once the list has rows (DD139) ---------------------------------------
+
+    [Fact]
+    public void The_totals_line_says_a_list_with_rows_is_still_partial()
+    {
+        // One named volume anywhere and the empty state never renders again, which would put the
+        // bind mounts back out of sight.
+        var note = BindMounts.For([Binding("aem-author", "/opt/aem/repository", "/opt/aem/launchpad")]).Note;
+
+        Assert.Contains("2 bind mounts", note, StringComparison.Ordinal);
+        Assert.Contains("host folders not on this list", note, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_clause_reads_as_one_more_fact_beside_the_others()
+    {
+        // It joins "2.3 GB in volumes · 1 anonymous volume nothing mounts", so it carries the same
+        // separator rather than opening a sentence of its own.
+        Assert.StartsWith(" · ", BindMounts.For([Binding("web", "/srv")]).Note, StringComparison.Ordinal);
+        Assert.Contains("1 bind mount, a host folder", BindMounts.For([Binding("web", "/srv")]).Note,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_tab_with_no_binds_adds_nothing_to_the_totals_line()
+    {
+        // A permanent "0 bind mounts" is noise on every machine that never had the problem.
+        Assert.Equal("", BindMounts.For([Mounting("web", "data")]).Note);
+    }
+
+    [Fact]
+    public void The_empty_state_and_the_totals_line_report_the_same_count()
+    {
+        // Two counts that could disagree is the defect this avoids: one BindMounts, two renderings.
+        var binds = BindMounts.For([Binding("web", "/srv"), Binding("worker", "/srv", "/data")]);
+
+        Assert.Contains("3 bind mounts are", binds.Detail, StringComparison.Ordinal);
+        Assert.Contains("3 bind mounts,", binds.Note, StringComparison.Ordinal);
+    }
+
     // ---- anonymous, and the compose convention --------------------------------------------------
 
     [Fact]

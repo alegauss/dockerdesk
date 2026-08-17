@@ -72,30 +72,6 @@ grows without bound is its own defect, and a quiet engine should write nothing.
 
 ## Block E — Images, volumes and networks
 
-### §DD139 DD139
-
-**DD138 fixes the case where there is nothing to look at, which is the narrower half.**
-One named volume anywhere on the machine and the empty state never renders again — the
-list draws rows, the sentence explaining what is missing from it goes away, and a
-project whose storage is entirely bind mounts is back to a tab that quietly omits it.
-The blind spot was never about the list being empty; it was about the list being partial
-and not saying so.
-
-**The totals line is where a partial list admits it.** That line already exists to state
-what the rows do not: how much is on disk in total, and how many anonymous volumes
-nothing mounts. Both are facts about the whole picture rather than about any row, which
-is exactly what a bind-mount count is, so it joins them as a third clause rather than
-earning new chrome.
-
-**One count, two places.** The number the empty state gives and the number the totals
-line gives are the same number from the same containers — computed once and rendered by
-whichever of the two is on screen. Two counts that could disagree is the defect this
-avoids.
-
-**Silent when there are none.** A tab with no binds says nothing about binds. The clause
-is there to explain an absence a reader can see, and a permanent "0 bind mounts" would
-be noise on every other machine.
-
 ## Block F — Installer and distribution (free, Apache 2.0)
 
 ### §DD130 The preflight runs before the install, not after it

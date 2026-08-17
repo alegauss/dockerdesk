@@ -112,7 +112,10 @@ internal partial class VolumesPage : System.Windows.Controls.UserControl
         // much is on disk.
         _volumeTotals = VolumeTotals.For(_rows);
         _live.Show(shown);
-        VolumeTotalsLine.Text = _rows.Count == 0 ? "" : _volumeTotals.Summary;
+        // The bind clause rides the totals line rather than the empty state once there are rows,
+        // because that is where a list stops being able to say it is partial (DD139). With no rows
+        // the line stays blank and the empty state carries the same count in full.
+        VolumeTotalsLine.Text = _rows.Count == 0 ? "" : _volumeTotals.Summary + _binds.Note;
         PruneVolumes.IsEnabled = _volumeTotals.CanPrune;
 
         NameHeading.Content = VolumeRow.Columns.Name + _shape.GlyphFor(VolumeRow.Columns.Name);

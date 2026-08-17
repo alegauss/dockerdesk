@@ -265,6 +265,13 @@ var
   PreflightCopy, PreflightAgain: TNewButton;
   PreflightLink: TNewLinkLabel;
 
+  // DD132. The button that runs the command rather than leaving it to be typed, and the three
+  // things the page has to remember about what happened when it did.
+  PreflightTurnOn: TNewButton;
+  PreflightRefused: Boolean;
+  PreflightFeatureOn: Boolean;
+  PreflightRestartWanted: Boolean;
+
   // Asked once and remembered, because the wizard walks over this page in both directions and
   // re-reading the machine on every Back would be a pause with no new answer in it.
   PreflightAsked: Boolean;
@@ -811,6 +818,104 @@ begin
   ShellExec('open', Link, '', '', SW_SHOWNORMAL, ewNoWait, Code);
 end;
 
+// ---------------------------------------------------------------------------------------------
+// Turning the feature on (DD132)
+// ---------------------------------------------------------------------------------------------
+//
+// Docker Desktop's installer does this and its logs name the step — EnableFeaturesAction,
+// "Required features: VirtualMachinePlatform, Microsoft-Windows-Subsystem-Linux". The difference
+// between the two products here was never knowledge: Docker Desktop runs elevated from its first
+// dialog, so turning a Windows feature on costs it nothing extra.
+//
+// PrivilegesRequired=lowest is the whole point of this installer and is not being reversed for
+// this. The elevation is bought per step instead: one `runas` on the command the row already
+// named, raised only after somebody presses the button that asks for it, and refused without
+// consequence. Installing the application still prompts for nothing.
+//
+// What is deliberately NOT here is a fallback. `--no-distribution` does not exist on older WSL
+// builds, and the generous repair — dropping the flag and running `wsl --install` — installs
+// Ubuntu on somebody's machine uninvited. So this file names no command of its own at all: it runs
+// the one the remedy spelled, and measured, wsl.exe rejects a flag it does not know
+// ("Invalid command line argument") without installing anything. A build too old for the flag gets
+// a visible failure and the steps it already had, which is the safe direction to be wrong in.
+
+/// Whether Windows is already waiting for a restart to finish servicing something.
+function RestartIsPending: Boolean;
+begin
+  // Written by Component Based Servicing when a Windows feature is enabled, and readable without
+  // elevation — which is what makes it usable here. ShellExec cannot hand back an elevated child's
+  // exit code, so this is the one piece of evidence available about whether the run did anything.
+  Result := RegKeyExists(
+    HKEY_LOCAL_MACHINE,
+    'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending');
+end;
+
+/// Split a command line into the program and the rest.
+procedure SplitCommand(const Line: string; var Exe, Arguments: string);
+var
+  Space: Integer;
+begin
+  Space := Pos(' ', Line);
+  if Space = 0 then
+  begin
+    Exe := Line;
+    Arguments := '';
+    Exit;
+  end;
+
+  Exe := Copy(Line, 1, Space - 1);
+  Arguments := Copy(Line, Space + 1, MaxInt);
+end;
+
+/// A bare program name, resolved where Windows keeps its own.
+function InSystem32(const Exe: string): string;
+begin
+  // Setup is a 32-bit process, so a bare name found through PATH resolves against SysWOW64 — and
+  // wsl.exe is a 64-bit tool that exists only in the real System32. {sys} is the constant that
+  // knows the difference, which is why the same expansion is what runs tasklist and taskkill in
+  // the uninstall below.
+  Result := Exe;
+  if (Pos('\', Exe) > 0) or (Pos('/', Exe) > 0) then
+    Exit;
+
+  if Pos('.', Exe) = 0 then
+    Result := Exe + '.exe';
+
+  Result := ExpandConstant('{sys}\') + Result;
+end;
+
+/// Leave Setup where the restart will find it.
+procedure ArrangeToBePickedUp;
+begin
+  // RunOnce and not Run: this fires exactly once and deletes itself, so the worst case of somebody
+  // turning the feature on and then abandoning the install is one wizard they can close. {srcexe}
+  // is where Setup was actually started from, which survives the restart when a copy in {tmp}
+  // would not.
+  RegWriteStringValue(
+    HKEY_CURRENT_USER,
+    'Software\Microsoft\Windows\CurrentVersion\RunOnce',
+    'FreeWilly Setup',
+    '"' + ExpandConstant('{srcexe}') + '"');
+end;
+
+/// What the page says once the elevated run has been through.
+function AfterTheRun: string;
+begin
+  if PreflightRestartWanted then
+    Result :=
+      'The feature is on. Windows is now waiting for a restart to finish putting it in place, '
+    + 'and until that happens WSL2 is still not usable — Check again will keep saying so.'
+  else
+    Result :=
+      'The command has run. Windows needs a restart before the feature is usable, and this page '
+    + 'cannot read the result of an elevated command — so if the window that opened reported an '
+    + 'error, the steps above are still the way through.';
+
+  Result := Result + #13#10#13#10
+    + 'Choose Restart now when you are ready. Setup will reopen once by itself after the restart, '
+    + 'so there is nothing to remember.';
+end;
+
 /// Show what the last read found, and enable Next only if nothing blocks.
 procedure ShowTheVerdict;
 var
@@ -826,6 +931,16 @@ begin
   PreflightAgain.Top := Row;
   PreflightLink.Top := Row + ScaleY(4);
   PreflightLink.Visible := PreflightWsl2;
+
+  // Offered only where there is a command to run and a row this file is willing to run one for.
+  // Every other blocker — a rival engine, a firmware setting — is somebody else's to change, and a
+  // button that elevated for those would be an installer taking a machine apart.
+  PreflightTurnOn.Visible := PreflightWsl2 and (PreflightCommand <> '') and not PreflightClear;
+  PreflightTurnOn.Top := Row;
+  if PreflightFeatureOn then
+    PreflightTurnOn.Caption := 'Restart now'
+  else
+    PreflightTurnOn.Caption := 'Turn it on for me';
 
   PreflightCommandBox.Visible := PreflightCommand <> '';
   PreflightCopy.Visible := PreflightCommand <> '';
@@ -853,10 +968,24 @@ begin
     PreflightMemo.Text :=
       'This machine can host the container engine. Choose Next to carry on.';
   end
+  else if PreflightFeatureOn then
+  begin
+    PreflightHeading.Caption := 'Windows needs to restart to finish turning it on';
+    PreflightMemo.Text := AfterTheRun;
+  end
   else if PreflightWsl2 then
   begin
     PreflightHeading.Caption := 'Windows needs one feature turned on first';
     PreflightMemo.Text := Wsl2InPlainWords + #13#10#13#10 + Wsl2Steps;
+
+    // A refused prompt is not an error and the page does not treat it as one: the steps above are
+    // exactly what the button would have done, and an account that cannot elevate at all lands
+    // here too.
+    if PreflightRefused then
+      PreflightMemo.Text :=
+        'Turn it on for me needs one administrator prompt, and that prompt was not granted. '
+        + 'Nothing has changed, and the steps below do the same thing by hand.'#13#10#13#10
+        + PreflightMemo.Text;
   end
   else
   begin
@@ -872,6 +1001,69 @@ begin
   // The verdict decides whether Next is available at all, which is what makes this a stop rather
   // than a warning somebody clicks past onto a machine that cannot run what it is about to receive.
   WizardForm.NextButton.Enabled := PreflightClear;
+end;
+
+/// Run the command the row named, once, elevated.
+procedure TurnItOn;
+var
+  Exe, Arguments: string;
+  Shell: Integer;
+  WasPending: Boolean;
+begin
+  SplitCommand(PreflightCommand, Exe, Arguments);
+  WasPending := RestartIsPending;
+
+  PreflightTurnOn.Enabled := False;
+  try
+    // SW_SHOWNORMAL, deliberately: `wsl --install` takes minutes and prints as it goes, and a
+    // hidden window would leave the wizard frozen with nothing anywhere saying why. It is also the
+    // only place an error from the command is ever seen, since ShellExec cannot hand back the exit
+    // code of a process it elevated.
+    if not ShellExec('runas', InSystem32(Exe), Arguments, '',
+                     SW_SHOWNORMAL, ewWaitUntilTerminated, Shell) then
+    begin
+      // The prompt was refused, or this account cannot elevate at all. Neither is an error worth
+      // a dialog — the page already carries the steps that do the same thing.
+      PreflightRefused := True;
+      Exit;
+    end;
+  finally
+    PreflightTurnOn.Enabled := True;
+  end;
+
+  PreflightRefused := False;
+  PreflightFeatureOn := True;
+
+  // Windows itself now wanting a restart, where it did not before, is the one piece of evidence
+  // available that the run enabled something. Already-pending is not read as proof: plenty of
+  // other things set that key, and claiming a feature is on because Windows Update is halfway
+  // through would send somebody to reboot for nothing.
+  PreflightRestartWanted := RestartIsPending and not WasPending;
+
+  ArrangeToBePickedUp;
+end;
+
+/// Restart Windows, having said that this is what the button does.
+procedure RestartNow;
+var
+  Code: Integer;
+begin
+  // Five seconds rather than none, and a comment Windows shows in its own dialog: this closes
+  // everything the user has open, so the one thing it must not be is instant and unattributed.
+  Exec(ExpandConstant('{sys}\shutdown.exe'),
+       '/r /t 5 /c "FreeWilly Setup is restarting Windows to finish turning on WSL2."',
+       '', SW_HIDE, ewNoWait, Code);
+end;
+
+/// The one button, which does the next thing rather than a different thing.
+procedure TurnItOnOrRestart(Sender: TObject);
+begin
+  if PreflightFeatureOn then
+    RestartNow
+  else
+    TurnItOn;
+
+  ShowTheVerdict;
 end;
 
 /// Read the machine again, without leaving the page.
@@ -949,7 +1141,10 @@ begin
   PreflightLink := TNewLinkLabel.Create(PreflightPage);
   PreflightLink.Parent := PreflightPage.Surface;
   PreflightLink.Left := 0;
-  PreflightLink.Width := PreflightPage.SurfaceWidth - ScaleX(90 + 8);
+
+  // Whatever the two buttons on this row leave. Stated as their geometry rather than as a number,
+  // so widening a caption cannot quietly push the link underneath one of them.
+  PreflightLink.Width := PreflightPage.SurfaceWidth - ScaleX(90 + 8 + 120 + 8);
   PreflightLink.Caption :=
     '<a href="https://learn.microsoft.com/en-us/windows/wsl/install">'
     + 'Microsoft''s instructions for installing WSL</a>';
@@ -962,6 +1157,17 @@ begin
   PreflightAgain.Height := ScaleY(23);
   PreflightAgain.Caption := 'Check again';
   PreflightAgain.OnClick := @CheckAgain;
+
+  // To the left of Check again, because it is the thing to do first and the thing to do after it
+  // is to check. The caption is set by ShowTheVerdict — this button turns the feature on and then
+  // restarts, and one button doing the next step is fewer than two of which one is always wrong.
+  PreflightTurnOn := TNewButton.Create(PreflightPage);
+  PreflightTurnOn.Parent := PreflightPage.Surface;
+  PreflightTurnOn.Left := PreflightAgain.Left - ScaleX(8) - ScaleX(120);
+  PreflightTurnOn.Width := ScaleX(120);
+  PreflightTurnOn.Height := ScaleY(23);
+  PreflightTurnOn.Caption := 'Turn it on for me';
+  PreflightTurnOn.OnClick := @TurnItOnOrRestart;
 
   PreflightFooter := TNewStaticText.Create(PreflightPage);
   PreflightFooter.Parent := PreflightPage.Surface;

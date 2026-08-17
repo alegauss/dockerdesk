@@ -19,8 +19,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD132** (deps: DD131 ✅) **Turning the missing feature on is left to the user, so an install that could finish itself ends in a terminal** — Setup turns WSL2 on itself behind a single elevation prompt, asks for the reboot the feature needs and picks the install up on the other side. → §DD132
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -106,31 +106,6 @@ and print every file that went into it.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD132 Setup turns the feature on
-
-Docker Desktop's installer does this and its logs name the step: `EnableFeaturesAction`,
-"Required features: VirtualMachinePlatform, Microsoft-Windows-Subsystem-Linux". Its Go
-side carries the other half — `wslexec.IsNotInstalled`, `CheckWslUpdate`,
-`RebootRequired`, and the sentence "Install it by running: wsl.exe --install
---no-distribution", which is the command this project's preflight already prints. The
-difference between the two products here is not knowledge. It is that Docker Desktop
-runs elevated from its first dialog, so turning a Windows feature on costs it nothing
-extra.
-
-This installer is `PrivilegesRequired=lowest` on purpose, and that decision is not being
-reversed for this. The elevation is bought per step instead: `ShellExec` with the
-`runas` verb on `wsl.exe`, so there is no UAC prompt to install the application and
-exactly one to turn the feature on, raised only after the user presses the button that
-asks for it. A refused prompt, or an account that cannot elevate at all, is not an error
-— it lands back on DD131's page with the steps still there.
-
-Two details are worth taking from the same source. `--no-distribution` does not exist on
-older WSL builds, and Docker Desktop probes for it (`wslexec.FlagSupported`) rather than
-assuming; without that probe the generous version of this feature installs Ubuntu on
-somebody's machine uninvited. And the feature needs a reboot before it is usable, so the
-run ends by asking for one and arranging for the install to be picked up on the other
-side rather than leaving a Setup that has to be remembered.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

@@ -852,6 +852,103 @@ public sealed class PackagingTests
         Assert.DoesNotContain("echo", argument, StringComparison.Ordinal);
     }
 
+    // ---- DD132: Setup turns the feature on ------------------------------------------------------
+
+    /// <summary>
+    /// The preflight section with its prose removed, for a guard about what the script <em>does</em>.
+    /// </summary>
+    /// <remarks>
+    /// The comments here explain the commands this file deliberately does not run, so a guard that
+    /// read them would fail on the sentence describing the thing it exists to prevent.
+    /// </remarks>
+    private static string PreflightCode() =>
+        string.Join(
+            "\n",
+            PreflightSection()
+                .Split('\n')
+                .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
+    [Fact]
+    public void The_elevation_is_bought_for_one_step_and_never_for_the_install()
+    {
+        // DD132. Docker Desktop can enable a Windows feature for free because it runs elevated from
+        // its first dialog. This installer is PrivilegesRequired=lowest on purpose — the audience is
+        // developers on managed laptops, and a UAC dialog at install time is where a large share of
+        // them stop — so the elevation is bought per step instead.
+        var script = InstallerScript();
+
+        Assert.Contains("PrivilegesRequired=lowest", script, StringComparison.Ordinal);
+
+        // Exactly one, and it is on the command the row named. A second would be a second prompt,
+        // and the whole claim of this design is that turning the feature on costs one.
+        var elevations = PreflightCode().Split("ShellExec('runas'", StringSplitOptions.None).Length - 1;
+        Assert.Equal(1, elevations);
+    }
+
+    [Fact]
+    public void Setup_never_spells_a_wsl_command_of_its_own()
+    {
+        // The sharp end of DD132, and the reason it is asserted as an absence. `--no-distribution`
+        // does not exist on older WSL builds, and the generous repair — dropping the flag and
+        // running `wsl --install` — installs Ubuntu on somebody's machine uninvited.
+        //
+        // So this file names no command at all: it runs the one the remedy spelled in backticks and
+        // has no fallback to reach for. Measured against a real wsl.exe: an unknown flag is refused
+        // with "Invalid command line argument" and nothing is installed, so a build too old for the
+        // flag gets a visible failure and the steps it already had.
+        var code = PreflightCode();
+
+        Assert.DoesNotContain("--install", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("--no-distribution", code, StringComparison.Ordinal);
+
+        // What it runs instead: the command the page already extracted, split into a program and
+        // its arguments because ShellExec takes the two apart.
+        Assert.Contains("SplitCommand(PreflightCommand", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_refused_prompt_leaves_the_machine_and_the_page_exactly_as_they_were()
+    {
+        // An account that cannot elevate at all lands here too, and neither is an error: the steps
+        // on the page are precisely what the button would have done.
+        var code = PreflightCode();
+
+        var turn = code[code.IndexOf("procedure TurnItOn;", StringComparison.Ordinal)..];
+        turn = turn[..turn.IndexOf("\nend;", StringComparison.Ordinal)];
+
+        Assert.Contains("if not ShellExec(", turn, StringComparison.Ordinal);
+        Assert.Contains("PreflightRefused := True;", turn, StringComparison.Ordinal);
+
+        // Nothing is claimed on that path. The two facts the page would otherwise state are set
+        // after the refusal check and not before it.
+        var refusal = turn.IndexOf("PreflightRefused := True;", StringComparison.Ordinal);
+        var claimed = turn.IndexOf("PreflightFeatureOn := True;", StringComparison.Ordinal);
+        Assert.True(
+            claimed > refusal,
+            "a refused elevation still leaves the page saying the feature was turned on");
+    }
+
+    [Fact]
+    public void The_restart_is_asked_for_and_the_install_is_waiting_on_the_other_side()
+    {
+        // The feature needs a reboot before it is usable, so the run ends by asking for one rather
+        // than leaving a Setup that has to be remembered.
+        var code = PreflightCode();
+
+        // RunOnce and not Run: it fires exactly once and deletes itself, so abandoning the install
+        // after turning the feature on costs one wizard somebody can close.
+        Assert.Contains(@"CurrentVersion\RunOnce", code, StringComparison.Ordinal);
+        Assert.Contains("{srcexe}", code, StringComparison.Ordinal);
+
+        // And the restart names itself and gives a moment's warning: this closes everything the
+        // user has open, so the one thing it must not be is instant and unattributed.
+        var restart = Assert.Single(
+            code.Split('\n'),
+            line => line.Contains("'/r /t ", StringComparison.Ordinal));
+        Assert.Contains("/c \"", restart, StringComparison.Ordinal);
+        Assert.DoesNotContain("/t 0", restart, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_engine_task_is_offered_ticked_so_a_default_install_has_an_engine()
     {

@@ -75,6 +75,29 @@ internal static class EngineCommand
     /// </remarks>
     private static int RunEngine()
     {
+        // One engine host per session (DD133). Nothing held this before, and a second --run was not
+        // refused so much as ignored: it found the pipe already answering, started neither a daemon
+        // nor a relay, and settled into a poll loop whose only power was to terminate the
+        // distribution the first one was serving. Two clicks of Start engine bought that.
+        if (!SingleEngine.TryClaim(out var only))
+        {
+            // Not a failure. The caller wanted the engine served and it is being served, which is
+            // the same reason a second tray launch exits zero.
+            Console.Error.WriteLine(
+                $"{CommandLine.ExecutableName}: another FreeWilly on this session is already "
+                + @"serving \\.\pipe\" + EnginePipeRelay.DefaultPipeName + ".");
+            return Ok;
+        }
+
+        using (only)
+        {
+            return Serve();
+        }
+    }
+
+    /// <summary>The engine host proper, once this process is the one that holds the slot.</summary>
+    private static int Serve()
+    {
         using var stopping = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
@@ -100,6 +123,11 @@ internal static class EngineCommand
             // `--stop` from another process left this one serving a pipe with nothing behind it, and
             // the wsl.exe children held here kept the distribution alive after it was terminated. So
             // the engine stopping by any means has to bring this down too.
+            //
+            // A run of quiet polls and not one of them, since DD133: the poll is an Engine API
+            // request that spawns a wsl.exe of its own, so on the machine a long build makes it
+            // times out against a healthy daemon. Believing one of those cost the build its engine.
+            var watch = new EngineWatch();
             try
             {
                 while (!stopping.IsCancellationRequested)
@@ -107,9 +135,9 @@ internal static class EngineCommand
                     Task.Delay(TimeSpan.FromSeconds(2), stopping.Token)
                         .GetAwaiter().GetResult();
                     var now = lifecycle.StatusAsync(stopping.Token).GetAwaiter().GetResult();
-                    if (now.State is not EngineState.Running)
+                    if (!watch.KeepServing(now))
                     {
-                        Console.WriteLine($"  {now.State,-8}  {now.Detail}");
+                        Console.WriteLine($"  {watch.WhyItStopped(now)}");
                         break;
                     }
                 }

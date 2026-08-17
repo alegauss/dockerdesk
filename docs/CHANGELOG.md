@@ -26,6 +26,7 @@
 - ✅ **DD122** **A provision fails on the step that unpacks the engine, on a machine where nothing is wrong but a slow first boot** — The caller names which kind of call it is: the reads keep the preflight's fifteen seconds, the import and the unpack get five minutes, and the failure says which budget was exceeded.
 - ✅ **DD124** **A plain shell has no docker compose, because DOCKER_CONFIG is left for the user to set by hand** — DOCKER_CONFIG is written by the installer beside the PATH entry and repaired by the tray at startup, both gated on this install owning the docker command, so a plain shell has docker compose.
 - ✅ **DD125** **A plain docker compose up cannot bind a Windows path, because the relay forwards the create request unchanged** — The relay's client direction reads the request head, respells every drive-letter bind source in a container-create body, and forwards everything else byte for byte.
+- ✅ **DD133** **The docker_engine named pipe disappears under a long build, then returns on its own** — One engine host per session, and a run of quiet polls rather than one deciding it is gone.
 
 ## Block B — The daemon client (talk to the engine)
 

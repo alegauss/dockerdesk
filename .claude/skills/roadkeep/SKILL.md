@@ -8,7 +8,7 @@ description: "Call the roadkeep CLI instead of editing a project's governed ROAD
 The line format is a schema at the point of insertion, not a convention to remember. Every
 field is validated before a sentence exists, so a refusal costs a retry and never a
 deletion. Read `roadkeep.toml` for this project's prefix, id shape, paths, markers and
-limits (L6); nothing below hardcodes them. `python ".claude/hooks/roadkeep-launch.py"` is this project's entry point — `install` wired it to a checkout, so the package is not installed here and `roadkeep` is on no PATH.
+limits (L6); nothing below hardcodes them. `python ".claude/hooks/roadkeep-launch.py"` is this project's entry point — the package is not installed here and `roadkeep` is on no PATH, and that launcher is committed to this repository so it finds an engine wherever this environment has one.
 
 ## Writing and shipping
 
@@ -24,11 +24,26 @@ tool list rather than typing it: the whole write path and the reads a task needs
 refusals, with the fields arriving as a schema instead of flag names typed from memory.
 `init`, `adopt` and `install` run once per project and want the CLI — the last of them
 wires this file, the tools and the guard into a project running the tool from a checkout,
-and `install --check` is what holds its copy of this file in step. `install --committed`
+and `install --check` is what holds its copy of this file in step — though you will rarely
+type it, because **the gate now asks**: a vendored launcher, hook or skill behind the
+roadkeep answering here is `install.stale`, filed at that file, and `install` is what closes
+it. A project holding its version on purpose says `[install] pinned = true` and the finding
+stops; the check and `engines` still answer, a pin being a decision and not a claim that the
+files agree. **`install --vendor` pins the engine itself**, which nothing else here does:
+it copies the highest-versioned roadkeep this machine can reach into `.roadkeep/` and the
+launcher resolves that ahead of any sibling checkout. By version and never by search order,
+so every machine pins the same one; a *working* checkout is skipped unless `ROADKEEP_SRC`
+names it, a tree mid-refactor being the thing a pin exists to stop running; `.git` is
+excluded so the copy is an artefact and not a second repository; and what landed is asked
+its version, a disagreement being a refusal that leaves the tree there to look at. Add
+`.roadkeep/` to `.gitignore` — the command says so and does not write it. `install
+--committed`
 wires a launcher committed to the repository instead of a path into a checkout, which is
 what reaches a session that can install no plugin and clone nothing — Claude Code on the
-web; it stands down where the harness has the plugin wired for that project, so nothing
-double-fires, and it never blocks a turn. `uninstall` is the way
+web; its **guard** stands down where the harness has the plugin wired for that project, so
+nothing double-fires, and it never blocks a turn — its **server** stands down for nobody, two
+servers being two entries the harness reads separately and an exit being the one thing it
+reads as a crash. `uninstall` is the way
 back out, for a project moving to the plugin: it takes out this project's entries and
 nothing else, keeps the CI workflow, and needs no checkout to read, so it still works once
 that tree is gone. Every guarantee below holds either way. Three copies of this tool can
@@ -38,7 +53,15 @@ reads all three** and answers `agreed`, `behind` or `unpinnable` — the last be
 version and a modified checkout, which is no commit the plugin could match and so is not
 agreement; it exits 1 on either of the two that are not. Reach for it when a hook denies a
 write the command you just ran would have made, because then the refusal is that copy's
-rule and not this one's.
+rule and not this one's. **And `engines --invoke` prints, on one line and alone, the
+command that reaches the copy wired to this project** — reach for it before composing any
+shell call, because the tools here always find the right copy and a shell does not: a
+stale one in another plugins root does not fail, it agrees with a rule that has moved. On a
+project that declared `[install] pinned`, it no longer only agrees: a write from a copy
+`behind` the pinned one is **refused before the lock**, and the refusal names that read.
+Only `behind` and only where the pin was declared — a modified checkout is where a
+developer lives — and `init`, `install`, `uninstall` and `capture filed` still write, being
+how a pin gets satisfied and how a defect in this tool gets filed.
 
 `roadkeep <add|status|amend|restate|ship|retire|record|non-goal|section> --help` has the
 flags. What they guarantee, so it costs you no thought: the id, the `→ §<id>` pointer, the
@@ -48,7 +71,11 @@ says which track while the number stays derived, per family. Where it declares `
 = "outline"` the anchor is not derivable at all, so `add --ref <x.y>` is the field that
 names it — offered over MCP too, and only there, an `add` without it on such a project
 being refused `ref.missing`; there the id in a section's heading is what binds it to its
-line, and it too is appended for you. Where `[refs]` gives a prose file a **namespace**,
+line, and it too is appended for you. **That refusal carries the whole path where the
+block's prose has not started** — the `block add`, the `section add` opening the family,
+the retry and the design, in order and with the arguments filled in — so read it once and
+run them rather than discovering a stair per call. Where `[refs]` gives a prose file a
+**namespace**,
 that file's addresses are written `<prefix>:<x.y>` and it answers no bare one — two files
 each numbering their own outline from `I` being one flat set of addresses otherwise, which
 `anchors` reports as `doubled` and the gate as `section.ambiguous`. The prefix rides on
@@ -62,7 +89,11 @@ which is what `--section-body-file` is for); the shipped marker never reaches th
 writes the rationale in the same transaction — the prose on stdin or `--section-body`,
 both files validated before either is written — and an `add` without it answers with the
 `section add` that closes the pointer it just created, rather than leaving the gate to say
-so. **`ship <id> --why "<what now works>"` makes its three edits** (ledger entry, roadmap
+so. Under an outline that is **two** calls where the anchor extends a family the prose file
+has not opened: the family first, then the design, both named and in order, because a
+`section add` on a child whose **immediate** parent is missing is refused — a nearer
+ancestor existing is not enough, and the refusal names every generation in between.
+**`ship <id> --why "<what now works>"` makes its three edits** (ledger entry, roadmap
 line gone, `§<id>` deleted) plus the dependents' annotations, or none. It **names any
 section whose prose cited what it deleted**: the ship is right and that citation is your
 next edit, in *this* commit, because a shipped entry keeps no pointer and from the next
@@ -93,7 +124,10 @@ false, `restate <id> --symptom "…"` is that correction and the only door to it
 the deps, the marker and the section all stay, because the work never changed and only the
 description of it was wrong. Reach for it instead of `retire` plus `add`, which spends an
 id and deletes a design that was already right. It takes no reason: the format has nowhere
-to put one, so the commit that removes the false claim is where it belongs. **A misspelt
+to put one, so the commit that removes the false claim is where it belongs. **It names the
+two other places that claim is written** — the `why` and the section — as `amend` and
+`section amend` with the id filled in, to be read and edited in this commit: whether either
+still holds is a judgement, so nothing there is rewritten for you. **A misspelt
 word is not that case**: `restate <id> --symptom "…" --typo` says the claim is the one
 intended and a word in it was wrong, so the answer and the payload record which of the two
 acts it was — without it every spelling fix reads as a premise that turned out false,
@@ -107,7 +141,13 @@ and the entry describe different work, which is two tasks sharing an id and `ren
 to fix. **Half of it landing is a third answer, not a full ship with a hedge in the
 sentence**: `ship <id> --part "<which half>"` records the entry as `✅ **<id> (which
 half)**` and *leaves the line open* at ⏳ with its section intact, and the later `ship
-<id>` completes it — replacing that entry in place and dropping the qualifier, which is
+<id>` completes it. **Pass `--remainder "<what is left>"` beside it**, because the entry
+records the half that landed and nothing else records the other one: without it the next
+reader recovers the rest by subtracting the ledger from the line, several sessions later,
+from prose written for another purpose. It becomes the open line's `why`, so `brief`
+prints both halves as fields — the entry says what happened and the line says what is
+owed. The symptom is untouched: a task half-delivered is still that symptom's task. The
+later `ship <id>` completes it — replacing that entry in place and dropping the qualifier, which is
 the only thing that keeps "local half" from outliving the local half. That replacement
 states a *different* sentence, so on a ledger written before the tool, where the partial's
 bullet **wraps**, it takes `--lines <n>` for the same reason `record amend` does, carries
@@ -121,9 +161,15 @@ pause is none of those three**: `defer <id> --reason "…"` moves the line to th
 store, keeping the id, the deps, the symptom and the section a departure deletes, and
 `resume <id> [--marker <m>]` is the return direction the ledger has none of — the reason
 wraps the `why` on the way out and is unwrapped on the way back, and the open marker is
-what the store could not keep, so `--marker` is where you say which it was. A dep on a
+what the store could not keep, so `--marker` is where you say which it was (`--marker ⏳`
+where a `--part` already landed: **a half that shipped does not close the pause door**, and
+the gate reads the qualifier off the ledger, so the store and that entry are the two files
+agreeing). A dep on a
 paused task resolves as **deferred**, and the line waiting on it as `blocked-paused` — not
-offered, counted apart, and unblocked by a `resume` rather than a ship. Reach for `retire`
+offered, counted apart, and unblocked by a `resume` rather than a ship. The three writes that
+reach a line by id — `amend`, `restate`, `status` — refuse a paused one **naming the store
+and `resume`**, so a refusal about a pause never reads like one about a typo. Reach for
+`retire`
 only when the work is not coming back. `record add --block <x> --symptom "…" --why "…"` is
 the fourth — the entry alone, roadmap untouched, for **any** shipped work with no open line
 to carry it: never planned is one case, and so is a task that shipped inside another's
@@ -189,14 +235,15 @@ task rather than promising one, so an unclaimed id in this project's own prefix 
 spent and the next `add` derives past it — spell an example outside the prefix, or name the
 id you meant.
 **At a terminal, `-` reads stdin on every prose argument** — `--section-body` and
-`--body`, and `--why` and `--reason` on every verb that take one. Reach for it on the
-sentence, not only the paragraph: a `why` names types, files and prior ids, so it carries
-the apostrophe, the backtick and the `§` a shell reads first, and a shell that eats a
-backtick does not refuse — it hands over prose subtly unlike what you wrote and the line
-lands. The pipe's own trailing newline comes off; a trailing space is still yours and
-still refused, and two arguments asking for one pipe is refused naming both. Over MCP
-there is no pipe, so every write that reads one takes it **as a string** and refuses `-`
-by name. **A pipe does not rewind, and a paragraph is the expensive argument**: an `add`
+`--body`, and `--why`, `--reason` and `restate --symptom` on every verb that takes one.
+Reach for it on the sentence, not only the paragraph: a `why` or a symptom names types,
+files and prior ids, so it carries the apostrophe, the backtick and the `§` a shell reads
+first, and a shell that eats a backtick does not refuse — it hands over prose subtly
+unlike what you wrote and the line lands. The pipe's own trailing newline comes off; a
+trailing space is still yours and still refused, and two arguments asking for one pipe is
+refused naming both. Over MCP there is no pipe, so every write that reads one takes it
+**as a string** and refuses `-` by name. **A pipe does not rewind, and a paragraph is the
+expensive argument**: an `add`
 refused for a `why` three words over used to cost the whole rationale a second time, so
 the body is now fetched *below* every refusal the line itself can raise — and where that
 is not enough, because `section add` reports the anchor, the title and the body together,
@@ -223,7 +270,14 @@ under `ref_scheme = "id"` it is refused by name, the anchor being the id and `re
 the verb that moves both ends. `section drop` is refused while an open line points at the
 anchor **or at any address under it**, named in the refusal, whether this file writes that
 address as a heading or as a bullet; that is right, and shipping is not a way to fix a
-paragraph. No write invents a block heading — **`block add <x> --title "…"` is the one
+paragraph. **`block list` is the read before every `add`** — it is what says the labels
+exist and what each is called, in file order, with each block's open count and whether it
+is live, paused, finished or empty. No other read enumerates them: `list --block` and
+`delivered <block>` both demand the letter as an argument, so until this verb the only
+answer was reading the roadmap, which the guard denies. A label the roadmap has lost keeps
+its ledger heading and is named as such: that row is a block an `add` still refuses, and
+the next sentence is its remedy. No write invents a block heading
+— **`block add <x> --title "…"` is the one
 that declares one**, in every governed file already organised by blocks, placed after the
 last block's subtree and spelled at that file's own level and separator. Reach for it the
 moment any write refuses with "no heading declares". A file organised by *nothing* is
@@ -238,7 +292,13 @@ is refused rather than appended. `block drop <x>` withdraws a label opened by mi
 heading goes only from the files where its whole subtree is blank, and anything filed
 under it — an open line, a paused one, a rationale section — is named in a refusal that
 writes nothing, because a heading over work is not an empty heading. The ledger keeps its
-heading either way, history being filed under it. **`block merge <x>` is the key to the
+heading either way, history being filed under it — which is why **`block amend <x> --title
+"…"` is the door to a heading's *words***: that refusal makes drop-and-re-add impossible the
+moment anything is filed, so a title was otherwise write-once. It is narrow — the label is
+the identity and does not move, the subtree is untouched, and each file keeps its own level
+and separator, nobody having asked for a restyle — and it writes every file that declares the
+label or none, a title corrected in one file and left in another being the defect it closes.
+**`block merge <x>` is the key to the
 doubled heading** — the state a textual git merge, an `adopt` or a hand edit leaves, that
 the gate reports `block.repeated` and every write refuses with "merge the two regions by
 hand". It keeps the first heading and folds every later duplicate's entries into it, all
@@ -283,9 +343,11 @@ order it sat being the one thing the store could not keep. Every write prints on
 neither an id nor a block. The stage is the **same four-state answer** every query gives
 (`live`, `finished`, `paused`, `empty`), so a loop branching on the event and one branching
 on `--json` read one vocabulary; the `block drop` offer rides on the two of them a heading
-is droppable in, and a paused block is never sent at a command that refuses it. There is no
-second route: `Edit` on a governed file is denied, naming the command, and `lint` gates the
-turn's end.
+is droppable in, and a paused block is never sent at a command that refuses it. **Absent
+entirely where `[headings] permanent` says the headings outlive the work filed under them**
+— then an emptied block is finished work and not a heading to withdraw, and the stage word
+still says which. There is no second route: `Edit` on a governed file is denied, naming the
+command, and `lint` gates the turn's end.
 
 **An id is an address, and a merge can spend one twice.** `renumber <id> [--to <new>]`
 moves the line, the `§<id>` section its pointer resolves to and every dep naming it, in
@@ -359,7 +421,11 @@ Every query takes `--json`. **`budget` is the pre-`add` read that saves a retry*
 line leaves its prose fields, derived from the id, the marker, the deps and the pointer —
 all of which are known before the first word exists. It answers in **both units**: the
 characters are what refuses, and the word aim beside them is the one a sentence can be
-composed towards, so write to the words and let the gate stay unreached. A character here
+composed towards, so write to the words and let the gate stay unreached. **And it names the
+rules that are not widths**, per field — how many sentences the field accepts and whether it
+must end in a stop — because a `why` that fits every number and arrives as two sentences is
+refused all the same, and a read that published only the figures cost the composition it
+exists to save. A character here
 is a **UTF-16 code unit**, which every payload declares and every refusal names when it
 differs from what an editor shows — the stricter of the two counts, so a line this accepts
 is one a gate written in Java, C# or JavaScript accepts too, and a status marker costs two
@@ -378,11 +444,26 @@ the limit, because composing to exactly the declared number is what refuses. `bu
 refuses, `--role` naming which of them you mean; on a line's own budget that half comes
 back empty and states the same reason; `section show <a>` is the other half of that read —
 the prose whole, with the count the budget is measured in, so an `amend` is composed
-against what is there rather than against a remembered version of it. **If a body is
-refused anyway, do not count by
-hand**: `body.too-long` names what each paragraph costs and which is the longest, so the
-second draft is composed once — and a `0` there is a table or a fence, which is prose no
-cut can reach. `budget --non-goal [--lead "…"]` is the roadmap's other bullet, whose two
+against what is there rather than against a remembered version of it — and it prints the
+**subtree**, so on a section with children `section show <a> --own` is the half that write
+replaces. Hand the subtree back and it is refused as the wrong extent (`body.subtree`)
+naming that flag, rather than counted as prose somebody wrote too long: a subsection is
+amended by its own anchor. **If a body is refused anyway, do not count by hand**:
+`body.too-long` names what each paragraph costs and which is the longest, so the second
+draft is composed once — and a `0` there is a table or a fence, which is prose no cut can
+reach. **And do not count by hand before one is refused either**: every prose argument here
+is a draft this read *measures* — and **one call prices the whole `add --section`
+transaction**, which `add` validates as one unit and refuses as one: `budget --block <x>
+--why "<draft>" --body "<draft>"` answers for the line *and* the body it would write, while
+`budget --anchor <a> --body "<draft>"` asks about a section on its own (or `--body-file`, or
+`-` for stdin). Both answer with the overrun and exit 1 where it is over, which is the
+refusal without the write — and a `why` three characters over re-sending the whole rationale
+beside it is what pricing the two halves separately cost. Nothing is composed, so a draft
+twice its limit is a number rather than an error, and the schema published for these fields
+carries **no `maxLength`** on purpose: a ceiling there would refuse the very draft you are
+asking about. Reach for it after the first refusal and instead of the second — the retry
+after a refusal is a guess, and this is the same arithmetic answered before the write.
+`budget --non-goal [--lead "…"]` is the roadmap's other bullet, whose two
 limits are the list's own and not the task line's. **`budget --file <p>` is the fourth
 subject**, and the one that is not about prose at all: what an every-turn file `[budgets]`
 declares costs in lines and bytes and what is left — bare, every declared budget. Read it
@@ -416,7 +497,11 @@ What comes back is the distribution and what was elided from it, the sample thos
 percentiles summarise being `--records` and 95% of the payload. It ranks nothing and lands
 on no line — the size field is a non-goal. **`remaining <id>` is that read's mirror**: what
 a task has *left*, run from a query its own design declares — a fenced `roadkeep-remaining`
-block in the rationale section, one `<pathspec> :: <regex>` per line. Derived for the same
+block in the rationale section, one `<pathspec> :: <regex>` per line. **`evidence <id>` is
+that same read with the sign flipped**: a `roadkeep-evidence` block names the sites that
+must *exist* for the task to be done, so what `remaining` counts down `evidence` counts
+up — and neither is a verdict, the pattern being your claim and the count the answer.
+Derived for the same
 reason and stored for none: the first commit that closes a site changes the answer, which a
 number on the line could not, and a `ship` deletes the query with the section that made the
 claim. Reach for it before continuing a migration, which otherwise reads in every file
@@ -440,7 +525,9 @@ where the `Stop` hook states it once and consumes it; `show <id>` joins one line
 section and its paths, and on a ledger entry whose bullet **wraps** it prints every line
 that entry owns — which is the count `record amend --lines` asks you to have read; `deps
 <id>` walks the graph both ways; `gaps` resolves an id in neither file against the commit
-that removed it; `origin <id> --why` reads it out of history, and `origin §<anchor>`
+that removed it, and `unclosed` is that question pointed the other way — an **open**
+line whose work a commit already names, which is what a session that shipped the code
+and forgot the line leaves behind; `origin <id> --why` reads it out of history, and `origin §<anchor>`
 answers the other end of a pointer — a rationale address somebody's prose still cites
 after a ship deleted the section, which no file records, so the three answers are the
 commit that wrote it, the one that took it, and "searched and nobody ever wrote it", which

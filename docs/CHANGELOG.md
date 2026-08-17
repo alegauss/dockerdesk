@@ -70,6 +70,7 @@
 - ✅ **DD113** **The fixture machine's compose project declares no dependencies, so the ordering DD107 added is never exercised by it** — The sample project declares `depends_on` the way compose spells it, so a fixture run orders its services rather than taking the fallback, and the capture is unchanged.
 - ✅ **DD127** **A compose project's header never folds, because its hit target is arranged at nothing** — Clicking a compose project's header folds its containers away and clicking it again brings them back.
 - ✅ **DD126** **The build details link buildx prints opens nothing, because it addresses a dashboard this machine does not have** — The docker-desktop scheme is registered to this install, and the ref in the link opens a Builds destination listing the history with the named record shown in full.
+- ✅ **DD140** **Clicking the tray icon does nothing, so the window is only reachable by right-clicking into a menu that lists it fourth** — A left click on the tray icon opens the window, and Open window leads the context menu instead of sitting fourth, so the icon answers the gesture a user already makes.
 
 ## Block D — Container operations (what a user came to do)
 

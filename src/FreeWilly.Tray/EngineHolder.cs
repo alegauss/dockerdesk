@@ -18,11 +18,19 @@ public interface IProcessLauncher
 /// Starts the engine as a process that outlives this one.
 /// </summary>
 /// <remarks>
-/// Quitting the tray must not stop the engine: a container running a database another process is
-/// using cannot die because somebody closed an icon. And the engine only stays up while a Windows
-/// process holds the <c>wsl.exe</c> children and the pipe relay — measured, since neither
-/// <c>nohup</c> nor <c>setsid</c> survives inside WSL2. Both facts together leave one shape: the
-/// tray launches a separate <c>--run</c> and does not own it.
+/// The engine only stays up while a Windows process holds the <c>wsl.exe</c> children and the pipe
+/// relay — measured, since neither <c>nohup</c> nor <c>setsid</c> survives inside WSL2. So something
+/// has to hold it, and the shape that follows is a separate <c>--run</c> the tray launches and does
+/// not own.
+///
+/// <para><b>Not owning it is no longer the same as not stopping it</b> (DD128). This used to say
+/// that quitting the tray must not stop the engine, because a container running a database another
+/// process is using cannot die because somebody closed an icon. What that reasoning left out is the
+/// WSL2 virtual machine underneath: quitting gave back the icon and kept the gigabytes, which is the
+/// complaint this whole project answers. So <see cref="TrayApplication.Quit"/> now runs
+/// <see cref="Stop"/> on its way out. The launch is still detached — that is what lets the engine
+/// outlive a tray that crashes, and what keeps the icon from waiting on a virtual machine — but the
+/// ordinary exit takes the engine with it.</para>
 ///
 /// A process and not a Windows service. The service is what the non-goal rules out, and it is also
 /// what would put the engine back on every boot without being asked.

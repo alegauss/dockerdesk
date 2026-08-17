@@ -22,6 +22,11 @@ namespace FreeWilly.Tray;
 /// the reason it is affordable is that it qualifies a verb already here rather than introducing a
 /// place to go: the menu is still the two things you can do to the engine, plus how it behaves when
 /// you are not asking, plus the window and the way out.</para>
+///
+/// <para><b>The window leads it</b> (DD140). It sat fourth while the menu was the only way in, on the
+/// reasoning that a tray menu is about the engine. A left click on the icon now carries that ordinary
+/// case, so what is left of this menu's job is to name what the click does — first, where a reader
+/// looks — and then the engine, which the click says nothing about.</para>
 /// </remarks>
 internal sealed class TrayMenu
 {
@@ -46,12 +51,12 @@ internal sealed class TrayMenu
     private readonly ToolStripMenuItem _window = new(WindowText);
 
     /// <summary>Build the menu.</summary>
-    /// <param name="startEngine">What the first item does.</param>
-    /// <param name="stopEngine">What the second does.</param>
-    /// <param name="openWindow">What the fourth does.</param>
+    /// <param name="startEngine">What the second item does.</param>
+    /// <param name="stopEngine">What the third does.</param>
+    /// <param name="openWindow">What the first does.</param>
     /// <param name="quit">What the last does.</param>
     /// <param name="setOnLaunch">
-    /// What the third does, given the box's new state — or <see langword="null"/> where nothing is
+    /// What the fourth does, given the box's new state — or <see langword="null"/> where nothing is
     /// behind it, which is how <c>--show-menu</c> photographs a menu with no tray under it (DD135).
     /// </param>
     /// <param name="onLaunch">Whether the box starts ticked.</param>
@@ -79,14 +84,18 @@ internal sealed class TrayMenu
         _onLaunch.CheckedChanged += (_, _) => setOnLaunch?.Invoke(_onLaunch.Checked);
 
         Strip = new ContextMenuStrip();
+
+        // First, and alone above the rule: it is what the icon's own click does, so the menu opens
+        // by naming the thing a reader is most likely here for rather than burying it fourth (DD140).
+        Strip.Items.Add(_window);
+        Strip.Items.Add(new ToolStripSeparator());
+
         Strip.Items.Add(_start);
         Strip.Items.Add(_stop);
 
         // With the two verbs it qualifies rather than off with the window, because it is a third
         // thing to say about the engine and not a third place to go.
         Strip.Items.Add(_onLaunch);
-        Strip.Items.Add(new ToolStripSeparator());
-        Strip.Items.Add(_window);
         Strip.Items.Add(new ToolStripSeparator());
         Strip.Items.Add(new ToolStripMenuItem(QuitText, null, (_, _) => quit()));
     }

@@ -455,6 +455,46 @@ public sealed class TrayTests
         Assert.Equal(holder.EnginePath, launcher.Launched[1].File);
     }
 
+    // ---- what quitting takes with it (DD128) --------------------------------------------------
+
+    [Fact]
+    public void Quitting_the_tray_stops_the_engine_before_the_icon_goes()
+    {
+        // Asserted on the source for the reason DD82's is: Quit hides a live NotifyIcon and ends a
+        // message loop, and nothing in a test can construct the tray that owns them.
+        //
+        // The order is half the claim. Stop launches a detached process, so running it after
+        // ExitThread would be a request made by something on its way out of existence — and the
+        // reason it can go first at all is that the launch does not wait for the engine to be gone.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+        var quit = source.IndexOf("private void Quit()", StringComparison.Ordinal);
+        Assert.True(quit >= 0, "the tray no longer has a quit path");
+
+        var body = source[quit..];
+        var stopped = body.IndexOf("_holder.Stop()", StringComparison.Ordinal);
+        var hidden = body.IndexOf("_icon.Visible = false;", StringComparison.Ordinal);
+
+        Assert.True(
+            stopped >= 0,
+            "quitting the tray no longer stops the engine, so the WSL2 virtual machine keeps the "
+            + "gigabytes this project exists to give back (DD128)");
+        Assert.True(hidden >= 0, "the tray no longer hides its icon on the way out");
+        Assert.True(stopped < hidden, "the engine is asked to stop after the tray has gone");
+    }
+
+    [Fact]
+    public void Quitting_does_not_reach_past_the_distribution_this_install_owns()
+    {
+        // `wsl --shutdown` would give the memory back a minute sooner and take somebody's Ubuntu
+        // shell with it. Terminating our own distribution is the whole of what this install is
+        // entitled to do, and WSL powers the machine down itself once nothing else is using it.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+
+        Assert.DoesNotContain("--shutdown", source, StringComparison.Ordinal);
+    }
+
     // ---- what the shell is told at add time (DD82) --------------------------------------------
 
     [Fact]
@@ -477,6 +517,29 @@ public sealed class TrayTests
             shown < visible,
             "the icon becomes visible before it has an image and a tooltip, so the shell persists "
             + "an empty one and the overflow flyout names nothing (DD82)");
+    }
+
+    // ---- what the icon does when it is clicked (DD140) ----------------------------------------
+
+    [Fact]
+    public void The_icon_opens_the_window_when_the_primary_button_is_clicked()
+    {
+        // Asserted on the source for the reason DD82's is: the handler is a lambda inside
+        // TrayApplication's constructor, and nothing can construct one in a test — it wants a live
+        // NotifyIcon, an event stream and a message loop. What can be pinned is that the
+        // subscription exists at all, which is the whole of the defect: the icon carried a context
+        // menu and no click handler, so the primary button did nothing on the one surface this
+        // product keeps on screen.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+
+        Assert.Contains("_icon.MouseClick +=", source, StringComparison.Ordinal);
+        Assert.Contains("MouseButtons.Left", source, StringComparison.Ordinal);
+
+        // And it is MouseClick rather than Click. Click fires for the secondary button too, and that
+        // gesture has already raised the context menu — so the window would open behind the popup
+        // that asked for it, which is a worse answer than the silence it replaced.
+        Assert.DoesNotContain("_icon.Click +=", source, StringComparison.Ordinal);
     }
 
     /// <summary>The repository root, found by walking up from the test binary.</summary>

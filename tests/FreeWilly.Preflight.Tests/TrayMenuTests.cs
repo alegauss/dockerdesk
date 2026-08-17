@@ -59,14 +59,17 @@ public sealed class TrayMenuTests
             //
             // DD135 spent one item here, and it is placed with the two engine verbs rather than off
             // with the window because it qualifies them: what the engine does when nobody is asking.
+            //
+            // The window is first since DD140, alone above its rule: the icon's own click opens it,
+            // so the menu's first line names what the click does and the engine follows.
             using var menu = Menu().Strip;
 
             Assert.Equal(7, menu.Items.Count);
-            Assert.Equal(TrayMenu.StartText, menu.Items[0].Text);
-            Assert.Equal(TrayMenu.StopText, menu.Items[1].Text);
-            Assert.Equal(TrayMenu.OnLaunchText, menu.Items[2].Text);
-            Assert.IsType<ToolStripSeparator>(menu.Items[3]);
-            Assert.Equal(TrayMenu.WindowText, menu.Items[4].Text);
+            Assert.Equal(TrayMenu.WindowText, menu.Items[0].Text);
+            Assert.IsType<ToolStripSeparator>(menu.Items[1]);
+            Assert.Equal(TrayMenu.StartText, menu.Items[2].Text);
+            Assert.Equal(TrayMenu.StopText, menu.Items[3].Text);
+            Assert.Equal(TrayMenu.OnLaunchText, menu.Items[4].Text);
             Assert.IsType<ToolStripSeparator>(menu.Items[5]);
             Assert.Equal(TrayMenu.QuitText, menu.Items[6].Text);
         });
@@ -80,8 +83,8 @@ public sealed class TrayMenuTests
             using var off = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, false).Strip;
             using var on = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, true).Strip;
 
-            Assert.False(((ToolStripMenuItem)off.Items[2]).Checked);
-            Assert.True(((ToolStripMenuItem)on.Items[2]).Checked);
+            Assert.False(((ToolStripMenuItem)off.Items[4]).Checked);
+            Assert.True(((ToolStripMenuItem)on.Items[4]).Checked);
         });
 
     [Fact]
@@ -95,8 +98,8 @@ public sealed class TrayMenuTests
             var menu = new TrayMenu(Nothing, Nothing, Nothing, Nothing, told.Add, true);
             using var strip = menu.Strip;
 
-            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
-            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
 
             Assert.Equal([false, true], told);
         });
@@ -109,9 +112,9 @@ public sealed class TrayMenuTests
             // live setting to exist would be an item no capture could photograph.
             using var strip = Menu().Strip;
 
-            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
 
-            Assert.False(((ToolStripMenuItem)strip.Items[2]).Checked);
+            Assert.False(((ToolStripMenuItem)strip.Items[4]).Checked);
         });
 
     [Theory]
@@ -128,8 +131,8 @@ public sealed class TrayMenuTests
             menu.Reflect(state);
 
             using var strip = menu.Strip;
-            Assert.Equal(canStart, strip.Items[0].Enabled);
-            Assert.Equal(canStop, strip.Items[1].Enabled);
+            Assert.Equal(canStart, strip.Items[2].Enabled);
+            Assert.Equal(canStop, strip.Items[3].Enabled);
         });
 
     [Fact]

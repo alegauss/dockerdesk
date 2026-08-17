@@ -43,6 +43,24 @@ internal sealed class TrayApplication : ApplicationContext
             _onLaunch.StartWithTheTray);
         _icon.ContextMenuStrip = _menu.Strip;
 
+        // The primary button, which the icon answered with nothing at all until DD140. NotifyIcon
+        // raises the context menu on the secondary button by itself and does nothing whatsoever on
+        // the other, so the one surface this product keeps on screen all day ignored the click every
+        // tray tool teaches a user to make — which reads as an icon that is broken rather than as a
+        // menu hiding under the other button.
+        //
+        // MouseClick and not Click, because Click fires for the secondary button too: the same
+        // gesture has already raised the menu, and the window would arrive behind the popup that
+        // asked for it. A double click reaches this twice and is harmless — the second is the
+        // activate branch of OpenWindow, which is what a second launch does anyway (DD81).
+        _icon.MouseClick += (_, click) =>
+        {
+            if (click.Button is MouseButtons.Left)
+            {
+                OpenWindow();
+            }
+        };
+
         _scale = new TrayScale(() => _ui.Post(_ => Show(_shown), null));
 
         // The image and the tooltip BEFORE visibility, and the order is the whole of DD82. Setting
@@ -136,8 +154,9 @@ internal sealed class TrayApplication : ApplicationContext
     /// <remarks>
     /// Posted for the same reason <see cref="RaiseWindow"/> is: the signal arrives on a background
     /// thread, and <see cref="Quit"/> hides the notify icon and ends the message loop — both of which
-    /// belong to the UI thread. It is the menu item's own exit and not a second one, so the engine is
-    /// left running here too; an uninstall that wants it stopped runs <c>--stop</c> as well.
+    /// belong to the UI thread. It is the menu item's own exit and not a second one, which since
+    /// DD128 is what makes this enough on its own: the engine comes down with the tray, so an
+    /// uninstaller that used to have to run <c>--stop</c> as a second step no longer does.
     /// </remarks>
     internal void QuitFromSignal() => _ui.Post(_ => Quit(), null);
 
@@ -348,14 +367,36 @@ internal sealed class TrayApplication : ApplicationContext
     }
 
     /// <summary>
-    /// Quit the tray and leave the engine exactly as it is.
+    /// Quit the tray and take the engine with it (DD128).
     /// </summary>
     /// <remarks>
-    /// The asymmetry is the point: the only thing that stops the engine is the menu item that says
-    /// so. A container someone else is using does not die because an icon was closed.
+    /// This used to leave the engine exactly as it was, and the asymmetry was stated as the point: a
+    /// container someone else is using should not die because an icon was closed. Measured against
+    /// the complaint this project exists about, that trade costs more than it saves — a running
+    /// engine holds a WSL2 virtual machine, and the only way to get those gigabytes back was to
+    /// remember a second menu item before pressing this one. Somebody who quits has said they are
+    /// done.
+    ///
+    /// <para>It runs the stop the menu item already runs, and deliberately not a second spelling of
+    /// it: <see cref="EngineHolder.Stop"/> launches <c>--stop</c>, which stops serving the pipe,
+    /// kills the daemon and terminates the distribution. That process is detached and outlives this
+    /// one by design, so the icon still goes at once and nothing here waits on a virtual machine
+    /// shutting down.</para>
+    ///
+    /// <para><b>The virtual machine is left to WSL rather than shut down from here.</b> Terminating
+    /// the distribution this tool owns is the whole of what this install is entitled to do;
+    /// <c>wsl --shutdown</c> would take every other distribution on the machine with it, which is
+    /// somebody's Ubuntu shell in another window. With ours gone WSL powers the machine down itself
+    /// once nothing else is using it, so the memory comes back either way — the difference is only
+    /// whether this tool reaches outside what it owns to make it happen sooner.</para>
+    ///
+    /// <para>The failure is swallowed rather than shown. Every surface that reports one is on its
+    /// way out of existence — the balloon needs an icon that is about to be hidden, and a modal
+    /// would hold open the exit the user just asked for.</para>
     /// </remarks>
     private void Quit()
     {
+        _ = _holder.Stop();
         _icon.Visible = false;
         ExitThread();
     }

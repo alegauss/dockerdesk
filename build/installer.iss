@@ -255,7 +255,15 @@ var
   // DD130. The preflight page, which stands between the tasks page and wpReady — so the last thing
   // Setup does before the first file is written is read the machine.
   PreflightPage: TWizardPage;
+  PreflightHeading, PreflightFooter: TNewStaticText;
   PreflightMemo: TNewMemo;
+
+  // DD131. What turns a message box into a page somebody can act on: the command, selectable and
+  // copyable; the instructions Microsoft keeps; and the button that closes the loop between fixing
+  // something and finding out whether it worked.
+  PreflightCommandBox: TNewEdit;
+  PreflightCopy, PreflightAgain: TNewButton;
+  PreflightLink: TNewLinkLabel;
 
   // Asked once and remembered, because the wizard walks over this page in both directions and
   // re-reading the machine on every Back would be a pause with no new answer in it.
@@ -267,6 +275,11 @@ var
   // {app} to write one into.
   PreflightSaid: string;
   PreflightReport: string;
+
+  // DD131. The two things the page can offer beyond the rows: the command a remedy names, and
+  // whether the row that blocked is the one most readers will not recognise the name of.
+  PreflightCommand: string;
+  PreflightWsl2: Boolean;
 
 // ---------------------------------------------------------------------------------------------
 // The tasks page, drawn rather than asked for (DD123)
@@ -567,23 +580,49 @@ begin
   Result := True;
 end;
 
+/// What a remedy spells in backticks, which is the command a reader has to type.
+function Backticked(const Remedy: string): string;
+var
+  Opened, Closed: Integer;
+begin
+  // The product writes its remedies with the command in backticks — `wsl.exe --install
+  // --no-distribution`, `wsl --update`, `docker context use default` — so the page does not have to
+  // know which row it is looking at to find the thing worth copying. One source of truth for the
+  // command, and it is the one that decided the remedy (DD131).
+  Result := '';
+  Opened := Pos('`', Remedy);
+  if Opened = 0 then
+    Exit;
+
+  Closed := Pos('`', Copy(Remedy, Opened + 1, MaxInt));
+  if Closed = 0 then
+    Exit;
+
+  Result := Copy(Remedy, Opened + 1, Closed - 1);
+end;
+
 /// Read the report and build the one paragraph per blocking row that the page and the file share.
 procedure ReadTheVerdict(const Path: string);
 var
   Lines: TArrayOfString;
   I: Integer;
-  Value, Title, Detail, Remedy: string;
+  Value, Id, Title, Detail, Remedy: string;
 begin
   PreflightSaid := '';
+  PreflightCommand := '';
+  PreflightWsl2 := False;
   if not LoadStringsFromFile(Path, Lines) then
     Exit;
 
+  Id := '';
   Title := '';
   Detail := '';
   Remedy := '';
   for I := 0 to GetArrayLength(Lines) - 1 do
   begin
-    if JsonValue(Lines[I], 'Title', Value) then
+    if JsonValue(Lines[I], 'Id', Value) then
+      Id := Value
+    else if JsonValue(Lines[I], 'Title', Value) then
       Title := Value
     else if JsonValue(Lines[I], 'Detail', Value) then
       Detail := Value
@@ -592,7 +631,7 @@ begin
     else if JsonValue(Lines[I], 'Blocks', Value) then
     begin
       // Blocks is the row's own answer to "does this stop an install right now", and it is the last
-      // property of the object — so by the time it is read, the three above belong to this row.
+      // property of the object — so by the time it is read, the four above belong to this row.
       // Reading Verdict and Blocking here and deciding again in Pascal is the second opinion this
       // section exists not to have.
       if Value = 'true' then
@@ -601,9 +640,22 @@ begin
           PreflightSaid := PreflightSaid + #13#10;
         PreflightSaid := PreflightSaid + Title + '  ' + Detail + #13#10;
         if (Remedy <> '') and (Remedy <> 'null') then
+        begin
           PreflightSaid := PreflightSaid + '    -> ' + Remedy + #13#10;
+
+          // The first blocking row's command, because the page has one box and the rows are in the
+          // order they are meant to be read — so the first one is the first thing to do.
+          if PreflightCommand = '' then
+            PreflightCommand := Backticked(Remedy);
+        end;
+
+        // Named rather than inferred from the wording, so a rephrased remedy cannot quietly turn
+        // the WSL2 page back into the generic one.
+        if Id = 'wsl2' then
+          PreflightWsl2 := True;
       end;
 
+      Id := '';
       Title := '';
       Detail := '';
       Remedy := '';
@@ -699,6 +751,149 @@ end;
 // The page it is read on
 // ---------------------------------------------------------------------------------------------
 
+// The page a blocked install lands on (DD131).
+//
+// What a blocked machine used to get was a message box naming `wsl.exe --install
+// --no-distribution` and a path to a text file. That is exactly right for a reader who already
+// knows what WSL2 is, and it is the whole of the experience for a reader who does not: the term is
+// never expanded, the command is in a box that cannot be copied from, and there is no way to find
+// out whether the fix worked short of running Setup again.
+//
+// So the page says four things in order — what the feature is, the numbered steps, the command
+// itself, and where Microsoft documents it — and carries the button that closes the loop. Check
+// again re-reads the machine in place and releases Next the moment nothing blocks, which turns
+// fix-and-find-out from one reinstall into one click.
+
+/// What the feature is, for a reader who has never heard of it.
+function Wsl2InPlainWords: string;
+begin
+  Result :=
+    'WSL2 is the Windows feature that runs a real Linux kernel beside Windows. A container is a '
+  + 'Linux process, so until the feature is on there is nothing for an engine to run one in — '
+  + 'which is why Setup stops here rather than installing a tool that could not work.';
+end;
+
+/// The steps, each one action long.
+function Wsl2Steps: string;
+begin
+  // Numbered rather than prose, because this is read by somebody following it a line at a time
+  // rather than reading it. Step 3 is the one that gets skipped and the one that decides whether
+  // any of the rest worked, so it says what happens if it is.
+  Result :=
+    '1.  Open Terminal as an administrator: right-click the Start button and choose'#13#10
+  + '     "Terminal (Admin)", or "Windows PowerShell (Admin)" on Windows 10.'#13#10#13#10
+  + '2.  Run the command below. It turns the feature on and installs no Linux'#13#10
+  + '     distribution — this product brings its own.'#13#10#13#10
+  + '3.  Restart Windows. The feature is not on until you do, and Check again will'#13#10
+  + '     still say so if you skip it.'#13#10#13#10
+  + '4.  Come back to this page and choose Check again.';
+end;
+
+/// Put the command on the clipboard.
+procedure CopyTheCommand(Sender: TObject);
+var
+  Code: Integer;
+begin
+  // Setup has no clipboard of its own — there is no SetClipboardText in Pascal Script — so this is
+  // clip.exe, which ships with Windows. `<nul set /p=` rather than `echo`, and the difference
+  // matters here: echo appends a newline, and a newline on the clipboard turns a paste into an
+  // administrator terminal into a command that has already run before it could be read.
+  Exec(ExpandConstant('{cmd}'),
+       '/C <nul set /p="' + PreflightCommand + '"| clip',
+       '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
+/// Open the page Microsoft keeps about it.
+procedure OpenTheInstructions(Sender: TObject; const Link: string; LinkType: TSysLinkType);
+var
+  Code: Integer;
+begin
+  ShellExec('open', Link, '', '', SW_SHOWNORMAL, ewNoWait, Code);
+end;
+
+/// Show what the last read found, and enable Next only if nothing blocks.
+procedure ShowTheVerdict;
+var
+  Y, Bottom, Row: Integer;
+begin
+  // Laid out from the bottom, because what is optional is at the bottom and the prose has to take
+  // whatever is left rather than a height guessed here. A page cannot scroll; the memo can.
+  Bottom := PreflightPage.SurfaceHeight;
+
+  PreflightFooter.Top := Bottom - PreflightFooter.Height;
+  Row := PreflightFooter.Top - ScaleY(10) - ScaleY(23);
+
+  PreflightAgain.Top := Row;
+  PreflightLink.Top := Row + ScaleY(4);
+  PreflightLink.Visible := PreflightWsl2;
+
+  PreflightCommandBox.Visible := PreflightCommand <> '';
+  PreflightCopy.Visible := PreflightCommand <> '';
+  if PreflightCommand <> '' then
+  begin
+    Row := Row - ScaleY(10) - PreflightCopy.Height;
+    PreflightCopy.Top := Row;
+
+    // Centred against the button rather than aligned to its top, because the two are not the same
+    // height and never were: an edit sizes itself to its font — measured at 40 against the button's
+    // 49 at 200% scaling — so a shared Top leaves the button hanging below the box it belongs to.
+    PreflightCommandBox.Top :=
+      Row + ((PreflightCopy.Height - PreflightCommandBox.Height) div 2);
+    PreflightCommandBox.Text := PreflightCommand;
+  end;
+
+  Y := PreflightHeading.Top + PreflightHeading.Height + ScaleY(8);
+  PreflightMemo.Top := Y;
+  PreflightMemo.Height := Row - ScaleY(10) - Y;
+
+  if PreflightClear then
+  begin
+    // Reachable only through Check again: the page is skipped when the first read was green.
+    PreflightHeading.Caption := 'Nothing blocks an install any more';
+    PreflightMemo.Text :=
+      'This machine can host the container engine. Choose Next to carry on.';
+  end
+  else if PreflightWsl2 then
+  begin
+    PreflightHeading.Caption := 'Windows needs one feature turned on first';
+    PreflightMemo.Text := Wsl2InPlainWords + #13#10#13#10 + Wsl2Steps;
+  end
+  else
+  begin
+    PreflightHeading.Caption := 'This machine cannot host the container engine yet';
+    PreflightMemo.Text :=
+      'Nothing has been installed and nothing has been changed. Each row below names the one '
+      + 'action that changes it.'#13#10#13#10 + PreflightSaid;
+  end;
+
+  PreflightFooter.Caption := 'Written to ' + PreflightReport;
+  PreflightFooter.Visible := not PreflightClear;
+
+  // The verdict decides whether Next is available at all, which is what makes this a stop rather
+  // than a warning somebody clicks past onto a machine that cannot run what it is about to receive.
+  WizardForm.NextButton.Enabled := PreflightClear;
+end;
+
+/// Read the machine again, without leaving the page.
+procedure CheckAgain(Sender: TObject);
+begin
+  // The button that matters most. Forgetting the last answer is the whole of it: everything else
+  // here already re-runs from the one function, so the loop between fixing something and finding
+  // out is a click rather than a reinstall.
+  PreflightAsked := False;
+
+  PreflightAgain.Enabled := False;
+  WizardForm.Cursor := crHourGlass;
+  try
+    Preflight;
+  finally
+    WizardForm.Cursor := crDefault;
+    PreflightAgain.Enabled := True;
+  end;
+
+  ShowTheVerdict;
+end;
+
 procedure BuildPreflightPage;
 begin
   // After the tasks page, which puts it immediately before wpReady — the last page before Setup
@@ -709,19 +904,72 @@ begin
     'This machine',
     'What the engine needs, read before anything is written.');
 
+  PreflightHeading := TNewStaticText.Create(PreflightPage);
+  PreflightHeading.Parent := PreflightPage.Surface;
+  PreflightHeading.Left := 0;
+  PreflightHeading.Top := 0;
+  PreflightHeading.AutoSize := True;
+  PreflightHeading.Font.Style := [fsBold];
+  PreflightHeading.Caption := 'This machine';
+
   PreflightMemo := TNewMemo.Create(PreflightPage);
   PreflightMemo.Parent := PreflightPage.Surface;
   PreflightMemo.Left := 0;
-  PreflightMemo.Top := 0;
   PreflightMemo.Width := PreflightPage.SurfaceWidth;
-  PreflightMemo.Height := PreflightPage.SurfaceHeight;
 
   // Read-only and scrolling rather than a wrapping label: a remedy is a command somebody has to
   // type, and a control they can select and copy out of is worth more here than one that cannot be
-  // clicked into. ScrollBars because the number of blocking rows is not this page's to bound.
+  // clicked into. ScrollBars because the number of blocking rows is not this page's to bound, and
+  // a wizard page has no scrollbar of its own to fall back on.
   PreflightMemo.ReadOnly := True;
   PreflightMemo.WordWrap := True;
   PreflightMemo.ScrollBars := ssVertical;
+
+  // The command, selectable — which is the half of "copyable" that survives a Copy button nobody
+  // notices. Read-only for the same reason the memo is: editing it would only produce a command
+  // that is not the one the check asked for.
+  PreflightCommandBox := TNewEdit.Create(PreflightPage);
+  PreflightCommandBox.Parent := PreflightPage.Surface;
+  PreflightCommandBox.Left := 0;
+  PreflightCommandBox.Width := PreflightPage.SurfaceWidth - ScaleX(75 + 8);
+  PreflightCommandBox.Height := ScaleY(23);
+  PreflightCommandBox.ReadOnly := True;
+
+  PreflightCopy := TNewButton.Create(PreflightPage);
+  PreflightCopy.Parent := PreflightPage.Surface;
+  PreflightCopy.Left := PreflightPage.SurfaceWidth - ScaleX(75);
+  PreflightCopy.Width := ScaleX(75);
+  PreflightCopy.Height := ScaleY(23);
+  PreflightCopy.Caption := 'Copy';
+  PreflightCopy.OnClick := @CopyTheCommand;
+
+  // Microsoft's own instructions, and the same page Docker Desktop links for the same reason. A
+  // link label rather than a printed URL: a URL on a wizard page is an address nobody can click
+  // and most people will not retype.
+  PreflightLink := TNewLinkLabel.Create(PreflightPage);
+  PreflightLink.Parent := PreflightPage.Surface;
+  PreflightLink.Left := 0;
+  PreflightLink.Width := PreflightPage.SurfaceWidth - ScaleX(90 + 8);
+  PreflightLink.Caption :=
+    '<a href="https://learn.microsoft.com/en-us/windows/wsl/install">'
+    + 'Microsoft''s instructions for installing WSL</a>';
+  PreflightLink.OnLinkClick := @OpenTheInstructions;
+
+  PreflightAgain := TNewButton.Create(PreflightPage);
+  PreflightAgain.Parent := PreflightPage.Surface;
+  PreflightAgain.Left := PreflightPage.SurfaceWidth - ScaleX(90);
+  PreflightAgain.Width := ScaleX(90);
+  PreflightAgain.Height := ScaleY(23);
+  PreflightAgain.Caption := 'Check again';
+  PreflightAgain.OnClick := @CheckAgain;
+
+  PreflightFooter := TNewStaticText.Create(PreflightPage);
+  PreflightFooter.Parent := PreflightPage.Surface;
+  PreflightFooter.Left := 0;
+  PreflightFooter.Width := PreflightPage.SurfaceWidth;
+  PreflightFooter.AutoSize := False;
+  PreflightFooter.Height := ScaleY(13);
+  PreflightFooter.Caption := '';
 end;
 
 // ---------------------------------------------------------------------------------------------
@@ -780,21 +1028,16 @@ end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  // Every page but this one, so Next comes back the moment the wizard leaves: the page disables it
+  // and only the page is entitled to. Without this, a Back off a blocked page would land on a
+  // tasks page nobody can leave.
   if CurPageID <> PreflightPage.ID then
+  begin
+    WizardForm.NextButton.Enabled := True;
     Exit;
+  end;
 
-  // Reached only when something blocks, so the page never has to phrase a pass.
-  PreflightMemo.Text :=
-    'Nothing has been installed, and nothing on this machine has been changed.'#13#10#13#10
-    + PreflightSaid + #13#10
-    + 'This is written to:'#13#10
-    + PreflightReport + #13#10#13#10
-    + 'Fix what is named above and run Setup again. Back changes what would be installed; it does '
-    + 'not change this answer.';
-
-  // The verdict decides whether Next is available at all, which is what makes this a stop rather
-  // than a warning somebody clicks past onto a machine that cannot run what it is about to receive.
-  WizardForm.NextButton.Enabled := False;
+  ShowTheVerdict;
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

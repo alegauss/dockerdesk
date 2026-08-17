@@ -691,7 +691,11 @@ public sealed class PackagingTests
         var script = InstallerScript();
         var section = PreflightSection();
 
-        Assert.Contains("WizardForm.NextButton.Enabled := False;", script, StringComparison.Ordinal);
+        // Bound to the verdict rather than pinned off: DD131 added a re-check on this page, so the
+        // button has to come back when the machine does. The claim is the same either way — nothing
+        // past this page happens while something blocks.
+        Assert.Contains(
+            "WizardForm.NextButton.Enabled := PreflightClear;", script, StringComparison.Ordinal);
 
         // The page stands between the tasks page and wpReady, which is the last place a wizard can
         // stop before Setup commits to anything.
@@ -728,6 +732,124 @@ public sealed class PackagingTests
         // a fresh install stopped by this check there is no {app} either, because nothing has been
         // written yet. That is the point, so the fallback is the user's own TEMP.
         Assert.Contains("{%TEMP}", PreflightSection(), StringComparison.Ordinal);
+    }
+
+    // ---- DD131: the page a blocked install lands on --------------------------------------------
+
+    [Fact]
+    public void The_command_the_page_hands_over_is_the_one_the_remedy_already_named()
+    {
+        // DD131, and this is the seam that holds the two files together. The page finds the command
+        // by the backticks the product writes it in — one source of truth, and the source is the row
+        // that decided the remedy — so a remedy rephrased without them leaves the page with an empty
+        // command box and nothing anywhere that would say so.
+        //
+        // The machine is the common one: wsl.exe is in System32 on every Windows, and the feature
+        // behind it is not installed.
+        var report = Core.Preflight.PreflightInspection.Run(FakeMachine.Healthy with
+        {
+            Wsl = new Core.Preflight.WslInstallation
+            {
+                CommandPresent = true,
+                FeatureInstalled = false,
+            },
+        });
+
+        var wsl2 = report[Core.Preflight.PreflightInspection.Rows.Wsl2];
+        Assert.NotNull(wsl2);
+        Assert.True(wsl2!.Blocks, "the machine this builds no longer blocks, so it proves nothing");
+
+        var remedy = wsl2.Remedy;
+        Assert.NotNull(remedy);
+
+        var opened = remedy!.IndexOf('`');
+        var closed = remedy.IndexOf('`', opened + 1);
+        Assert.True(
+            opened >= 0 && closed > opened,
+            $"the WSL2 remedy no longer spells its command in backticks, so the installer's page "
+            + $"has nothing to put in the box or on the clipboard:{Environment.NewLine}{remedy}");
+
+        // And it is a command, not a sentence — the thing a Copy button is for.
+        Assert.StartsWith("wsl", remedy[(opened + 1)..closed], StringComparison.Ordinal);
+
+        // The page reads it by that rule and by no other.
+        Assert.Contains("function Backticked(", PreflightSection(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_page_names_the_feature_in_plain_words_and_links_the_instructions()
+    {
+        // The whole complaint DD131 answers: a message box naming `wsl.exe --install
+        // --no-distribution` is exactly right for a reader who already knows what WSL2 is, and is
+        // the entire experience for a reader who does not.
+        var section = PreflightSection();
+
+        // Expanded, not assumed. The sentence has to say what the feature is before the steps say
+        // what to do about it.
+        Assert.Contains("Linux kernel", section, StringComparison.Ordinal);
+
+        // Microsoft's own page, opened rather than printed: a URL on a wizard page is an address
+        // nobody can click and most people will not retype.
+        Assert.Contains(
+            "https://learn.microsoft.com/en-us/windows/wsl/install",
+            section,
+            StringComparison.Ordinal);
+        Assert.Contains("TNewLinkLabel.Create", section, StringComparison.Ordinal);
+
+        // The row is named rather than guessed at from the wording, so a rephrased remedy cannot
+        // quietly turn the WSL2 page back into the generic list of rows.
+        Assert.Contains(
+            $"Id = '{Core.Preflight.PreflightInspection.Rows.Wsl2}'",
+            section.Replace("\"", "'", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Finding_out_whether_the_fix_worked_is_a_button_rather_than_a_reinstall()
+    {
+        // The button that matters most. Without it there is no way to learn whether turning the
+        // feature on worked short of running Setup again — which is the loop DD131 exists to close.
+        var section = PreflightSection();
+
+        Assert.Contains("'Check again'", section, StringComparison.Ordinal);
+
+        // Forgetting the last answer is the whole of the re-check: everything else already runs off
+        // the one memoised function, so clearing the flag is what makes the second read a read.
+        var again = section[section.IndexOf("procedure CheckAgain(", StringComparison.Ordinal)..];
+        again = again[..again.IndexOf("\nend;", StringComparison.Ordinal)];
+        Assert.Contains("PreflightAsked := False;", again, StringComparison.Ordinal);
+        Assert.Contains("Preflight;", again, StringComparison.Ordinal);
+
+        // And Next follows the verdict in both directions, which is what "releases Next the moment
+        // the row turns green" means. Pinned to the variable rather than to False: a re-check that
+        // cleared the machine and left the button dead would be the same dead end with more clicks.
+        Assert.Contains(
+            "WizardForm.NextButton.Enabled := PreflightClear;",
+            section,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_copied_command_carries_no_newline_that_would_run_it_on_paste()
+    {
+        // Setup has no clipboard of its own, so this is clip.exe — and which shell builtin feeds it
+        // is a safety property rather than a style choice. `echo` appends a newline, and a newline
+        // on the clipboard turns a paste into the administrator terminal the page just told the
+        // reader to open into a command that has already run before it could be read.
+        var section = PreflightSection();
+        var copy = section[section.IndexOf("procedure CopyTheCommand(", StringComparison.Ordinal)..];
+        copy = copy[..copy.IndexOf("\nend;", StringComparison.Ordinal)];
+
+        // The argument itself and not the whole procedure: the comment above it names `echo` in
+        // order to say why this is not it, and a test that reads prose would fail on the sentence
+        // explaining the very thing it is guarding.
+        var argument = Assert.Single(
+            copy.Split('\n'),
+            line => line.Contains("'/C ", StringComparison.Ordinal));
+
+        Assert.Contains("clip", argument, StringComparison.Ordinal);
+        Assert.Contains("set /p=", argument, StringComparison.Ordinal);
+        Assert.DoesNotContain("echo", argument, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -110,6 +110,7 @@
 - ✅ **DD121** **Uninstalling while FreeWilly runs leaves the .exe and its root on disk, and never offers to stop the engine first** — A page states what closes and asks about the distribution; the uninstall stops the engine and quits the tray by the product's own verbs, and empties the root before Inno reads it.
 - ✅ **DD123** **The Select Additional Tasks page draws its checkboxes clipped, so a tick is a fragment and an untick is a sliver** — The page is drawn from plain checkboxes, which render at that scaling; [Tasks] stays the answer Setup acts on, so every Tasks: parameter and /MERGETASKS keep working.
 - ✅ **DD130** **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — Setup reads the machine from a copy in {tmp} on a page before wpReady, so a laptop without WSL2 is stopped with nothing written, and an unattended one exits 7 with the report on disk.
+- ✅ **DD131** **A machine without WSL2 gets a message box naming a command, which assumes the reader knows what WSL2 is** — The blocked install lands on a page that expands the term, numbers the steps, hands over the command with a Copy button and a link to Microsoft, and re-checks in place.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

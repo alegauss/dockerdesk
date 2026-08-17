@@ -106,27 +106,6 @@ and print every file that went into it.
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD131 The page a blocked install lands on
-
-What a blocked machine gets today is a message box naming `wsl.exe --install
---no-distribution` and a path to a text file. That is exactly right for a reader who
-already knows what WSL2 is, and it is the whole of the experience for a reader who does
-not — the term is never expanded, the command is in a box that cannot be copied from,
-and there is no way to find out whether the fix worked without running Setup again.
-
-The page says four things, in this order: what WSL2 is in one sentence and why a Linux
-container engine on Windows cannot exist without it; the numbered steps, each one action
-long; the command itself, selectable, with a button that puts it on the clipboard; and a
-link to Microsoft's own instructions at learn.microsoft.com/en-us/windows/wsl/install,
-which is the page Docker Desktop links for the same reason. `TNewLinkLabel` opens it in
-the browser rather than printing a URL nobody can click.
-
-The button that matters most is Check again. It re-runs the read in place and releases
-Next the moment the row turns green, so the loop between fixing and finding out is one
-click rather than one reinstall. Next stays disabled while the row is red — the point of
-DD130 is that there is nothing past this page worth doing — and Cancel is left as the
-honest way out.
-
 ### §DD132 Setup turns the feature on
 
 Docker Desktop's installer does this and its logs name the step: `EnableFeaturesAction`,

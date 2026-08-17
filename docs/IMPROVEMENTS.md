@@ -152,23 +152,4 @@ writing to TEMP exactly as it does now.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD144 The one token the budget gate has been red on
-
-The gate has been red for longer than anybody has looked at it. `MeasureShapedTaskAsync`
-answers 812 tokens and `agent-budget.json` records 813, so
-`The_shaped_surface_costs_what_the_budget_records` fails on every run of the suite —
-including a clean checkout with nothing else wrong, which is how a failing test stops
-being read as a failure.
-
-One token is exactly the size of drift this assertion was sharpened to catch. DD78 made
-it exact rather than banded, and the reasoning was that a 15% band around two inputs
-read off Windows hid a response that had grown by a hundred tokens. A gate that is
-permanently one token out has the same effect by a different route: the suite is red
-either way, so the next real change to the surface arrives at a test nobody trusts.
-
-So the work is not to move the number. It is to find out what moved it — which verb, and
-what the extra token bought — and then to record the measurement with that answer in the
-commit, which is what the assertion's own failure message asks for. Whichever direction
-that goes, the fix ends with the gate meaning what it says again.
-
 ## Block H — The public surface (the site a reader and an agent both read)

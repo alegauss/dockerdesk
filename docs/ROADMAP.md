@@ -24,8 +24,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD144** (deps: —) **The agent budget gate is red on a clean checkout: the shaped surface measures 812 tokens against 813 recorded** — The measurement and the record are reconciled and the commit names what the token bought, so the gate means something again. → §DD144
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ## Non-goals

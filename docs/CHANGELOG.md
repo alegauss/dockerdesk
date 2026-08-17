@@ -134,6 +134,7 @@
 - ✅ **DD79** **SessionLabel.For reads as the one place a label is stamped and nothing in the product stamps through it** — `ComposeUp` renders every pair `SessionLabel.For` returns, so a second label is a change to one method, and a test drives off `For` rather than the key the old assertion named.
 - ✅ **DD78** **The shaped token figure is banded because two of its inputs are read from the machine and not a fixture** — The context read and the host-port read arrive through `MachineReads`, defaulted to this machine, so the shaped token figure is asserted exactly at 771 instead of banded at 15%.
 - ✅ **DD98** **Nothing stops a read verb constructing a machine read inside itself and re-widening the token gate** — A guard over `AgentSurface.cs` derived from `MachineReads`' own seams fails the build on a verb that constructs one, and `WindowsMachineFacts` left the file entirely.
+- ✅ **DD144** **The agent budget gate is red on a clean checkout: the shaped surface measures 812 tokens against 813 recorded** — The figure is 812, which is what the task cost on the commit that recorded 813 and never measured it, so the gate is green and exact again.
 
 ## Block H — The public surface (the site a reader and an agent both read)
 

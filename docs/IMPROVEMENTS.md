@@ -2,24 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD137 DD137
-
-The engine host is launched detached and hidden, which is right — a console window the
-user did not ask for is not an improvement. The cost is that everything it says goes
-nowhere. When it stops, the line naming what it saw is written to a window that was
-never readable and is gone by the time anybody asks.
-
-That was the expensive part of the failure DD134 repairs. The daemon's own log survives
-inside the distribution and was decisive; the host's account of why it walked away was
-not recoverable at all, and the difference between "the host decided the engine was
-dead" and "something killed the host" had to be argued from Hyper-V events and a
-sixty-second gap rather than read.
-
-So the host keeps a log of its own beside the install, next to the provisioning log that
-is already there. What goes in it is small: what it did, what it saw when it stopped,
-and each restart it attempted with the reason. Not a trace of every poll — a file that
-grows without bound is its own defect, and a quiet engine should write nothing.
-
 ### §DD141 The error that knows the answer
 
 An agent driving this install hits a stopped engine as a raw connection failure: "failed

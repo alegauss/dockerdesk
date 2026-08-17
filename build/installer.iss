@@ -1616,6 +1616,11 @@ begin
     // than left to the question above, which is about images and volumes and nothing else.
     DeleteFile(ExpandConstant('{app}\preflight.txt'));
     DeleteFile(ExpandConstant('{app}\provision.log'));
+
+    // DD137's journal, on the same footing as the two above: this product's own account of its own
+    // engine, under this product's own root. Left behind it is one more file keeping {app} on disk
+    // after an uninstall that took everything else, which is the failure DD121 exists to remove.
+    DeleteFile(ExpandConstant('{app}\engine.log'));
     DelTree(ExpandConstant('{app}\bin'), True, True, True);
     DelTree(ExpandConstant('{app}\cli-plugins'), True, True, True);
 

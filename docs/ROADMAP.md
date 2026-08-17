@@ -4,7 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 💭 **DD137** (deps: —) **Why the engine host stopped is printed to a hidden console, so a daemon that vanished leaves no evidence** — The host keeps a small log beside the install, so what it saw and every restart it attempted outlive the window nobody was reading. → §DD137
 - 📋 **DD141** (deps: —) **The docker CLI's failure names the pipe but not the one command that brings the engine back** — FreeWilly ships the shim and owns the daemon behind it, so the error it prints when the engine is down could name the verb that starts it. → §DD141
 - 📋 **DD142** (deps: DD133 ✅) **Every docker client fails together for a burst of tens of seconds, then all of them work again untouched** — Inside a burst docker ps, version and compose all fail the same way and retries do not help; outside it they all work, with the engine reporting healthy throughout. → §DD142
 - 📋 **DD143** (deps: —) **do compose up reads only docker-compose.yml, so the agent verb brings up a different stack than the project defines** — Compose applies the override file by convention and the verb does not, silently: two services become one, and the line printed names the file it read. → §DD143

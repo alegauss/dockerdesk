@@ -1016,7 +1016,7 @@ public sealed class PackagingTests
         var unconditional = script[removal..question];
         foreach (var path in new[]
                  {
-                     @"{app}\preflight.txt", @"{app}\provision.log",
+                     @"{app}\preflight.txt", @"{app}\provision.log", @"{app}\engine.log",
                      @"{app}\bin", @"{app}\cli-plugins",
                  })
         {

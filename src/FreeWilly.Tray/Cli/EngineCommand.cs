@@ -48,13 +48,28 @@ internal static class EngineCommand
     private static EngineLifecycle NewLifecycle() => new(
         new Wsl(), new WslDaemonProcess(), new WslSocatBackend());
 
-    private static void Report(EngineStatus status)
+    private static void Report(EngineStatus status, EngineHostLog? journal = null)
     {
-        Console.WriteLine($"  {status.State,-8}  {status.Detail}");
+        Note(journal, $"  {status.State,-8}  {status.Detail}");
         if (status.ApiVersion is { } version)
         {
-            Console.WriteLine($"  {"",-8}  Engine API {version}");
+            Note(journal, $"  {"",-8}  Engine API {version}");
         }
+    }
+
+    /// <summary>Say something the console shows and the journal keeps (DD137).</summary>
+    /// <param name="journal">Where the host writes, or <see langword="null"/> for a foreground verb.</param>
+    /// <param name="line">What happened.</param>
+    /// <remarks>
+    /// One call for both, which is the whole of it: the two cannot disagree about what the host saw,
+    /// because there is no second place a line is written. The journal is null everywhere except the
+    /// detached host — <c>--status</c> is somebody standing at a prompt reading the answer, and a
+    /// file recording that they looked is noise in the file that matters.
+    /// </remarks>
+    private static void Note(EngineHostLog? journal, string line)
+    {
+        Console.WriteLine(line);
+        journal?.Say(line.Trim());
     }
 
     private static int Status()
@@ -131,25 +146,30 @@ internal static class EngineCommand
 
         Microsoft.Win32.SystemEvents.PowerModeChanged += OnPower;
 
+        // DD137. Everything below is written to a console this process does not have: the host is
+        // launched detached and hidden, so the account of what it saw has been going nowhere. From
+        // here down every line goes to both, and the journal is what is left once the window is.
+        var journal = EngineHostLog.BesideTheInstall();
+
         var lifecycle = NewLifecycle();
         try
         {
             var started = lifecycle.StartAsync(cancellation: stopping.Token)
                 .GetAwaiter().GetResult();
-            Report(started);
+            Report(started, journal);
             if (!started.Usable)
             {
                 return Failed;
             }
 
             Console.WriteLine();
-            Console.WriteLine("Serving the engine. Ctrl+C stops it.");
+            Note(journal, "Serving the engine. Ctrl+C stops it.");
 
-            return Supervise(lifecycle, stopping, asked, resumed);
+            return Supervise(lifecycle, stopping, asked, resumed, journal);
         }
         catch (OperationCanceledException)
         {
-            Report(lifecycle.StopAsync().GetAwaiter().GetResult());
+            Report(lifecycle.StopAsync().GetAwaiter().GetResult(), journal);
             return Ok;
         }
         finally
@@ -168,6 +188,7 @@ internal static class EngineCommand
     /// <param name="stopping">Ctrl+C.</param>
     /// <param name="asked">A <c>--stop</c> that announced itself.</param>
     /// <param name="resumed">Set when Windows says the machine came back.</param>
+    /// <param name="journal">Where this host's account of itself is kept (DD137).</param>
     /// <returns>The exit code.</returns>
     /// <remarks>
     /// What this replaced watched for the engine going away and came down with it, which was right
@@ -184,7 +205,8 @@ internal static class EngineCommand
         EngineLifecycle lifecycle,
         CancellationTokenSource stopping,
         CancellationTokenSource asked,
-        ManualResetEventSlim resumed)
+        ManualResetEventSlim resumed,
+        EngineHostLog journal)
     {
         var watch = new EngineWatch();
         var revival = new EngineRevival();
@@ -213,10 +235,13 @@ internal static class EngineCommand
                     continue;
                 }
 
-                Console.WriteLine($"  {watch.WhyItStopped(now)}");
-                if (!Revive(lifecycle, revival, ending.Token))
+                // Reached only where the watch has decided the engine is not being served, so a
+                // line here is always something that happened. The `continue` above is the quiet
+                // engine, and it writes nothing — which is what keeps this file worth opening.
+                Note(journal, $"  {watch.WhyItStopped(now)}");
+                if (!Revive(lifecycle, revival, ending.Token, journal))
                 {
-                    Console.WriteLine($"  {revival.WhyItGaveUp(now)}");
+                    Note(journal, $"  {revival.WhyItGaveUp(now)}");
                     break;
                 }
 
@@ -230,7 +255,7 @@ internal static class EngineCommand
             Console.WriteLine();
         }
 
-        Report(lifecycle.StopAsync().GetAwaiter().GetResult());
+        Report(lifecycle.StopAsync().GetAwaiter().GetResult(), journal);
         return Ok;
     }
 
@@ -238,6 +263,7 @@ internal static class EngineCommand
     /// <param name="lifecycle">The engine.</param>
     /// <param name="revival">How many attempts are left and how long to wait.</param>
     /// <param name="ending">Cancelled by Ctrl+C or an announced stop.</param>
+    /// <param name="journal">Where every attempt is kept (DD137).</param>
     /// <returns><see langword="true"/> where it came back.</returns>
     /// <remarks>
     /// The stop before the start is not tidiness. Whatever is left of the previous engine is holding
@@ -246,7 +272,10 @@ internal static class EngineCommand
     /// from — starting on top of it would leave two of them.
     /// </remarks>
     private static bool Revive(
-        EngineLifecycle lifecycle, EngineRevival revival, CancellationToken ending)
+        EngineLifecycle lifecycle,
+        EngineRevival revival,
+        CancellationToken ending,
+        EngineHostLog journal)
     {
         while (revival.WorthAnotherTry)
         {
@@ -257,13 +286,18 @@ internal static class EngineCommand
             if (back.Usable)
             {
                 revival.Revived();
-                Console.WriteLine(
+
+                // Every restart it attempted, kept — which is the half of DD137 the console could
+                // never give anybody: a host that got the engine back four times overnight and one
+                // that never lost it look identical the morning after.
+                Note(
+                    journal,
                     $"  {back.State,-8}  brought the engine back (restart {revival.Revivals})");
                 return true;
             }
 
             revival.Failed();
-            Console.WriteLine($"  {back.State,-8}  {back.Detail}");
+            Note(journal, $"  {back.State,-8}  {back.Detail}");
         }
 
         return false;

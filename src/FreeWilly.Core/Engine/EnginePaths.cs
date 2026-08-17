@@ -177,6 +177,18 @@ public sealed class EnginePaths
     /// </remarks>
     public string Settings => Path.Combine(Root, "settings.json");
 
+    /// <summary>What the engine host saw, kept after the window that showed it is gone (DD137).</summary>
+    /// <remarks>
+    /// Beside <c>provision.log</c>, which the installer already writes into this same root and for
+    /// the same reason: it is the file somebody opens once the thing that produced it has closed.
+    /// The host is launched detached and hidden — a console window nobody asked for is not an
+    /// improvement — so everything it says goes to a window that was never readable.
+    ///
+    /// <para>Not created by <see cref="Create"/>. A machine whose engine has never been run has
+    /// nothing to say, and an empty log is a file somebody has to decide is empty.</para>
+    /// </remarks>
+    public string HostLog => Path.Combine(Root, "engine.log");
+
     /// <summary>Create every directory this layout names. Idempotent.</summary>
     public void Create()
     {

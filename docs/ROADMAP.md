@@ -4,9 +4,9 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD128** (deps: DD3 ✅) **Quitting the tray leaves the engine and its WSL virtual machine running, so the memory stays held** — Quit runs the same stop the menu item does, so the one way out of the tray also gives back the memory the machine was lending it. → §DD128
-- 📋 **DD129** (deps: DD128) **A logoff, a shutdown or an End task never reaches the quit path, so the engine outlives the session** — The stop is hung off the session ending as well, so the exits a user does not think of as quitting leave nothing running. → §DD129
+- 📋 **DD129** (deps: DD128 ✅) **A logoff, a shutdown or an End task never reaches the quit path, so the engine outlives the session** — The stop is hung off the session ending as well, so the exits a user does not think of as quitting leave nothing running. → §DD129
 - 💭 **DD137** (deps: —) **Why the engine host stopped is printed to a hidden console, so a daemon that vanished leaves no evidence** — The host keeps a small log beside the install, so what it saw and every restart it attempted outlive the window nobody was reading. → §DD137
+- 📋 **DD141** (deps: —) **The docker CLI's failure names the pipe but not the one command that brings the engine back** — FreeWilly ships the shim and owns the daemon behind it, so the error it prints when the engine is down could name the verb that starts it. → §DD141
 
 ## Block B — The daemon client (talk to the engine)
 

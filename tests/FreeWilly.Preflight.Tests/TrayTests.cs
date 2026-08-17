@@ -489,10 +489,21 @@ public sealed class TrayTests
         // `wsl --shutdown` would give the memory back a minute sooner and take somebody's Ubuntu
         // shell with it. Terminating our own distribution is the whole of what this install is
         // entitled to do, and WSL powers the machine down itself once nothing else is using it.
-        var source = File.ReadAllText(
-            Path.Combine(RepositoryRoot(), "src/FreeWilly.Tray/Program.cs"));
+        //
+        // The quoted spelling and not the bare word, because the reasoning above is written down in
+        // Quit's own remarks — a test that searched for the prose would fail on the explanation of
+        // why the thing it forbids is forbidden.
+        var offenders = Directory
+            .EnumerateFiles(Path.Combine(RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal))
+            .Where(file => File.ReadAllText(file).Contains("\"--shutdown\"", StringComparison.Ordinal))
+            .ToList();
 
-        Assert.DoesNotContain("--shutdown", source, StringComparison.Ordinal);
+        Assert.True(
+            offenders.Count == 0,
+            "something passes --shutdown to wsl, which takes every distribution on the machine down "
+            + $"and not just the one this install owns: {string.Join(", ", offenders)}");
     }
 
     // ---- what the shell is told at add time (DD82) --------------------------------------------

@@ -2,30 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD128 Quitting takes the engine with it
-
-The tray was built the other way round on purpose. `EngineHolder` launches `--run` as a
-process it does not own, and `TrayApplication.Quit` hides the icon and ends the message
-loop while the daemon and the relay stay up; the reason written down is that a container
-another process depends on should not die because somebody closed an icon.
-
-Measured against the complaint this project exists about, that trade costs more than it
-saves. A running engine holds a WSL2 virtual machine, and the non-goal about a resident
-background service is exactly about gigabytes held while nobody is asking. A user who
-quits the tray has said they are done, and the only way to get that memory back today is
-to remember a second menu item first.
-
-So quitting runs the stop the menu item already runs: `EngineHolder.Stop`, which
-launches `--stop`, which stops serving the pipe, kills the daemon and terminates the
-distribution. That process is detached and outlives the tray by design, so the icon
-still comes down at once and nothing waits on a virtual machine shutting down; what
-changes is that the request is made at all.
-
-Three passages state the old rule and are wrong from the same commit: the remarks on
-`EngineHolder`, the remarks on `Quit`, and the note on `QuitFromSignal` telling an
-uninstall to run `--stop` as well. The `--quit` signal already routes through `Quit`, so
-it needs nothing of its own.
-
 ### §DD129 Every way the tray ends
 
 DD128 hangs the stop off `TrayApplication.Quit`, which is the menu item and the `--quit`
@@ -63,6 +39,29 @@ So the host keeps a log of its own beside the install, next to the provisioning 
 is already there. What goes in it is small: what it did, what it saw when it stopped,
 and each restart it attempted with the reason. Not a trace of every poll — a file that
 grows without bound is its own defect, and a quiet engine should write nothing.
+
+### §DD141 The error that knows the answer
+
+An agent driving this install hits a stopped engine as a raw connection failure: "failed
+to connect to the docker API at npipe:////./pipe/docker_engine … check if the daemon is
+running". That message is docker's own, written for a world where the daemon could be
+anyone's. Here it is not: FreeWilly ships the docker.exe on PATH and knows the engine is
+its own, so the one thing the reader needs — freewilly do engine start — is known where
+the error is printed and left out of it.
+
+Observed three times in one working session, driving compose builds for an unrelated
+project. Each time it read as a broken Docker install rather than a stopped service, and
+recovery meant going to read the CLI help. The `read ps` verb already answers this well,
+reporting "engine stopped, nothing is answering the pipe" — the gap is that nothing
+points at it from where the failure surfaces, which is the docker command already run.
+
+The smallest form is the shim recognising the connection error for its own pipe and
+appending one line naming the verb. It need not start anything: an agent told what to
+run will run it, and starting a daemon as a side effect of an unrelated command is a
+bigger decision than this warrants.
+
+Related to DD137, which keeps evidence of why the host stopped. This is the other half:
+what the reader of the failure does next.
 
 ## Block B — The daemon client (talk to the engine)
 

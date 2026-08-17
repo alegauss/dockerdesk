@@ -30,6 +30,7 @@
 - ✅ **DD134** **A slow ping through the relay reads as a dead engine, so the host terminates a daemon that is working** — A status now says whether it is evidence, so only a local process handle or a probe that answered ends the watch; a slow ping raises the relay and never terminates the distribution.
 - ✅ **DD135** **The engine does not come up when FreeWilly does, so every session starts with the daemon stopped** — Opening the tray starts the engine, under a menu setting that ships on and is remembered in settings.json, so turning it off restores the run-when-asked behaviour exactly.
 - ✅ **DD136** **Nothing brings the engine back when WSL2 stops under sleep, so a resumed machine is left with no daemon** — The engine host puts back an engine it loses, backing off across five attempts and saying so if it runs out, while Ctrl+C and an announced --stop still come down at once.
+- ✅ **DD128** **Quitting the tray leaves the engine and its WSL virtual machine running, so the memory stays held** — Quit runs the same stop the menu item does, so leaving the tray stops serving the pipe, kills the daemon and terminates the distribution the WSL2 memory was held by.
 
 ## Block B — The daemon client (talk to the engine)
 

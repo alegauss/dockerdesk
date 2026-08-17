@@ -50,21 +50,68 @@ public sealed class TrayMenuTests
     }
 
     [Fact]
-    public void The_menu_is_four_items_and_two_rules_in_the_order_a_photograph_shows_them() =>
+    public void The_menu_is_five_items_and_two_rules_in_the_order_a_photograph_shows_them() =>
         OnUiThread(() =>
         {
             // Short on purpose, and asserted so it stays short: a context menu that grows into a
             // second UI is how a tray app stops being glanceable. The order is part of the claim
             // because a photograph is a picture of the order.
+            //
+            // DD135 spent one item here, and it is placed with the two engine verbs rather than off
+            // with the window because it qualifies them: what the engine does when nobody is asking.
             using var menu = Menu().Strip;
 
-            Assert.Equal(6, menu.Items.Count);
+            Assert.Equal(7, menu.Items.Count);
             Assert.Equal(TrayMenu.StartText, menu.Items[0].Text);
             Assert.Equal(TrayMenu.StopText, menu.Items[1].Text);
-            Assert.IsType<ToolStripSeparator>(menu.Items[2]);
-            Assert.Equal(TrayMenu.WindowText, menu.Items[3].Text);
-            Assert.IsType<ToolStripSeparator>(menu.Items[4]);
-            Assert.Equal(TrayMenu.QuitText, menu.Items[5].Text);
+            Assert.Equal(TrayMenu.OnLaunchText, menu.Items[2].Text);
+            Assert.IsType<ToolStripSeparator>(menu.Items[3]);
+            Assert.Equal(TrayMenu.WindowText, menu.Items[4].Text);
+            Assert.IsType<ToolStripSeparator>(menu.Items[5]);
+            Assert.Equal(TrayMenu.QuitText, menu.Items[6].Text);
+        });
+
+    [Fact]
+    public void The_setting_opens_showing_what_is_actually_true() =>
+        OnUiThread(() =>
+        {
+            // A box that always opened ticked would be a picture of the default rather than of the
+            // user's answer, and the one thing this setting has to do is survive being turned off.
+            using var off = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, false).Strip;
+            using var on = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, true).Strip;
+
+            Assert.False(((ToolStripMenuItem)off.Items[2]).Checked);
+            Assert.True(((ToolStripMenuItem)on.Items[2]).Checked);
+        });
+
+    [Fact]
+    public void Ticking_the_setting_reports_the_state_the_user_is_looking_at() =>
+        OnUiThread(() =>
+        {
+            // CheckOnClick flips the tick before the handler runs, so what is reported is the new
+            // answer and nothing has to negate anything — a setting written from what is on screen
+            // cannot disagree with what is on screen.
+            var told = new List<bool>();
+            var menu = new TrayMenu(Nothing, Nothing, Nothing, Nothing, told.Add, true);
+            using var strip = menu.Strip;
+
+            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
+
+            Assert.Equal([false, true], told);
+        });
+
+    [Fact]
+    public void The_setting_ticks_with_nothing_behind_it_so_the_camera_still_reaches_the_menu() =>
+        OnUiThread(() =>
+        {
+            // L6 again. `--show-menu` builds this with no tray under it, and an item that needed a
+            // live setting to exist would be an item no capture could photograph.
+            using var strip = Menu().Strip;
+
+            ((ToolStripMenuItem)strip.Items[2]).PerformClick();
+
+            Assert.False(((ToolStripMenuItem)strip.Items[2]).Checked);
         });
 
     [Theory]
@@ -100,8 +147,10 @@ public sealed class TrayMenuTests
     public void An_item_with_nothing_behind_it_is_a_defect_here_rather_than_a_dead_click() =>
         OnUiThread(() =>
         {
-            // Four actions, four items. A null passed for one of them used to be a menu entry that
-            // silently did nothing, which is indistinguishable from a broken engine.
+            // A null passed for one of these used to be a menu entry that silently did nothing,
+            // which is indistinguishable from a broken engine. The setting added in DD135 is the
+            // deliberate exception and is checked nowhere here: a box that ticks and tells nobody
+            // is a photograph, not a dead click, and it is what `--show-menu` builds.
             Assert.Throws<ArgumentNullException>(() => new TrayMenu(null!, Nothing, Nothing, Nothing));
             Assert.Throws<ArgumentNullException>(() => new TrayMenu(Nothing, null!, Nothing, Nothing));
             Assert.Throws<ArgumentNullException>(() => new TrayMenu(Nothing, Nothing, null!, Nothing));

@@ -168,6 +168,15 @@ public sealed class EnginePaths
     /// </remarks>
     public string PendingBuild => Path.Combine(Root, "open-build.txt");
 
+    /// <summary>What the user has decided about how this tool behaves (DD135).</summary>
+    /// <remarks>
+    /// Beside <see cref="WindowState"/> and separate from it, because they answer to different
+    /// things: that file is written by a window closing and describes one, while this is written by
+    /// a menu click and describes the tool. Also not created by <see cref="Create"/> — its absence
+    /// is the answer for an install nobody has changed anything on, which is most of them.
+    /// </remarks>
+    public string Settings => Path.Combine(Root, "settings.json");
+
     /// <summary>Create every directory this layout names. Idempotent.</summary>
     public void Create()
     {

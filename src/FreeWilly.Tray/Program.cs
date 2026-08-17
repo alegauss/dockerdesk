@@ -18,6 +18,7 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly TrayScale _scale;
     private readonly EnginePaths _paths = new();
     private Icon? _worn;
+    private EngineOnLaunch _onLaunch;
     private bool _startRequested;
     private CancellationTokenSource? _landing;
     private EngineState _shown = EngineState.Stopped;
@@ -32,9 +33,14 @@ internal sealed class TrayApplication : ApplicationContext
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _holder = new EngineHolder(EngineHolder.ThisProcess(), new DetachedLauncher());
 
+        // Read before the menu is built, because the box has to open showing what is true (DD135).
+        _onLaunch = EngineOnLaunch.Read(_paths.Settings);
+
         // Built by TrayMenu rather than here, so the menu `--show-menu` photographs is this one and
         // not a second one built for the camera (DD67).
-        _menu = new TrayMenu(StartEngine, StopEngine, OpenWindow, Quit);
+        _menu = new TrayMenu(
+            StartEngine, StopEngine, OpenWindow, Quit, SetStartWithTheTray,
+            _onLaunch.StartWithTheTray);
         _icon.ContextMenuStrip = _menu.Strip;
 
         _scale = new TrayScale(() => _ui.Post(_ => Show(_shown), null));
@@ -87,6 +93,32 @@ internal sealed class TrayApplication : ApplicationContext
         {
             OpenWindow();
         }
+
+        // Last in the constructor, and that ordering is load-bearing (DD135). StartEngine complains
+        // through the balloon and draws through Show, so both the icon and the menu have to exist
+        // before it runs; the event stream has to be started too, or the start that lands has
+        // nothing watching to turn the dot green.
+        //
+        // Through the same method the menu item uses rather than a quiet second path. A start that
+        // cannot land — no distribution registered — then says so here exactly as it would if the
+        // user had pressed it, which is the one case where starting unasked must not fail silently.
+        if (_onLaunch.StartWithTheTray)
+        {
+            StartEngine();
+        }
+    }
+
+    /// <summary>Turn "start the engine with the tray" on or off, and remember it (DD135).</summary>
+    /// <param name="wanted">What the box now says.</param>
+    /// <remarks>
+    /// Deliberately does not start or stop anything. The setting is about the next launch, and a
+    /// tick that also started an engine would make the box a verb — there are already two of those
+    /// directly above it, and a user who wanted the engine now would have pressed one.
+    /// </remarks>
+    private void SetStartWithTheTray(bool wanted)
+    {
+        _onLaunch = _onLaunch with { StartWithTheTray = wanted };
+        _onLaunch.Write(_paths.Settings);
     }
 
     private Ui.MainWindow? _open;

@@ -28,6 +28,7 @@
 - ✅ **DD125** **A plain docker compose up cannot bind a Windows path, because the relay forwards the create request unchanged** — The relay's client direction reads the request head, respells every drive-letter bind source in a container-create body, and forwards everything else byte for byte.
 - ✅ **DD133** **The docker_engine named pipe disappears under a long build, then returns on its own** — One engine host per session, and a run of quiet polls rather than one deciding it is gone.
 - ✅ **DD134** **A slow ping through the relay reads as a dead engine, so the host terminates a daemon that is working** — A status now says whether it is evidence, so only a local process handle or a probe that answered ends the watch; a slow ping raises the relay and never terminates the distribution.
+- ✅ **DD135** **The engine does not come up when FreeWilly does, so every session starts with the daemon stopped** — Opening the tray starts the engine, under a menu setting that ships on and is remembered in settings.json, so turning it off restores the run-when-asked behaviour exactly.
 
 ## Block B — The daemon client (talk to the engine)
 

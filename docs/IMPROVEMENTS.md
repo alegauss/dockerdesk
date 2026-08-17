@@ -46,27 +46,6 @@ running, and the honest limit is that an engine orphaned by a crash is still the
 the next launch, where the tray already reports it correctly and the stop item already
 works.
 
-### §DD135 DD135
-
-Starting the tray and starting the engine have always been two acts, and the second one
-is a menu item. That is the honest reading of the standing non-goal: both the app and
-the engine run when asked. In practice the user who opens FreeWilly opens it to use
-containers, and the menu item is a step they perform every session with the same answer.
-
-So the engine comes up with the tray, under a setting that ships on. The setting is what
-keeps the non-goal intact rather than merely argued away: turning it off restores
-exactly the behaviour the project describes, and nothing starts at boot that the user
-did not already choose to start — the tray's own logon entry is a separate setting and
-stays that way.
-
-This is not the engine autostart entry under the Run key. That one puts a `--run` host
-on the machine at logon whether or not anybody opens the tray, and it keeps its meaning
-untouched. What changes here is narrower: once the tray is running, the engine it exists
-to manage is running too.
-
-A start that cannot land still says so rather than retrying — a distribution that is not
-registered is a install problem, and the tray already has the sentence for it.
-
 ### §DD136 DD136
 
 WSL2 does not survive every suspend. A laptop that sleeps with containers running wakes

@@ -14,8 +14,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-- 📋 **DD146** (deps: —) **A successful install keeps no record of what it was cleared on, and the uninstall deletes a file nothing writes** — The report is written once {app} exists, so an install that went through keeps the reading it was allowed on. → §DD146
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 - 📋 **DD147** (deps: —) **A budget figure is typed rather than produced, so an exact gate can bind a number nobody measured** — The measurement writes the figures it produced, so a recorded number and the run behind it cannot disagree. → §DD147

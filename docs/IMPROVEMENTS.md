@@ -12,27 +12,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD146 The report a successful install stopped keeping
-
-A loose end DD130 left behind rather than a defect it introduced. The preflight used to
-run at ssPostInstall and wrote `{app}\preflight.txt` whatever it found, so every install
-left a record of what the machine looked like when it was cleared. Moving the read in
-front of the copy moved the write with it, and the write now happens only when something
-blocks — because that is when somebody needs the file, and on a blocked fresh install
-there is no `{app}` to put it in.
-
-What that costs is the successful case. An install that went through leaves nothing
-saying what was read, so the first question after a machine starts misbehaving — was
-this row green when it was installed, or has something changed since — has no answer on
-disk. The uninstall still deletes `{app}\preflight.txt`, and a delete of a file nothing
-writes is the kind of line that outlives the reason for it.
-
-The read has already happened by then and its verdict is remembered, so the write is
-where the directory finally exists: `{app}` is created during the copy, and
-ssPostInstall is the step that knows both. What is written is the same string the page
-would have shown, which keeps one rendering rather than two, and the blocked path keeps
-writing to TEMP exactly as it does now.
-
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ### §DD147 The number stops being typed

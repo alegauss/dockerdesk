@@ -307,6 +307,10 @@ var
   PreflightSaid: string;
   PreflightReport: string;
 
+  // DD146. Every row as the product judged it, which is what a successful install keeps: the page
+  // is about what blocks, and the file is about what the machine looked like.
+  PreflightRows: string;
+
   // DD131. The two things the page can offer beyond the rows: the command a remedy names, and
   // whether the row that blocked is the one most readers will not recognise the name of.
   PreflightCommand: string;
@@ -637,9 +641,10 @@ procedure ReadTheVerdict(const Path: string);
 var
   Lines: TArrayOfString;
   I: Integer;
-  Value, Id, Title, Detail, Remedy: string;
+  Value, Id, Title, Detail, Remedy, Verdict: string;
 begin
   PreflightSaid := '';
+  PreflightRows := '';
   PreflightCommand := '';
   PreflightWsl2 := False;
   if not LoadStringsFromFile(Path, Lines) then
@@ -649,12 +654,15 @@ begin
   Title := '';
   Detail := '';
   Remedy := '';
+  Verdict := '';
   for I := 0 to GetArrayLength(Lines) - 1 do
   begin
     if JsonValue(Lines[I], 'Id', Value) then
       Id := Value
     else if JsonValue(Lines[I], 'Title', Value) then
       Title := Value
+    else if JsonValue(Lines[I], 'Verdict', Value) then
+      Verdict := Value
     else if JsonValue(Lines[I], 'Detail', Value) then
       Detail := Value
     else if JsonValue(Lines[I], 'Remedy', Value) then
@@ -686,10 +694,24 @@ begin
           PreflightWsl2 := True;
       end;
 
+      // Every row and not only the blocking ones (DD146). What blocks is what the page is for;
+      // what the machine looked like is what the file is for, and a file holding only the rows
+      // that failed cannot answer "was this green when it was installed", which is the first
+      // question anybody asks of it months later.
+      //
+      // The verdict is carried through rather than decided here. Judging a row in Pascal is the
+      // second opinion this section exists not to have; laying one out is not, and the page above
+      // already lays them out this way.
+      PreflightRows := PreflightRows
+        + '  [' + Verdict + ']  ' + Title + '  ' + Detail + #13#10;
+      if (Remedy <> '') and (Remedy <> 'null') and (Verdict <> 'Pass') then
+        PreflightRows := PreflightRows + '      -> ' + Remedy + #13#10;
+
       Id := '';
       Title := '';
       Detail := '';
       Remedy := '';
+      Verdict := '';
     end;
   end;
 end;
@@ -706,12 +728,36 @@ begin
     Result := ExpandConstant('{%TEMP}');
 end;
 
+/// Write the report where it can be read after Setup has closed.
+procedure KeepTheReport(const Path: string);
+var
+  Written: TArrayOfString;
+begin
+  // UTF-8 and not SaveStringToFile, because the rows carry whatever characters the product chose
+  // for them — an em dash in a detail, an arrow in a remedy — and an ANSI write turns those into
+  // question marks.
+  SetArrayLength(Written, 5);
+  Written[0] := 'FreeWilly preflight';
+  Written[1] := '';
+
+  // One sentence, and it is the verdict rather than a guess at what the reader is doing: a report
+  // in {app} on a machine that cleared is a record, and the same file in TEMP on one that did not
+  // is the whole of what happened.
+  if PreflightClear then
+    Written[2] := 'This machine can host the container engine. Every row as it read at install time:'
+  else
+    Written[2] := 'This machine cannot host the container engine yet. Nothing was installed.';
+
+  Written[3] := '';
+  Written[4] := PreflightRows;
+  SaveStringsToUTF8File(Path, Written, False);
+end;
+
 /// Read this machine. Answers whether an engine can be hosted on it, and changes nothing.
 function Preflight: Boolean;
 var
   Code: Integer;
   Machine, Verdict: string;
-  Written: TArrayOfString;
 
   // LoadStringFromFile hands back bytes, not text. Only the branch below reads it, and only to
   // quote back whatever the verb printed instead of a report — which is a message from a program
@@ -763,19 +809,12 @@ begin
   end;
 
   Result := PreflightClear;
-  if Result then
-    Exit;
 
-  // The file, for whoever is reading a deployment rather than a screen. UTF-8 and not
-  // SaveStringToFile, because the rows carry whatever characters the product chose for them and an
-  // ANSI write turns those into question marks.
-  SetArrayLength(Written, 5);
-  Written[0] := 'FreeWilly preflight';
-  Written[1] := '';
-  Written[2] := 'This machine cannot host the container engine yet. Nothing was installed.';
-  Written[3] := '';
-  Written[4] := PreflightSaid;
-  SaveStringsToUTF8File(PreflightReport, Written, False);
+  // Written whatever the verdict was (DD146). A blocked install needs the file because it is all
+  // there is; a successful one needs it because "was this row green when it was installed" is the
+  // first question anybody asks months later, and DD130 left that question unanswerable by moving
+  // the write in front of the copy along with the read.
+  KeepTheReport(PreflightReport);
 end;
 
 // ---------------------------------------------------------------------------------------------
@@ -1415,6 +1454,16 @@ begin
   // here costs nothing and cannot disagree with the page that showed it.
   if not Preflight then
     Exit;
+
+  // DD146. The reading this install was cleared on, kept where somebody would look for it. The
+  // write in `Preflight` cannot land here: on a fresh install it runs before a single file exists,
+  // so `{app}` is not there to write into and the report goes to TEMP — which is right for a
+  // blocked install and useless for one that went through.
+  //
+  // Not re-read. This is the report the wizard acted on, not a second opinion about the machine a
+  // moment later, and the two would differ on exactly the row the provision below is about to
+  // change.
+  KeepTheReport(ExpandConstant('{app}\preflight.txt'));
 
   if WizardIsTaskSelected('engine') then
     ProvisionEngine;

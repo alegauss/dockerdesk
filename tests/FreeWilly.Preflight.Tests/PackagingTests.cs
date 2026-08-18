@@ -734,6 +734,42 @@ public sealed class PackagingTests
         Assert.Contains("{%TEMP}", PreflightSection(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_install_that_went_through_keeps_the_reading_it_was_allowed_on()
+    {
+        // DD146, and it is a loose end DD130 left rather than a defect it introduced. Moving the
+        // read in front of the copy moved the write with it, so the report only landed when
+        // something blocked — and a successful install kept no record of what it was cleared on,
+        // while the uninstall went on deleting a file nothing wrote.
+        var script = InstallerScript();
+
+        // Written in ssPostInstall, which is the first step at which {app} exists to write into.
+        var post = script.IndexOf("if CurStep <> ssPostInstall then", StringComparison.Ordinal);
+        Assert.True(post > 0, "the installer no longer has a post-install step to write from");
+
+        var after = script[post..];
+        Assert.Contains(
+            @"KeepTheReport(ExpandConstant('{app}\preflight.txt'))",
+            after,
+            StringComparison.Ordinal);
+
+        // Before the provision and not after it: this is the reading the wizard acted on, and the
+        // provision is about to change the very row a re-read would differ on.
+        var kept = after.IndexOf("KeepTheReport(", StringComparison.Ordinal);
+        var provision = after.IndexOf("ProvisionEngine", StringComparison.Ordinal);
+        Assert.True(kept < provision, "the report is kept after the provision has moved a row");
+
+        // One writer for both paths, so the file a deployment reads and the file an install keeps
+        // cannot come to say different things about the same machine.
+        var writers = script.Split("procedure KeepTheReport(", StringSplitOptions.None).Length - 1;
+        Assert.Equal(1, writers);
+
+        // Every row rather than the blocking ones. What blocks is what the page is for; "was this
+        // green when it was installed" is what the file is for, and the blockers alone cannot
+        // answer it.
+        Assert.Contains("PreflightRows", PreflightSection(), StringComparison.Ordinal);
+    }
+
     // ---- DD131: the page a blocked install lands on --------------------------------------------
 
     [Fact]

@@ -36,6 +36,7 @@
 - ✅ **DD141** **The docker CLI's failure names the pipe but not the one command that brings the engine back** — The docker on PATH is a console forwarder that runs the vendor CLI untouched and, where a failure meets an unanswered pipe, names the verb that starts the engine.
 - ✅ **DD142** **Every docker client fails together for a burst of tens of seconds, then all of them work again untouched** — The count of refused pipe instances reaches the host log, so a burst that leaves the engine reading healthy now names itself instead of being argued from Hyper-V events.
 - ✅ **DD143** **do compose up reads only docker-compose.yml, so the agent verb brings up a different stack than the project defines** — The verb names the override compose would apply as well as the base, and prints every file that went into the project it brought up.
+- ✅ **DD149** **The relay's accept loop waits on the thread pool, so work elsewhere in the process stalls every docker client at once** — The accept loop blocks on a background thread of its own, and a dispose ends the wait by closing the handle underneath it.
 
 ## Block B — The daemon client (talk to the engine)
 

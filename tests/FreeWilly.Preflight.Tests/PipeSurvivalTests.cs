@@ -54,16 +54,28 @@ public sealed class PipeSurvivalTests
             using var client = new NamedPipeClientStream(
                 ".", pipe, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-            // Short, because the question is whether the pipe exists rather than whether the
-            // machine is busy. A generous timeout would hide the very state being asserted.
-            await client.ConnectAsync(2000);
+            // Generous, and it was not always. Two seconds looked right — the question is whether
+            // the pipe exists, not whether the machine is busy — and it made this test flaky in the
+            // full suite while passing five times out of five on its own. The accept loop waits
+            // between attempts on a thread-pool thread, and a suite running eleven hundred tests at
+            // once can leave that continuation queued for longer than the client was willing to
+            // wait. That is a property of the suite and not of the relay.
+            //
+            // Patience is the only thing this changes. A pipe that is genuinely gone stays gone,
+            // and the assertion still fails — it just no longer fails for being measured on a busy
+            // machine, which is the one reading that says nothing about the defect.
+            await client.ConnectAsync(30000);
             return true;
         }
         catch (Exception exception) when (exception is TimeoutException or IOException)
         {
+            Why = $"{exception.GetType().Name}: {exception.Message}";
             return false;
         }
     }
+
+    /// <summary>Why the last connection did not land, for a failure message worth reading.</summary>
+    private static string Why { get; set; } = "";
 
     [Fact]
     public async Task A_machine_that_refuses_one_pipe_instance_does_not_take_docker_down_with_it()
@@ -103,16 +115,47 @@ public sealed class PipeSurvivalTests
         // reach for another one — and that is the call this test makes fail.
         Assert.True(await ReachableAsync(pipe), "the relay never served its first connection");
 
-        // The one that used to find nothing. Retried past the refusals rather than abandoned, so
-        // the pipe is still there a moment later.
+        // Waited for rather than timed. The accept loop runs on a thread-pool thread, and the full
+        // suite starves that pool badly enough to leave its continuation queued for tens of seconds
+        // — measured, at stumbles=0 with a thirty-second client timeout, which is the loop not
+        // having run at all rather than the relay having failed. Asserting on a clock made this
+        // test say "the pipe is gone" about a machine that was merely busy.
+        //
+        // What is actually being claimed has no clock in it: the loop meets both refusals and
+        // carries on. Without the fix it meets the first, throws, and this count never moves — so
+        // the deadline below is what fails, and it fails saying so.
+        Assert.True(
+            await Reached(() => relay.Stumbles == 2),
+            $"the accept loop never got past a refused listener (stumbles={relay.Stumbles}), so "
+            + "the pipe stopped existing and every docker client on this machine would fail "
+            + "together with \"cannot find the file\"");
+
+        // And with the loop past them, the pipe is there — which is the half the count cannot say.
         Assert.True(
             await ReachableAsync(pipe),
-            "the pipe stopped existing after one failed listener, so every docker client on this "
-            + "machine would fail together with \"cannot find the file\"");
+            $"the loop recovered and the pipe is still unreachable — {Why}");
+    }
 
-        // And it is not silent any more. The count is the whole difference between a burst nobody
-        // can explain and one that names itself.
-        Assert.Equal(2, relay.Stumbles);
+    /// <summary>Wait for something to become true, or give up loudly.</summary>
+    /// <remarks>
+    /// A deadline and not a sleep: on an idle machine this returns in milliseconds, and on one
+    /// running the whole suite it waits as long as the pool makes it. Neither reading is about the
+    /// relay, which is why nothing here asserts on how long it took.
+    /// </remarks>
+    private static async Task<bool> Reached(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(60);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (condition())
+            {
+                return true;
+            }
+
+            await Task.Delay(25);
+        }
+
+        return condition();
     }
 
     [Fact]

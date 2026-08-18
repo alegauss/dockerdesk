@@ -24,7 +24,23 @@ public sealed class EnginePipeRelay : IAsyncDisposable
     private readonly IEngineBackend _backend;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _stopping = new();
-    private Task? _accepting;
+    private readonly Lock _listeners = new();
+    private Thread? _accepting;
+    private NamedPipeServerStream? _listening;
+
+    /// <summary>
+    /// The one free listener, held where both the accept thread and a dispose can reach it.
+    /// </summary>
+    /// <remarks>
+    /// Guarded, because the two touch it from different threads and the reason they do is the whole
+    /// of DD142's second half: a blocking <c>WaitForConnection</c> is ended by closing the handle
+    /// out from under it, so a dispose has to be able to find the object the loop is sitting on.
+    /// </remarks>
+    private NamedPipeServerStream? Listening
+    {
+        get { lock (_listeners) { return _listening; } }
+        set { lock (_listeners) { _listening = value; } }
+    }
 
     /// <summary>Construct a relay.</summary>
     /// <param name="backend">How a channel to the daemon is opened.</param>
@@ -71,8 +87,29 @@ public sealed class EnginePipeRelay : IAsyncDisposable
 
         // The first server instance is created synchronously, so a caller that polls the pipe
         // immediately afterwards cannot observe "not there yet" and conclude the engine is down.
-        var first = CreateServer();
-        _accepting = Task.Run(() => AcceptLoopAsync(first, _stopping.Token));
+        _listening = CreateServer();
+
+        // A thread of its own, and not the thread pool (DD142). This loop is the only thing that
+        // puts a listener back after one is taken, so for as long as it does not run, the pipe has
+        // no free instance and every docker client on the machine waits — together, for as long as
+        // the stall lasts, on an engine that goes on reporting itself healthy. That is the reported
+        // symptom exactly.
+        //
+        // Measured: with the loop awaiting on the pool, a process busy enough to starve it left the
+        // loop unrun for over a minute after a connection was accepted — the counter below still at
+        // zero, so it was not the relay failing but the relay never being scheduled. The host is a
+        // long-lived process that blocks pool threads on its own supervision, so this is not only a
+        // property of a test suite.
+        //
+        // Synchronous, because that is what makes the thread mean anything: an `await` hands the
+        // continuation back to the pool however the loop was started.
+        _accepting = new Thread(() => AcceptLoop(_stopping.Token))
+        {
+            IsBackground = true,
+            Name = "freewilly-pipe-accept",
+        };
+
+        _accepting.Start();
     }
 
     private NamedPipeServerStream CreateServer()
@@ -100,18 +137,26 @@ public sealed class EnginePipeRelay : IAsyncDisposable
             pipeSecurity: security);
     }
 
-    private async Task AcceptLoopAsync(NamedPipeServerStream first, CancellationToken cancellation)
+    private void AcceptLoop(CancellationToken cancellation)
     {
-        var server = first;
         while (!cancellation.IsCancellationRequested)
         {
+            var server = Listening;
+            if (server is null)
+            {
+                return;
+            }
+
             try
             {
-                await server.WaitForConnectionAsync(cancellation).ConfigureAwait(false);
+                // Blocking, on this thread and nobody else's. Cancellation reaches it by DisposeAsync
+                // closing the handle underneath, which is the documented way to end a blocking wait
+                // on a named pipe and the reason Listening is held where that can find it.
+                server.WaitForConnection();
             }
-            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+            catch (Exception exception) when (exception is OperationCanceledException
+                or ObjectDisposedException or IOException or InvalidOperationException)
             {
-                await server.DisposeAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -128,20 +173,21 @@ public sealed class EnginePipeRelay : IAsyncDisposable
             // reports "cannot find the file" rather than anything about an engine. Nothing observed
             // the faulted task either — it is awaited only in DisposeAsync — so the account of what
             // happened was a stack trace nobody ever read.
-            var next = await NextListenerAsync(cancellation).ConfigureAwait(false);
+            var next = NextListener(cancellation);
+
+            // Serving happens on the pool and always did: one connection stalling there delays one
+            // client, where the loop stalling delays every client there will ever be.
+            _ = ServeAsync(connected, cancellation);
+
             if (next is null)
             {
                 // Cancelled while retrying. The connection in hand is still served; what stops is
                 // the accepting, which is what cancellation asked for.
-                _ = ServeAsync(connected, cancellation);
                 return;
             }
 
-            server = next;
-            _ = ServeAsync(connected, cancellation);
+            Listening = next;
         }
-
-        await server.DisposeAsync().ConfigureAwait(false);
     }
 
     /// <summary>Make the next listener, and keep trying while the machine refuses (DD142).</summary>
@@ -158,7 +204,7 @@ public sealed class EnginePipeRelay : IAsyncDisposable
     /// here: this is a local object the kernel either can or cannot hand over, and every millisecond
     /// spent waiting is one where the docker command somebody has already typed is failing.</para>
     /// </remarks>
-    private async Task<NamedPipeServerStream?> NextListenerAsync(CancellationToken cancellation)
+    private NamedPipeServerStream? NextListener(CancellationToken cancellation)
     {
         while (!cancellation.IsCancellationRequested)
         {
@@ -172,11 +218,9 @@ public sealed class EnginePipeRelay : IAsyncDisposable
                 Stumbles++;
             }
 
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(20), cancellation).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
+            // Sleep and not Task.Delay: this loop owns its thread, so there is nothing to yield to
+            // and a continuation would put it straight back on the pool it left.
+            if (cancellation.WaitHandle.WaitOne(20))
             {
                 return null;
             }
@@ -266,10 +310,24 @@ public sealed class EnginePipeRelay : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _stopping.CancelAsync().ConfigureAwait(false);
-        if (_accepting is not null)
+
+        // Closing the handle is what ends the blocking wait. Cancellation alone cannot: the loop is
+        // inside a Win32 call that knows nothing about a token, and it is sitting there precisely
+        // because nothing has connected.
+        NamedPipeServerStream? listening;
+        lock (_listeners)
         {
-            await Swallow(_accepting).ConfigureAwait(false);
+            listening = _listening;
+            _listening = null;
         }
+
+        listening?.Dispose();
+
+        // Joined with a deadline rather than indefinitely. A thread that has not noticed is a
+        // background one and goes with the process; a dispose that never returns takes the tray
+        // down with it, which is a worse failure than a thread lingering for a moment.
+        _accepting?.Join(TimeSpan.FromSeconds(5));
+        _accepting = null;
 
         _stopping.Dispose();
     }

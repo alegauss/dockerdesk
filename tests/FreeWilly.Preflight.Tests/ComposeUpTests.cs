@@ -191,6 +191,56 @@ public sealed class ComposeUpTests
     }
 
     [Fact]
+    public void A_project_that_names_its_own_files_can_use_the_verb()
+    {
+        // DD148, the other face of DD143. That task was about a project the verb read too narrowly
+        // without saying so; this one was about a project it could not be asked to read at all —
+        // `do compose up` took no arguments, so a base plus a staging override had to abandon the
+        // verb for `docker compose -f a -f b`, which is the raw path this surface exists to replace,
+        // and it was abandoned at exactly the moment the stamping matters most.
+        var named = ComposeUp.FilesNamedIn(
+            ["-f", "base.yml", "-f", @"env\staging.yml"], @"C:\shop");
+
+        Assert.Null(named.Refusal);
+        Assert.Equal(
+            [@"C:\shop\base.yml", @"C:\shop\env\staging.yml"],
+            named.Files);
+
+        // Resolved against the caller's directory rather than passed through: the CLI is run with
+        // that directory as its own, so a relative path left alone would resolve twice.
+        Assert.All(named.Files, file => Assert.True(Path.IsPathFullyQualified(file)));
+
+        // And in the order given. Compose merges in order, so a list this reordered would bring up
+        // a different project from the same words.
+        Assert.Equal(
+            ["compose", "-f", @"C:\shop\base.yml", "-f", @"C:\shop\env\staging.yml",
+             "-f", @"C:\temp\stamp.yml", "up", "-d"],
+            ComposeUp.UpArguments(named.Files, @"C:\temp\stamp.yml"));
+    }
+
+    [Fact]
+    public void An_argument_this_verb_does_not_have_is_still_refused_by_name()
+    {
+        // The guard that stays as sharp as it was. This verb creates containers, so an argument
+        // silently dropped is a wrong outcome nobody notices — which is why taking something did
+        // not turn into taking anything.
+        var stray = ComposeUp.FilesNamedIn(["--profile", "dev"], @"C:\shop");
+        Assert.Equal(
+            "unexpected argument --profile: do compose up takes -f <file>",
+            stray.Refusal);
+        Assert.Empty(stray.Files);
+
+        // A flag with nothing after it is the other half, and it would otherwise read the next
+        // argument — or run off the end.
+        Assert.Equal("-f needs a file after it", ComposeUp.FilesNamedIn(["-f"], @"C:\shop").Refusal);
+
+        // Nothing named is not a refusal: it is the ordinary call, and DD143's discovery answers it.
+        var none = ComposeUp.FilesNamedIn([], @"C:\shop");
+        Assert.Null(none.Refusal);
+        Assert.Empty(none.Files);
+    }
+
+    [Fact]
     public void The_override_is_found_the_way_compose_finds_it_and_not_the_obvious_way()
     {
         // Measured against the real CLI, because the obvious derivation is wrong in two ways and

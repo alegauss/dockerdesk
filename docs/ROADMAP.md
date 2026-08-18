@@ -16,8 +16,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-- 📋 **DD148** (deps: —) **do compose up takes no arguments, so a project that names its own files cannot use the verb at all** — The verb accepts -f the way compose does, so a deliberately split project is brought up stamped instead of by hand. → §DD148
-
 ## Block H — The public surface (the site a reader and an agent both read)
 
 ## Non-goals

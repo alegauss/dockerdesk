@@ -169,6 +169,57 @@ public static class ComposeUp
         return null;
     }
 
+    /// <summary>The flag that names a file, spelled the way compose spells it.</summary>
+    public const string FileFlag = "-f";
+
+    /// <summary>What a caller named with <c>-f</c>, or why the flags do not read (DD148).</summary>
+    /// <param name="Files">The files, in the order they were given; empty where none were.</param>
+    /// <param name="Refusal">Why the arguments were refused, or <see langword="null"/>.</param>
+    public sealed record NamedFiles(IReadOnlyList<string> Files, string? Refusal);
+
+    /// <summary>Read the <c>-f</c> flags out of what followed the verb (DD148).</summary>
+    /// <param name="arguments">Everything after <c>up</c>.</param>
+    /// <param name="directory">Where the caller is, for resolving a relative path.</param>
+    /// <returns>The files, or the refusal.</returns>
+    /// <remarks>
+    /// <b>Repeatable, and it means what compose means by it.</b> Given any, they are the project and
+    /// no convention is consulted — which is compose's own rule, and the reason DD143's discovery
+    /// has to stand aside rather than be merged with them.
+    ///
+    /// <para>Every other argument is refused by name. An argument silently dropped costs a wrong
+    /// outcome nobody notices, and this verb creates containers — so the refusal that guarded a verb
+    /// taking nothing stays exactly as sharp now that it takes something.</para>
+    ///
+    /// <para>Resolved against the caller's directory rather than passed through, because the CLI is
+    /// run with that directory as its own and a relative path would otherwise resolve twice.</para>
+    /// </remarks>
+    public static NamedFiles FilesNamedIn(IReadOnlyList<string> arguments, string directory)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        var files = new List<string>();
+        for (var i = 0; i < arguments.Count; i++)
+        {
+            if (!string.Equals(arguments[i], FileFlag, StringComparison.Ordinal))
+            {
+                return new NamedFiles(
+                    [],
+                    $"unexpected argument {arguments[i]}: do compose up takes {FileFlag} <file>");
+            }
+
+            if (i + 1 >= arguments.Count)
+            {
+                return new NamedFiles([], $"{FileFlag} needs a file after it");
+            }
+
+            files.Add(Path.GetFullPath(Path.Combine(directory, arguments[i + 1])));
+            i++;
+        }
+
+        return new NamedFiles(files, null);
+    }
+
     /// <summary>Every file of the user's project, in the order compose would read them (DD143).</summary>
     /// <param name="directory">Where the caller is.</param>
     /// <param name="exists">Whether a file is there — a parameter so this is testable.</param>

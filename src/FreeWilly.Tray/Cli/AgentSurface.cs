@@ -87,7 +87,7 @@ public static class AgentSurface
         new(AgentNamespace.Read, "verify", "read verify",
             "<name> [--request [:port]/path] [--wait] [--timeout 30s] — proof that it answers"),
         new(AgentNamespace.Do, "compose", "do compose up",
-            "up — bring the project here up, stamped so `do reclaim` can take it back"),
+            "up [-f file]... — bring the project up, stamped so `do reclaim` can take it back"),
         new(AgentNamespace.Do, "engine", "do engine",
             "start | stop — bring the engine up or take it down"),
         new(AgentNamespace.Do, "reclaim", "do reclaim",
@@ -1330,31 +1330,57 @@ public static class AgentSurface
                     : $"do compose takes up, not {rest[0]}");
         }
 
-        if (rest.Length > 1)
+        // DD148. Repeatable, and it means what compose means by it. An argument this surface does
+        // not have is still refused by name — one silently dropped costs a wrong outcome nobody
+        // notices, and this verb creates containers.
+        var named = ComposeUp.FilesNamedIn(rest[1..], directory);
+        if (named.Refusal is { } wrong)
         {
-            // Named rather than ignored, for the reason every refusal here is: an argument silently
-            // dropped costs a wrong outcome nobody notices, and this one creates containers.
-            return Refuse($"unexpected argument {rest[1]}: do compose up takes nothing else");
+            return Refuse(wrong);
         }
 
-        // DD143. COMPOSE_FILE names the project outright and outranks any convention, so a value
-        // here means the files this verb is about to name are not the ones the user's own
-        // `docker compose` would read. Refused rather than obeyed or ignored: obeying it means
-        // parsing a separator-joined list and a second set of rules, and ignoring it is the whole
-        // defect this task is about — bringing up a project the caller cannot see.
-        if (Environment.GetEnvironmentVariable("COMPOSE_FILE") is { Length: > 0 } named)
+        IReadOnlyList<string> projectFiles;
+        if (named.Files.Count > 0)
         {
-            return Refuse(
-                $"COMPOSE_FILE is set to {named}, and this verb reads the files a directory holds. "
-                + "Unset it, or run docker compose directly.");
-        }
+            // Given any, they are the project and no convention is consulted — compose's own rule,
+            // and the reason DD143's discovery stands aside here rather than being merged in.
+            // Anything else would bring up a project that is neither what the caller named nor what
+            // the directory holds.
+            foreach (var file in named.Files)
+            {
+                if (!File.Exists(file))
+                {
+                    return Refuse($"no such compose file: {file}");
+                }
+            }
 
-        var projectFiles = ComposeUp.ProjectFiles(directory, File.Exists);
-        if (projectFiles.Count == 0)
+            projectFiles = named.Files;
+        }
+        else
         {
-            return Refuse(
-                $"no compose file in {directory} — looked for "
-                + string.Join(", ", ComposeUp.FileNames));
+            // DD143. COMPOSE_FILE names the project outright and outranks any convention, so a value
+            // here means the files this verb is about to discover are not the ones the user's own
+            // `docker compose` would read. Refused rather than obeyed or ignored: obeying it means
+            // parsing a separator-joined list and a second set of rules, and ignoring it is the
+            // defect that task was about — bringing up a project the caller cannot see.
+            //
+            // Only where nothing was named, because an explicit -f outranks the variable in compose
+            // too: a caller who said which files they meant has already answered this.
+            if (Environment.GetEnvironmentVariable("COMPOSE_FILE") is { Length: > 0 } set)
+            {
+                return Refuse(
+                    $"COMPOSE_FILE is set to {set}, and this verb reads the files a directory holds. "
+                    + $"Unset it, name the files with {ComposeUp.FileFlag}, or run docker compose "
+                    + "directly.");
+            }
+
+            projectFiles = ComposeUp.ProjectFiles(directory, File.Exists);
+            if (projectFiles.Count == 0)
+            {
+                return Refuse(
+                    $"no compose file in {directory} — looked for "
+                    + string.Join(", ", ComposeUp.FileNames));
+            }
         }
 
         // Every file, so the read that decides what gets stamped is the same project that gets

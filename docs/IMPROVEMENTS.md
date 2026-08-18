@@ -14,29 +14,6 @@
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
-### §DD147 The number stops being typed
-
-DD144 is the evidence, and it is worth stating plainly: the gate was red from the moment
-it was last raised. DD101 changed the shaped mounts row, the task got two tokens
-cheaper, the file was told one, and every run of the suite failed for the whole life of
-that commit and eleven after it. Nothing about the surface had drifted. A figure had
-been typed.
-
-DD78 cannot catch this and never could. Making the assertion exact binds the recorded
-number tightly to the measurement, which is the whole value of it — but only once
-somebody has written down a number the measurement produced. An exact gate over a typo
-is red forever, and a red gate is one nobody reads, which is where the old 15% band left
-things by the opposite route.
-
-So the number stops being typed. The measurement already runs in the suite and already
-knows every figure the file records, so it can write them: a mode that prints the block
-the file should hold, or updates it in place, leaves an author with a diff to read
-rather than four integers to transcribe. Raising a ceiling stays as deliberate as it is
-now — the diff is reviewed, and the commit still says what the tokens bought.
-
-What must not follow is a run that silently rewrites the file whenever it disagrees.
-That is not a gate at all. The write is asked for, never automatic.
-
 ### §DD148 The project the verb cannot be asked to read
 
 The other face of DD143, left out of it on purpose because it is a different symptom.

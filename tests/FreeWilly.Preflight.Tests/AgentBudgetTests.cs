@@ -584,6 +584,86 @@ public sealed class AgentBudgetTests
     }
 
     [Fact]
+    public async Task Every_recorded_figure_is_one_the_measurement_produced()
+    {
+        // DD147, and DD144 is why. A figure here can be typed, and one that was cost this project a
+        // gate that was red on a clean checkout for twelve commits — an exact assertion binds the
+        // recorded number tightly to the measurement, but only once somebody has written down a
+        // number the measurement produced.
+        //
+        // So the whole block is checked against one run, and the same run can write it:
+        //
+        //     FREEWILLY_RECORD_BUDGET=1 dotnet test --filter AgentBudgetTests
+        //
+        // which leaves a diff to read rather than seven integers to transcribe. Asked for and never
+        // automatic: a run that rewrote the file whenever it disagreed would not be a gate at all.
+        var (canonical, canonicalServed) = await MeasureCanonicalTaskAsync();
+        var (shaped, shapedServed) = await MeasureShapedTaskAsync();
+
+        BudgetFile.Figure[] figures =
+        [
+            new("baseline", "measured", "calls", BudgetFile.Number(canonical.Calls)),
+            new("surface", "measured", "calls", BudgetFile.Number(shaped.Calls)),
+            new("surface", "measured", "requests", BudgetFile.Number(shapedServed)),
+            new("surface", "measured", "tokens", BudgetFile.Number(shaped.Tokens)),
+
+            // Derived rather than measured, and recorded because a reader should not need a
+            // calculator — which is exactly what makes it a third number that can drift.
+            new("surface", "ratio", "calls",
+                BudgetFile.Ratio((double)canonical.Calls / shaped.Calls)),
+            new("surface", "ratio", "tokens",
+                BudgetFile.Ratio((double)canonical.Tokens / shaped.Tokens)),
+        ];
+
+        // The baseline's tokens are deliberately absent: that one is banded, because it moves with
+        // the fixtures rather than with the surface, and writing it from a run would silently
+        // ratify a fixture somebody had shrunk.
+        Assert.Equal(canonical.Calls, canonicalServed);
+
+        if (BudgetFile.Recording)
+        {
+            var moved = BudgetFile.Record(figures);
+            Assert.Fail(
+                moved.Count == 0
+                    ? $"{BudgetFile.RecordVariable} was set and every figure already agreed, so "
+                      + "nothing was written. Unset it and the suite is green."
+                    : $"{BudgetFile.RecordVariable} was set, so agent-budget.json was rewritten:"
+                      + Environment.NewLine
+                      + string.Join(Environment.NewLine, moved.Select(line => "  " + line))
+                      + Environment.NewLine
+                      + "Read the diff, say in the commit what the tokens bought, and run again "
+                      + "without the variable.");
+        }
+
+        // Not recording, so the file has to already say what this run measured. Reported together
+        // rather than one at a time: a figure fixed while the next was still wrong is how DD144
+        // stayed unnoticed through eleven commits.
+        using var budget = Budget();
+        var wrong = new List<string>();
+        foreach (var figure in figures)
+        {
+            var recorded = budget.RootElement
+                .GetProperty(figure.Section)
+                .GetProperty(figure.Block)
+                .GetProperty(figure.Key)
+                .GetRawText();
+
+            if (recorded != figure.Value)
+            {
+                wrong.Add($"  {figure.Section}.{figure.Block}.{figure.Key}: "
+                    + $"recorded {recorded}, measured {figure.Value}");
+            }
+        }
+
+        Assert.True(
+            wrong.Count == 0,
+            "agent-budget.json records figures this run did not produce:" + Environment.NewLine
+            + string.Join(Environment.NewLine, wrong) + Environment.NewLine
+            + $"Set {BudgetFile.RecordVariable}=1 to write them, then say in the commit what "
+            + "the tokens bought.");
+    }
+
+    [Fact]
     public async Task The_surface_meets_what_it_was_budgeted_for_before_it_existed()
     {
         // The acceptance criteria in the constitution's section 3.1, written into this file before

@@ -54,6 +54,15 @@ jobs:
       - name: Publish the one .exe
         run: dotnet publish src\FreeWilly.Tray\FreeWilly.Tray.csproj -c Release --nologo
 
+      # DD150. The other binary the installer packages, and it has to exist before the compile step
+      # below reads [Files]. build\build-installer.cmd produces both, which is why release.yml never
+      # saw this — that workflow runs the script, and this one spells the publishes itself.
+      #
+      # DD141 is why there are two at all: a command a shell waits for must be console-subsystem,
+      # and the tray's .exe is a windowed application.
+      - name: Publish the docker forwarder
+        run: dotnet publish src\FreeWilly.Shim\FreeWilly.Shim.csproj -c Release --nologo
+
       - name: It is one file, and only one
         run: |
           $dir = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"

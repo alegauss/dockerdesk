@@ -119,6 +119,7 @@
 - ✅ **DD132** **Turning the missing feature on is left to the user, so an install that could finish itself ends in a terminal** — Setup runs the command the row named behind one runas prompt, reads the reboot-pending key for evidence, and leaves a RunOnce so the install reopens after the restart.
 - ✅ **DD145** **A wizard page is checked by reading Pascal, so an overlap is found by somebody running an installer** — A committed harness compiles the page block on its own, renders every state it has and fails on an overlap, a control off the surface or a caption that does not match.
 - ✅ **DD146** **A successful install keeps no record of what it was cleared on, and the uninstall deletes a file nothing writes** — The reading the wizard acted on is written to {app} once it exists, every row and not only the blockers, by the one writer both paths use.
+- ✅ **DD150** **check.yml compiles the installer without publishing everything it packages, so every push fails on a missing file** — check.yml publishes the forwarder as well as the tray, and the publish directories are read out of the script so a third binary is under the rule too.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

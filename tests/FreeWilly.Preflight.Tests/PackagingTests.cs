@@ -1286,17 +1286,64 @@ public sealed class PackagingTests
     }
 
     [Fact]
-    public void The_build_publishes_the_binary_the_installer_is_about_to_ask_for()
+    public void Everything_the_installer_packages_is_built_by_everything_that_compiles_it()
     {
-        // DD102's lesson, applied before it can bite again: the installer names a publish directory,
-        // and a build that does not fill it produces an installer script that fails to compile — at
-        // release time, which is the most expensive place to find it.
+        // DD150, and the guard it replaces is why it is written this way. That one named
+        // build.cmd — the script the publish had just been added to — which is a test written from
+        // the change rather than from the property. check.yml does not run build.cmd: it spells its
+        // own publishes and then compiles the installer, so it met a source file nothing had made.
+        // Reproduced by moving the shim's publish directory aside: "Source file ... does not exist.
+        // Compile aborted." Every push, on the step DD102 added so the installer's first reader
+        // would not be the release.
+        //
+        // Derived and never listed. A third binary added next year is under this rule with no edit
+        // here, which is the same property No_build_command_names_the_folder_a_project_is_in has.
+        var script = InstallerScript();
+
+        // Each `#define <name> "..\src\<Project>\bin\..."` is a directory [Files] draws from, and
+        // the project that fills it is the one the path names.
+        var packaged = System.Text.RegularExpressions.Regex
+            .Matches(script, @"#define\s+\w+\s+""\.\.\\src\\(?<project>[^\\""]+)\\bin\\")
+            .Select(match => match.Groups["project"].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        // Two, or this proves nothing about a second binary — which is the whole defect.
+        Assert.Equal(2, packaged.Count);
+
+        // check.yml spells its own publishes and then compiles the script, so each project has to
+        // be named there. release.yml runs build-installer.cmd, which runs build.cmd, so that one
+        // inherits whatever the script produces — checked against the script rather than the
+        // workflow, because the workflow deliberately names nothing.
+        var check = Workflow("check.yml");
         var build = File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "build.cmd"));
 
-        Assert.Contains(
-            @"dotnet publish src\FreeWilly.Shim\FreeWilly.Shim.csproj",
-            build,
-            StringComparison.Ordinal);
+        Assert.Contains(@"build\installer.iss", check, StringComparison.Ordinal);
+        Assert.Contains("build-installer.cmd", Workflow("release.yml"), StringComparison.Ordinal);
+
+        var missing = packaged
+            .Where(project => !check.Contains(
+                $@"dotnet publish src\{project}\{project}.csproj", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            "check.yml compiles build\\installer.iss, which packages "
+            + string.Join(" and ", missing)
+            + " — and nothing on that workflow publishes "
+            + (missing.Count == 1 ? "it" : "them")
+            + ", so the compile meets a source file that was never made");
+
+        var unbuilt = packaged
+            .Where(project => !build.Contains(
+                $@"dotnet publish src\{project}\{project}.csproj", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.True(
+            unbuilt.Count == 0,
+            "build\\build.cmd does not publish " + string.Join(" and ", unbuilt)
+            + ", so build-installer.cmd — and the release that runs it — would compile the script "
+            + "with a source file missing");
     }
 
     // ---- DD121: the uninstall stops what is running before it deletes anything ------------------

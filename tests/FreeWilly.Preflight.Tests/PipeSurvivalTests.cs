@@ -116,6 +116,21 @@ public sealed class PipeSurvivalTests
     }
 
     [Fact]
+    public async Task The_host_can_read_the_count_without_reaching_inside_the_relay()
+    {
+        // The counter is only worth keeping if something says it out loud, and the host is the one
+        // thing in a position to: it owns DD137's journal, and this is the event that leaves the
+        // engine reading perfectly healthy while every docker client on the machine fails.
+        //
+        // A lifecycle that never started one answers zero rather than throwing — the supervisor
+        // reads this on every turn of its loop, including the turns before there is a relay at all.
+        await using var lifecycle = new EngineLifecycle(
+            new FakeWsl(), new FakeDaemon(), new Answering());
+
+        Assert.Equal(0, lifecycle.Stumbles);
+    }
+
+    [Fact]
     public async Task A_healthy_relay_stumbles_over_nothing()
     {
         // The other half, so the counter above cannot quietly become noise: a run with nothing

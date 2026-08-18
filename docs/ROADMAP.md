@@ -4,8 +4,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- ⏳ **DD142** (deps: DD133 ✅) **Every docker client fails together for a burst of tens of seconds, then all of them work again untouched** — Inside a burst docker ps, version and compose all fail the same way and retries do not help; outside it they all work, with the engine reporting healthy throughout. → §DD142
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

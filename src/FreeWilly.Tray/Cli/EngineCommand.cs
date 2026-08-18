@@ -211,6 +211,9 @@ internal static class EngineCommand
         var watch = new EngineWatch();
         var revival = new EngineRevival();
 
+        // What the relay had already stumbled over when this loop began, so only a move is news.
+        var stumbled = lifecycle.Stumbles;
+
         using var ending = CancellationTokenSource.CreateLinkedTokenSource(
             stopping.Token, asked.Token);
 
@@ -228,6 +231,21 @@ internal static class EngineCommand
                 if (justResumed)
                 {
                     resumed.Reset();
+                }
+
+                // DD142. A pipe instance the machine refused is the one event here that leaves the
+                // engine perfectly healthy and every docker client on the machine failing, so it is
+                // said out loud the moment the count moves rather than left to a reader who thought
+                // to ask. Written from inside the quiet path deliberately: it is the only thing a
+                // healthy-looking supervisor has to report, and a burst nobody can explain is what
+                // this whole task is about.
+                if (lifecycle.Stumbles > stumbled)
+                {
+                    Note(
+                        journal,
+                        $"  relay     asked twice for a pipe instance "
+                        + $"({lifecycle.Stumbles - stumbled} more, {lifecycle.Stumbles} in all)");
+                    stumbled = lifecycle.Stumbles;
                 }
 
                 if (watch.KeepServing(now) && !(justResumed && !now.Usable))

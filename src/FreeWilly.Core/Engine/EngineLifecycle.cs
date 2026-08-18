@@ -36,6 +36,16 @@ public sealed class EngineLifecycle : IAsyncDisposable
     private readonly IEngineBackend _backend;
     private readonly string _pipeName;
     private EnginePipeRelay? _relay;
+
+    /// <summary>
+    /// How many times the relay had to ask twice for a pipe instance (DD142).
+    /// </summary>
+    /// <remarks>
+    /// Zero on every healthy run, and it is exposed here because the host is the only thing in a
+    /// position to say so out loud. What this counts used to end the relay outright, leaving no pipe
+    /// for any client on the machine and nothing anywhere that named the reason.
+    /// </remarks>
+    public int Stumbles => _relay?.Stumbles ?? 0;
     private bool _launched;
 
     /// <summary>Construct a lifecycle.</summary>

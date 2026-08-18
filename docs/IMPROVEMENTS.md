@@ -2,33 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD142 The flap the host survives and the client does not
-
-The failure arrives in bursts. Inside one, every client fails identically:
-`docker ps`, `docker version`, `docker network ls`, `docker compose ls` and
-`docker compose up` all return "failed to connect to the docker API at
-npipe:////./pipe/docker_engine … cannot find the file". Outside one, all return
-0. Nothing is done in between — no restart, no wait longer than the next
-command.
-
-Measured: six consecutive runs of the project's compose script failed, then the same
-invocation from the same shell moments later went green. In one burst `up` failed twice
-with no `down` before it, so teardown is not the trigger.
-
-This corrects two readings recorded here earlier. It is not one command losing the pipe
-while its neighbours keep it — a burst takes everything. And it is not a spawned client
-being refused where a shell one is served: inside a burst both fail, outside it both
-work. A retry is useless within a burst and unnecessary outside one, so the remedy first
-proposed here is wrong.
-
-`read ps` reports healthy throughout, which is the part worth chasing: the engine
-believes it serves a pipe no client can open. DD137, which keeps a log of what the host
-saw and every restart it attempted, is what would say whether the host cycles the pipe
-underneath its own status.
-
-For whoever measures this: existsSync on the pipe path from Node reports absent even
-when docker works. PowerShell Test-Path is the one that tells the truth.
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

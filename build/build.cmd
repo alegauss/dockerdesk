@@ -47,6 +47,16 @@ if not "%PUBERR%"=="0" (
     exit /b 1
 )
 
+REM DD141's docker forwarder. Published separately because it is a different subsystem: a command a
+REM shell waits for has to be console, and the tray's .exe is a windowed application. Named here
+REM rather than left to the installer, so a build produces everything the installer needs.
+dotnet publish src\FreeWilly.Shim\FreeWilly.Shim.csproj -c Release --nologo
+if errorlevel 1 (
+    echo.
+    echo *** dotnet publish failed for the docker forwarder. ***
+    exit /b 1
+)
+
 echo.
 echo === Done ===
 echo src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe

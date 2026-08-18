@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/FreeWilly.Core/FreeWilly.Core.csproj" />
+    <Project Path="src/FreeWilly.Shim/FreeWilly.Shim.csproj" />
     <Project Path="src/FreeWilly.Tray/FreeWilly.Tray.csproj" />
   </Folder>
   <Folder Name="/tests/">

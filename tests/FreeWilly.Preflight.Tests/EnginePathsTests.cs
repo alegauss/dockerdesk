@@ -39,7 +39,14 @@ public sealed class EnginePathsTests
         Assert.Equal(Path.Combine(Root, "distro"), paths.Distribution);
         Assert.Equal(Path.Combine(Root, "downloads"), paths.Downloads);
         Assert.Equal(Path.Combine(Root, "bin"), paths.CliDirectory);
-        Assert.Equal(Path.Combine(Root, "bin", "docker.exe"), paths.DockerCli);
+
+        // DD141 moved the vendor's CLI one directory across, and the two live apart by a rule of
+        // Windows rather than by preference: PATHEXT resolves .EXE before everything else, so a
+        // forwarder placed beside docker.exe would be a file nothing ever runs. What sits on PATH
+        // now is this project's own docker, which finds the one below relative to itself.
+        Assert.Equal(Path.Combine(Root, "cli"), paths.VendorCliDirectory);
+        Assert.Equal(Path.Combine(Root, "cli", "docker.exe"), paths.DockerCli);
+        Assert.Equal(Path.Combine(Root, "bin", "docker.exe"), paths.DockerShim);
 
         // DD73: the plugins hang off the config directory the CLI is pointed at, which is the root.
         Assert.Equal(Root, paths.ConfigDirectory);

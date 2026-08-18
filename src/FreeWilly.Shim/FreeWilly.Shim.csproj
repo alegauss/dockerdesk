@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    DD141. The second binary this project publishes, and the only one — stated here because DD14's
+    rule is "one file to publish, to sign, to install and to hand somebody", and this is a deliberate
+    exception rather than a drift.
+
+    It exists because a command has to be a console-subsystem executable. FreeWilly.exe is a tray
+    application and therefore subsystem 2, and Windows does not make a shell wait for one: a copy of
+    it named docker.exe would hand the prompt back before docker had printed anything, which is what
+    ParentConsole already documents about every verb behind that .exe. A shim that breaks scripting
+    to improve one error message is not an improvement.
+
+    So it is tiny, it is console, and it does one thing. No project references at all: it finds the
+    real CLI relative to its own location, which is also what keeps it honest about being a
+    forwarder rather than a second Docker CLI (a stated non-goal).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- The name on PATH. This IS the interposition. -->
+    <AssemblyName>docker</AssemblyName>
+    <RootNamespace>FreeWilly.Shim</RootNamespace>
+
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!--
+      Self-contained, because the machine this lands on is not promised a .NET runtime — FreeWilly
+      itself is self-contained for the same reason, and a `docker` that fails with "the framework
+      was not found" would be a worse failure than the one this file exists to explain.
+
+      Trimmed single-file rather than NativeAOT. AOT produces a smaller, faster binary and was tried
+      first: it needs the Visual Studio native linker, and making a release depend on a C++ toolchain
+      being present on the runner is a fragility this project has already paid for once in DD102.
+      What is left starts in tens of milliseconds, which is under the noise of the docker command it
+      is about to run.
+    -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- It is a forwarder, so it must not open a window or hold a console of its own. -->
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+  </PropertyGroup>
+
+</Project>

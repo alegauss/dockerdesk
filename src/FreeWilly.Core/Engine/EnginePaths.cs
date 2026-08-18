@@ -100,14 +100,36 @@ public sealed class EnginePaths
     public string Distribution => Path.Combine(Root, "distro");
 
     /// <summary>
-    /// The directory holding <c>docker.exe</c> — and the one thing an installer needs from here:
-    /// this is the path that goes on the user's PATH, and putting it there is the installer's job,
-    /// not this one's.
+    /// The directory that goes on the user's PATH — the one thing an installer needs from here, and
+    /// putting it there is the installer's job, not this one's.
     /// </summary>
+    /// <remarks>
+    /// Since DD141 this holds the forwarder rather than the vendor's CLI, and the name still means
+    /// what it always did: the directory whose contents are the commands this install owns.
+    /// </remarks>
     public string CliDirectory => Path.Combine(Root, "bin");
 
+    /// <summary>
+    /// Where the vendor's CLI lands, which is deliberately not the directory on PATH (DD141).
+    /// </summary>
+    /// <remarks>
+    /// The two cannot share a directory, and that is a rule of Windows rather than a preference:
+    /// PATHEXT resolves <c>.EXE</c> before everything else, so any forwarder placed beside
+    /// <c>docker.exe</c> is a file nothing would ever run. Moving the vendor's copy one directory
+    /// across is what makes room for a <c>docker</c> of this project's own.
+    /// </remarks>
+    public string VendorCliDirectory => Path.Combine(Root, "cli");
+
     /// <summary>The Windows <c>docker</c> CLI.</summary>
-    public string DockerCli => Path.Combine(CliDirectory, "docker.exe");
+    public string DockerCli => Path.Combine(VendorCliDirectory, "docker.exe");
+
+    /// <summary>The <c>docker</c> a shell actually runs: this project's forwarder (DD141).</summary>
+    /// <remarks>
+    /// Placed by the installer and not by the provision, because it is part of owning the command
+    /// rather than part of having an engine — and gated on the same checkbox as the PATH entry,
+    /// since a user who declined that keeps whatever <c>docker</c> they already had.
+    /// </remarks>
+    public string DockerShim => Path.Combine(CliDirectory, "docker.exe");
 
     /// <summary>
     /// The directory the CLI is pointed at with <c>DOCKER_CONFIG</c>, so it finds this install's
@@ -195,6 +217,7 @@ public sealed class EnginePaths
         Directory.CreateDirectory(Downloads);
         Directory.CreateDirectory(Distribution);
         Directory.CreateDirectory(CliDirectory);
+        Directory.CreateDirectory(VendorCliDirectory);
         Directory.CreateDirectory(PluginsDirectory);
     }
 }

@@ -367,7 +367,7 @@ public sealed class EngineProvisioner
                 ?? throw new InvalidOperationException(
                     $"{Path.GetFileName(cliZipPath)} has no {entryName}");
 
-            Directory.CreateDirectory(_paths.CliDirectory);
+            Directory.CreateDirectory(_paths.VendorCliDirectory);
             entry.ExtractToFile(_paths.DockerCli, overwrite: true);
 
             return new StepResult(ProvisioningStep.PlaceCli, true,

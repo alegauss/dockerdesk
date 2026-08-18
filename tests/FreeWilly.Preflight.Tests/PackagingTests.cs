@@ -1017,7 +1017,7 @@ public sealed class PackagingTests
         foreach (var path in new[]
                  {
                      @"{app}\preflight.txt", @"{app}\provision.log", @"{app}\engine.log",
-                     @"{app}\bin", @"{app}\cli-plugins",
+                     @"{app}\bin", @"{app}\cli", @"{app}\cli-plugins",
                  })
         {
             Assert.Contains($"'{path}'", unconditional, StringComparison.Ordinal);
@@ -1128,6 +1128,104 @@ public sealed class PackagingTests
         }
 
         Assert.Contains("Result := '!' + Name + ',';", script, StringComparison.Ordinal);
+    }
+
+    // ---- DD141: the docker on PATH is this project's, and says what the failure could not --------
+
+    /// <summary>The forwarder's project file, read as text.</summary>
+    private static string ShimProject() =>
+        File.ReadAllText(Path.Combine(
+            RepositoryRoot(), "src", "FreeWilly.Shim", "FreeWilly.Shim.csproj"));
+
+    /// <summary>The forwarder's source, read as text.</summary>
+    private static string ShimSource() =>
+        File.ReadAllText(Path.Combine(
+            RepositoryRoot(), "src", "FreeWilly.Shim", "Program.cs"));
+
+    [Fact]
+    public void The_forwarder_is_a_console_command_because_that_is_why_it_is_a_second_binary()
+    {
+        // DD141, and this is the assertion the whole design rests on. A shell does not wait for a
+        // windowed process — measured on this project's own .exe, whose PE subsystem is 2 — so a
+        // copy of it named docker.exe would hand the prompt back before docker had printed anything
+        // and would break every script and every agent driving this install.
+        //
+        // `Exe` and not `WinExe` is the one line that makes it subsystem 3. Flipping it would leave
+        // a build that succeeds, an installer that installs, and a `docker` that silently stopped
+        // being waited for, which is the least legible failure this repository could ship.
+        var project = ShimProject();
+
+        Assert.Contains("<OutputType>Exe</OutputType>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("WinExe", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("<UseWPF>true</UseWPF>", project, StringComparison.Ordinal);
+
+        // And it is the name on PATH. That name IS the interposition; without it this is a binary
+        // nothing ever runs.
+        Assert.Contains("<AssemblyName>docker</AssemblyName>", project, StringComparison.Ordinal);
+
+        // Self-contained, because the machine is not promised a .NET runtime — a `docker` that fails
+        // with "the framework was not found" is a worse failure than the one this explains.
+        Assert.Contains("<SelfContained>true</SelfContained>", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_pipe_the_forwarder_watches_is_the_pipe_the_engine_serves()
+    {
+        // The forwarder references nothing on purpose: it runs on every docker command anybody
+        // types, so it has to start in milliseconds. The price is a string restated in a second
+        // place — the same shape as DistroName and ProvisioningSteps in the installer script — and
+        // this is what holds the two equal.
+        //
+        // Nothing else would notice them drifting. The forwarder would simply stop recognising a
+        // stopped engine, and the sentence DD141 exists to print would never appear again.
+        Assert.Contains(
+            $"EnginePipe = \"{Core.Api.DockerApi.DefaultPipeName}\"",
+            ShimSource(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_forwarder_and_the_vendor_cli_cannot_share_a_directory()
+    {
+        // A rule of Windows rather than a preference. PATHEXT resolves .EXE before every other
+        // extension, so a forwarder placed beside docker.exe is a file nothing would ever run —
+        // which is why the vendor's copy moved one directory across rather than the forwarder being
+        // given some other name.
+        var paths = new Core.Engine.EnginePaths(@"C:\somewhere\FreeWilly");
+
+        Assert.Equal(@"C:\somewhere\FreeWilly\bin\docker.exe", paths.DockerShim);
+        Assert.Equal(@"C:\somewhere\FreeWilly\cli\docker.exe", paths.DockerCli);
+
+        Assert.Equal(paths.CliDirectory, Path.GetDirectoryName(paths.DockerShim));
+        Assert.NotEqual(paths.CliDirectory, Path.GetDirectoryName(paths.DockerCli));
+    }
+
+    [Fact]
+    public void Owning_the_docker_command_is_the_same_choice_as_owning_the_PATH_entry()
+    {
+        // Gated on the same checkbox as the PATH entry, and that is the rule rather than a
+        // convenience: placing this file is what makes this install the owner of the `docker`
+        // command, so a user who declined that keeps whatever docker they already had.
+        var entry = Assert.Single(
+            InstallerDirectives(),
+            line => line.Contains(@"\docker.exe""", StringComparison.Ordinal)
+                    && line.Contains(@"DestDir: ""{app}\bin""", StringComparison.Ordinal));
+
+        Assert.Contains("Tasks: pathentry", entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_build_publishes_the_binary_the_installer_is_about_to_ask_for()
+    {
+        // DD102's lesson, applied before it can bite again: the installer names a publish directory,
+        // and a build that does not fill it produces an installer script that fails to compile — at
+        // release time, which is the most expensive place to find it.
+        var build = File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "build.cmd"));
+
+        Assert.Contains(
+            @"dotnet publish src\FreeWilly.Shim\FreeWilly.Shim.csproj",
+            build,
+            StringComparison.Ordinal);
     }
 
     // ---- DD121: the uninstall stops what is running before it deletes anything ------------------
@@ -1241,6 +1339,7 @@ public sealed class PackagingTests
         foreach (var delete in new[]
                  {
                      @"DelTree(ExpandConstant('{app}\bin')",
+                     @"DelTree(ExpandConstant('{app}\cli')",
                      @"DelTree(ExpandConstant('{app}\cli-plugins')",
                      @"DelTree(ExpandConstant('{app}\distro')",
                      @"DelTree(ExpandConstant('{app}\downloads')",

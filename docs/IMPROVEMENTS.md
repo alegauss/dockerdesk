@@ -2,29 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD141 The error that knows the answer
-
-An agent driving this install hits a stopped engine as a raw connection failure: "failed
-to connect to the docker API at npipe:////./pipe/docker_engine … check if the daemon is
-running". That message is docker's own, written for a world where the daemon could be
-anyone's. Here it is not: FreeWilly ships the docker.exe on PATH and knows the engine is
-its own, so the one thing the reader needs — freewilly do engine start — is known where
-the error is printed and left out of it.
-
-Observed three times in one working session, driving compose builds for an unrelated
-project. Each time it read as a broken Docker install rather than a stopped service, and
-recovery meant going to read the CLI help. The `read ps` verb already answers this well,
-reporting "engine stopped, nothing is answering the pipe" — the gap is that nothing
-points at it from where the failure surfaces, which is the docker command already run.
-
-The smallest form is the shim recognising the connection error for its own pipe and
-appending one line naming the verb. It need not start anything: an agent told what to
-run will run it, and starting a daemon as a side effect of an unrelated command is a
-bigger decision than this warrants.
-
-Related to DD137, which keeps evidence of why the host stopped. This is the other half:
-what the reader of the failure does next.
-
 ### §DD142 The flap the host survives and the client does not
 
 The failure arrives in bursts. Inside one, every client fails identically:

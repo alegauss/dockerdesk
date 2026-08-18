@@ -20,6 +20,10 @@
 #define MyAppExeName "FreeWilly.exe"
 #define MyPublishDir "..\src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish"
 
+; DD141's forwarder, published separately because it is the one thing here that cannot be the tray's
+; binary: a command a shell waits for has to be console-subsystem, and a tray application is not.
+#define MyShimDir "..\src\FreeWilly.Shim\bin\Release\net10.0\win-x64\publish"
+
 ; Read straight off the published .exe, which got it from <Version> in Directory.Build.props. There
 ; is no second version to bump here, and a PackagingTests case holds that string to "x.y.z" with no
 ; commit suffix — Add/Remove Programs shows this verbatim. Requires the publish to have run first.
@@ -118,7 +122,10 @@ Name: "engine"; Description: "Download and install the container engine (about 2
 Name: "pathentry"; Description: "Put docker and freewilly on my PATH"; GroupDescription: "Command line:"
 
 [Files]
-; One file. That is DD14: one .exe to publish, to sign, to install and to hand somebody.
+; The product itself, and DD14's whole shape: one .exe to publish, to sign, to install and to hand
+; somebody. DD141 adds the second and only other published binary — the docker forwarder below —
+; and it is an exception rather than a drift, for a reason no design choice can remove: a command a
+; shell waits for must be console-subsystem, and this file is a tray application.
 Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; The same file again, and it is the same file: MergeDuplicateFiles is on by default, so two entries
@@ -137,6 +144,23 @@ Source: "{#MyPublishDir}\{#MyAppExeName}"; Flags: dontcopy
 ; on PATH, so without this the one command the whole read/do split exists to make grantable does not
 ; resolve at all. A forwarder rather than a second PATH entry: one name on PATH, one thing to remove.
 Source: "freewilly.cmd"; DestDir: "{app}\bin"; Flags: ignoreversion; Tasks: pathentry
+
+; DD141. The `docker` a shell actually runs: the vendor's CLI, plus the one sentence its failure
+; could not know. A stopped engine reaches an agent as docker's own connection error — written for a
+; world where the daemon could be anyone's — and the verb that fixes it is known right where that
+; error is printed.
+;
+; A second published binary, and the only one. It has to be, and the reason is the subsystem: a
+; command a shell waits for must be subsystem 3, FreeWilly.exe is a tray application and therefore
+; subsystem 2, and Windows hands the prompt back before a windowed process has printed anything.
+; A copy of the one .exe under this name would have broken every script to improve one message.
+;
+; Gated on the same checkbox as the PATH entry, and that is the rule rather than a convenience: this
+; is what makes this install the owner of the `docker` command, so a user who declined that keeps
+; whatever docker they already had. The vendor's CLI is placed by the provision one directory across
+; in {app}\cli, because PATHEXT resolves .EXE before everything else and the two cannot share a
+; directory.
+Source: "{#MyShimDir}\docker.exe"; DestDir: "{app}\bin"; Flags: ignoreversion; Tasks: pathentry
 
 ; DD32. How the surface is found, shipped beside it: a skill naming the verbs and the one rule, and
 ; the allowlist line that makes the read/do split pay. Laid down in {app}\agent and nowhere else -
@@ -1344,6 +1368,26 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  // DD141 moved the vendor's CLI out of the directory on PATH, and an install made before that has
+  // it sitting exactly where the forwarder is about to be written. Moved rather than overwritten:
+  // the file about to land there is 13 MB of forwarder, and leaving the user to re-download a CLI
+  // this machine already verified is a provision somebody has to be told to run.
+  //
+  // ssInstall, because it is the one step that runs before a single file is copied. Silent when
+  // there is nothing to move, which is every fresh install and every upgrade made after this.
+  if CurStep = ssInstall then
+  begin
+    if FileExists(ExpandConstant('{app}\bin\docker.exe'))
+       and not FileExists(ExpandConstant('{app}\cli\docker.exe')) then
+    begin
+      CreateDir(ExpandConstant('{app}\cli'));
+      RenameFile(
+        ExpandConstant('{app}\bin\docker.exe'), ExpandConstant('{app}\cli\docker.exe'));
+    end;
+
+    Exit;
+  end;
+
   if CurStep <> ssPostInstall then
     Exit;
 
@@ -1622,6 +1666,7 @@ begin
     // after an uninstall that took everything else, which is the failure DD121 exists to remove.
     DeleteFile(ExpandConstant('{app}\engine.log'));
     DelTree(ExpandConstant('{app}\bin'), True, True, True);
+    DelTree(ExpandConstant('{app}\cli'), True, True, True);
     DelTree(ExpandConstant('{app}\cli-plugins'), True, True, True);
 
     if RemoveTheDistribution then

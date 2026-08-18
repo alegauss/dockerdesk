@@ -35,6 +35,7 @@
 - ✅ **DD137** **Why the engine host stopped is printed to a hidden console, so a daemon that vanished leaves no evidence** — The host writes what it saw and every restart it attempted to engine.log beside the install, capped at 64 KB and silent while the engine is up.
 - ✅ **DD141** **The docker CLI's failure names the pipe but not the one command that brings the engine back** — The docker on PATH is a console forwarder that runs the vendor CLI untouched and, where a failure meets an unanswered pipe, names the verb that starts the engine.
 - ✅ **DD142 (the relay's silent death)** **Every docker client fails together for a burst of tens of seconds, then all of them work again untouched** — A listener the machine transiently refuses is retried instead of ending the accept loop, which is the one path here that leaves no pipe at all.
+- ✅ **DD143** **do compose up reads only docker-compose.yml, so the agent verb brings up a different stack than the project defines** — The verb names the override compose would apply as well as the base, and prints every file that went into the project it brought up.
 
 ## Block B — The daemon client (talk to the engine)
 

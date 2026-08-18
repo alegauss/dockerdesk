@@ -155,6 +155,76 @@ public sealed class ComposeUpTests
         Assert.Null(ComposeUp.FileIn(@"C:\shop", _ => false));
     }
 
+    [Fact]
+    public void The_override_compose_would_apply_is_part_of_the_project()
+    {
+        // DD143, and the defect is caused by the fix for something else. Compose reads a base file
+        // and an optional override of its own accord, and it stops doing that the moment a caller
+        // names files with -f — which this verb has to, because it injects one. So a two-file
+        // project silently became a one-file project.
+        //
+        // Reproduced in an empty directory: `compose up -d` started base and extra; `do compose up`
+        // started base and reported "1 service(s)". Nothing said a file had been skipped.
+        var files = ComposeUp.ProjectFiles(
+            @"C:\shop",
+            path => path is @"C:\shop\docker-compose.yml" or @"C:\shop\docker-compose.override.yml");
+
+        Assert.Equal(
+            [@"C:\shop\docker-compose.yml", @"C:\shop\docker-compose.override.yml"],
+            files);
+
+        // Base first, override second: compose merges in order, and its project directory comes
+        // from the first file named.
+        Assert.Equal(
+            ["compose", "-f", @"C:\shop\docker-compose.yml",
+             "-f", @"C:\shop\docker-compose.override.yml",
+             "-f", @"C:\temp\stamp.yml", "up", "-d"],
+            ComposeUp.UpArguments(files, @"C:\temp\stamp.yml"));
+
+        // And the read that decides what gets stamped is the same project that gets brought up. A
+        // narrower read here would stamp some of what it created and not the rest.
+        Assert.Equal(
+            ["compose", "-f", @"C:\shop\docker-compose.yml",
+             "-f", @"C:\shop\docker-compose.override.yml",
+             "config", "--format", "json"],
+            ComposeUp.ConfigArguments(files));
+    }
+
+    [Fact]
+    public void The_override_is_found_the_way_compose_finds_it_and_not_the_obvious_way()
+    {
+        // Measured against the real CLI, because the obvious derivation is wrong in two ways and
+        // this test is the record of both.
+        //
+        // First: an override does NOT belong to the file it overrides. A directory holding
+        // docker-compose.yml beside compose.override.yaml gets both applied — measured, `config
+        // --services` answered base and extra — so deriving the name from the base would drop it.
+        Assert.Equal(
+            @"C:\shop\compose.override.yaml",
+            ComposeUp.OverrideIn(
+                @"C:\shop",
+                path => path is @"C:\shop\docker-compose.yml" or @"C:\shop\compose.override.yaml"));
+
+        // Second: the preference is not FileNames'. That list prefers .yaml; this one prefers .yml.
+        // With all four present compose warns "Found multiple override files with supported names"
+        // and then "Using compose.override.yml", which is where this order comes from.
+        Assert.Equal(
+            ["compose.override.yml", "compose.override.yaml",
+             "docker-compose.override.yml", "docker-compose.override.yaml"],
+            ComposeUp.OverrideFileNames);
+
+        Assert.Equal(
+            @"C:\shop\compose.override.yml",
+            ComposeUp.OverrideIn(@"C:\shop", _ => true));
+
+        Assert.Null(ComposeUp.OverrideIn(@"C:\shop", _ => false));
+
+        // A one-file project stays one file.
+        Assert.Equal(
+            [@"C:\shop\compose.yaml"],
+            ComposeUp.ProjectFiles(@"C:\shop", path => path is @"C:\shop\compose.yaml"));
+    }
+
     /// <summary>A service with the binds named, which is all these tests need of one.</summary>
     private static ComposeUp.ComposeService Service(
         string name, params ComposeUp.ComposeBind[] binds) => new(name, binds);
@@ -224,7 +294,7 @@ public sealed class ComposeUpTests
         // Compose takes its project directory from the FIRST -f, and every relative build context,
         // bind mount and env_file in the user's file resolves against it. Put the generated stamp
         // first and all of them resolve against TEMP.
-        var arguments = ComposeUp.UpArguments(@"C:\shop\compose.yaml", @"C:\temp\stamp.yml");
+        var arguments = ComposeUp.UpArguments([@"C:\shop\compose.yaml"], @"C:\temp\stamp.yml");
 
         Assert.Equal(
             ["compose", "-f", @"C:\shop\compose.yaml", "-f", @"C:\temp\stamp.yml", "up", "-d"],
@@ -239,7 +309,7 @@ public sealed class ComposeUpTests
         // `config --services`, because DD75 needs the resolved bind sources from the same read.
         Assert.Equal(
             ["compose", "-f", @"C:\shop\compose.yaml", "config", "--format", "json"],
-            ComposeUp.ConfigArguments(@"C:\shop\compose.yaml"));
+            ComposeUp.ConfigArguments([@"C:\shop\compose.yaml"]));
 
         // The shape compose emits, taken from a real `config --format json` run.
         const string Json = """

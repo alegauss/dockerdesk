@@ -117,17 +117,103 @@ public static class ComposeUp
     /// <param name="Binds">Its bind mounts. Named volumes are not here — they need no translating.</param>
     public sealed record ComposeService(string Name, IReadOnlyList<ComposeBind> Binds);
 
+    /// <summary>
+    /// The override file names compose looks for, in its own order of preference (DD143).
+    /// </summary>
+    /// <remarks>
+    /// Measured against the real CLI rather than derived, because the obvious derivation is wrong.
+    /// An override does <em>not</em> belong to the file it overrides: a directory holding
+    /// <c>docker-compose.yml</c> beside <c>compose.override.yaml</c> gets both applied. And the
+    /// order is not <see cref="FileNames"/>'s — that one prefers <c>.yaml</c>, and this one prefers
+    /// <c>.yml</c>. With all four present compose says so out loud: "Found multiple override files
+    /// with supported names: compose.override.yml, compose.override.yaml,
+    /// docker-compose.override.yml" and then "Using compose.override.yml", which is where this list
+    /// and its order come from.
+    /// </remarks>
+    public static readonly IReadOnlyList<string> OverrideFileNames =
+    [
+        "compose.override.yml",
+        "compose.override.yaml",
+        "docker-compose.override.yml",
+        "docker-compose.override.yaml",
+    ];
+
+    /// <summary>
+    /// The override compose would apply here by convention, or <see langword="null"/> (DD143).
+    /// </summary>
+    /// <param name="directory">Where the caller is.</param>
+    /// <param name="exists">Whether a file is there — a parameter so this is testable.</param>
+    /// <returns>The full path, or null where the project is one file.</returns>
+    /// <remarks>
+    /// <b>Passing <c>-f</c> is what makes this necessary.</b> Compose reads a base file and an
+    /// optional override of its own accord, and it stops the moment a caller names files explicitly
+    /// — so this verb, which has to name files because it injects one, silently turned a two-file
+    /// project into a one-file project. Reproduced against the real CLI in an empty directory:
+    /// with no <c>-f</c>, <c>config --services</c> answered <c>base</c> and <c>extra</c>; with one
+    /// <c>-f</c>, <c>base</c> alone; with both files named, <c>base</c> and <c>extra</c> again.
+    /// </remarks>
+    public static string? OverrideIn(string directory, Func<string, bool> exists)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        ArgumentNullException.ThrowIfNull(exists);
+
+        foreach (var name in OverrideFileNames)
+        {
+            var candidate = Path.Combine(directory, name);
+            if (exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Every file of the user's project, in the order compose would read them (DD143).</summary>
+    /// <param name="directory">Where the caller is.</param>
+    /// <param name="exists">Whether a file is there — a parameter so this is testable.</param>
+    /// <returns>The files, base first; empty where the directory holds no compose file.</returns>
+    public static IReadOnlyList<string> ProjectFiles(string directory, Func<string, bool> exists)
+    {
+        if (FileIn(directory, exists) is not { } composeFile)
+        {
+            return [];
+        }
+
+        return OverrideIn(directory, exists) is { } over
+            ? [composeFile, over]
+            : [composeFile];
+    }
+
     /// <summary>The arguments that ask compose what the project resolves to.</summary>
-    /// <param name="composeFile">The user's file.</param>
+    /// <param name="projectFiles">The user's files, in compose's own order.</param>
     /// <returns>The argument list handed to the CLI.</returns>
     /// <remarks>
     /// JSON, and one call rather than two. This replaced <c>config --services</c>, which answered the
     /// service names and nothing else — and DD75 needs the resolved bind sources from the same read,
     /// because compose has already turned <c>./data</c> into an absolute Windows path by the time
     /// anything here can see it.
+    ///
+    /// <para>Every file and not the first one (DD143): this read is what decides which services get
+    /// stamped and which binds get respelled, so a project read here more narrowly than it is
+    /// brought up would stamp some of what it created and not the rest.</para>
     /// </remarks>
-    public static string[] ConfigArguments(string composeFile) =>
-        ["compose", "-f", composeFile, "config", "--format", "json"];
+    public static string[] ConfigArguments(IReadOnlyList<string> projectFiles)
+    {
+        ArgumentNullException.ThrowIfNull(projectFiles);
+        return [.. Named(projectFiles), "config", "--format", "json"];
+    }
+
+    /// <summary><c>compose</c> followed by a <c>-f</c> for each file, in order.</summary>
+    private static IEnumerable<string> Named(IEnumerable<string> files)
+    {
+        yield return "compose";
+        foreach (var file in files)
+        {
+            yield return "-f";
+            yield return file;
+        }
+    }
 
     /// <summary>
     /// The services and their bind mounts, out of what <c>config --format json</c> wrote.
@@ -272,14 +358,22 @@ public static class ComposeUp
     }
 
     /// <summary>The arguments that bring the project up, stamped.</summary>
-    /// <param name="composeFile">The user's file, first so it stays the project.</param>
+    /// <param name="projectFiles">The user's files, first so the first one stays the project.</param>
     /// <param name="overrideFile">The generated stamp.</param>
     /// <returns>The argument list handed to the CLI.</returns>
     /// <remarks>
     /// Detached, because a <c>do</c> verb answers and returns: an agent that blocked on a foreground
     /// <c>up</c> would hold the call open for the life of the containers and read the whole of their
     /// output as its answer, which is the token sink <c>read logs</c> exists to bound.
+    ///
+    /// <para>The generated file is last, and that is what makes it an override rather than a
+    /// project: compose merges in order, and its project directory comes from the first file — so
+    /// every relative build context and bind mount in the user's own files still resolves against
+    /// the directory they are in.</para>
     /// </remarks>
-    public static string[] UpArguments(string composeFile, string overrideFile) =>
-        ["compose", "-f", composeFile, "-f", overrideFile, "up", "-d"];
+    public static string[] UpArguments(IReadOnlyList<string> projectFiles, string overrideFile)
+    {
+        ArgumentNullException.ThrowIfNull(projectFiles);
+        return [.. Named([.. projectFiles, overrideFile]), "up", "-d"];
+    }
 }

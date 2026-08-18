@@ -5,7 +5,6 @@
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
 - ⏳ **DD142** (deps: DD133 ✅) **Every docker client fails together for a burst of tens of seconds, then all of them work again untouched** — Inside a burst docker ps, version and compose all fail the same way and retries do not help; outside it they all work, with the engine reporting healthy throughout. → §DD142
-- 📋 **DD143** (deps: —) **do compose up reads only docker-compose.yml, so the agent verb brings up a different stack than the project defines** — Compose applies the override file by convention and the verb does not, silently: two services become one, and the line printed names the file it read. → §DD143
 
 ## Block B — The daemon client (talk to the engine)
 

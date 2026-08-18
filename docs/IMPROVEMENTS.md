@@ -29,32 +29,6 @@ underneath its own status.
 For whoever measures this: existsSync on the pipe path from Node reports absent even
 when docker works. PowerShell Test-Path is the one that tells the truth.
 
-### §DD143 The compose project the verb does not see
-
-Reproduced in an empty directory with two files. docker-compose.yml declares a service
-`base`; docker-compose.override.yml declares `extra`. Docker Compose applies the second
-by convention: `compose config --services` lists both, and `compose up -d` starts
-fwtest-base-1 and fwtest-extra-1.
-
-`freewilly do compose up` in the same directory prints "compose up docker-compose.yml 1
-service(s)" and starts only base. Nothing says a file was skipped. The line it prints
-names what it read, which is honest, but an agent reading that line has no way to know
-the project said more.
-
-This is the documented path. The site tells an agent to reach for `do compose up
---wait`, and the design note says the surface is a shape over the Engine API rather than
-a second Docker CLI. Both are good reasons not to reimplement Compose's flags — and both
-argue for delegating project loading to Compose instead of resolving one filename.
-
-The same gap has a second face: `do compose up` takes no arguments at all, so a project
-split across a base and an explicit override cannot use the verb even knowingly. It has
-to fall back to `docker compose -f a -f b`, which is the raw path the verb exists to
-replace.
-
-Smallest honest fix is to refuse rather than diverge: when the directory holds files the
-verb will not read, say so and stop. Better is to load the project the way Compose does,
-and print every file that went into it.
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

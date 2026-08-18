@@ -1337,18 +1337,35 @@ public static class AgentSurface
             return Refuse($"unexpected argument {rest[1]}: do compose up takes nothing else");
         }
 
-        var composeFile = ComposeUp.FileIn(directory, File.Exists);
-        if (composeFile is null)
+        // DD143. COMPOSE_FILE names the project outright and outranks any convention, so a value
+        // here means the files this verb is about to name are not the ones the user's own
+        // `docker compose` would read. Refused rather than obeyed or ignored: obeying it means
+        // parsing a separator-joined list and a second set of rules, and ignoring it is the whole
+        // defect this task is about — bringing up a project the caller cannot see.
+        if (Environment.GetEnvironmentVariable("COMPOSE_FILE") is { Length: > 0 } named)
+        {
+            return Refuse(
+                $"COMPOSE_FILE is set to {named}, and this verb reads the files a directory holds. "
+                + "Unset it, or run docker compose directly.");
+        }
+
+        var projectFiles = ComposeUp.ProjectFiles(directory, File.Exists);
+        if (projectFiles.Count == 0)
         {
             return Refuse(
                 $"no compose file in {directory} — looked for "
                 + string.Join(", ", ComposeUp.FileNames));
         }
 
-        var listed = cli.Run(directory, ComposeUp.ConfigArguments(composeFile));
+        // Every file, so the read that decides what gets stamped is the same project that gets
+        // brought up. Naming only the first is what made a two-file project silently become one.
+        var read = string.Join(" + ", projectFiles.Select(Path.GetFileName));
+        var composeFile = projectFiles[0];
+
+        var listed = cli.Run(directory, ComposeUp.ConfigArguments(projectFiles));
         if (!listed.Succeeded)
         {
-            return Refuse($"reading {Path.GetFileName(composeFile)} failed: " + Said(listed));
+            return Refuse($"reading {read} failed: " + Said(listed));
         }
 
         IReadOnlyList<ComposeUp.ComposeService> services;
@@ -1363,7 +1380,7 @@ public static class AgentSurface
 
         if (services.Count == 0)
         {
-            return Refuse($"{Path.GetFileName(composeFile)} declares no services");
+            return Refuse($"{read} declares no services");
         }
 
         // A bind source this cannot respell is refused rather than sent (DD75). The daemon would
@@ -1400,24 +1417,24 @@ public static class AgentSurface
             return Refuse($"could not write the session stamp to {overridePath}: {exception.Message}");
         }
 
-        var up = cli.Run(directory, ComposeUp.UpArguments(composeFile, overridePath));
+        var up = cli.Run(directory, ComposeUp.UpArguments(projectFiles, overridePath));
         if (!up.Succeeded)
         {
             // The CLI's own words, not a summary of them: compose failures are about the caller's
             // file — a port taken, an image that will not build — and this surface has nothing to
             // add to that except where it happened.
-            output.WriteLine($"compose  failed  {Path.GetFileName(composeFile)}");
+            output.WriteLine($"compose  failed  {read}");
             output.WriteLine("  " + Said(up));
             return Failed;
         }
 
-        return ShowComposed(engine, composeFile, session, services.Count, output);
+        return ShowComposed(engine, read, session, services.Count, output);
     }
 
     /// <summary>Name back what now carries the label, which is the proof the stamp landed.</summary>
     private static int ShowComposed(
         IEngineReads engine,
-        string composeFile,
+        string read,
         string session,
         int services,
         TextWriter output)
@@ -1432,13 +1449,13 @@ public static class AgentSurface
         {
             // The up succeeded; only the read back did not. Saying so beats reporting a failure
             // about work that landed.
-            output.WriteLine($"compose  up  {Path.GetFileName(composeFile)}  {services} service(s)");
+            output.WriteLine($"compose  up  {read}  {services} service(s)");
             output.WriteLine($"  the engine stopped answering before this could list them: {exception.Message}");
             return Ok;
         }
 
         output.WriteLine(
-            $"compose  up  {Path.GetFileName(composeFile)}  {services} service(s)");
+            $"compose  up  {read}  {services} service(s)");
         foreach (var container in mine.OrderBy(c => c.DisplayName, StringComparer.Ordinal))
         {
             output.WriteLine($"  {container.DisplayName}  {container.State}");

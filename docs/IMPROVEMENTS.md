@@ -12,29 +12,6 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
-### §DD145 Measuring a wizard page instead of reading it
-
-Four tasks have built a wizard page in Pascal — DD121's uninstall form, DD123's tasks
-page, DD131's blocked-install page and DD132's button on it — and every one was checked
-by reading the script. The failures that misses are the ones it has already produced: a
-caption assigned before its width wrapped at column zero, a page that rendered correctly
-above a screenful of blank space, and a Copy button nine pixels below the box it belongs
-to, because an edit sizes itself to its font and a button does not. Each was found by
-running an installer, and the last only because a throwaway harness happened to exist
-that afternoon.
-
-That harness is the proposal. A page's geometry is readable from inside Setup: a script
-that builds the page, reports every control's rectangle and visibility, then closes
-itself needs no clicks, no screenshot and nobody watching. Built and deleted three times
-in one session, it answered which controls overlapped, which were hidden in which state,
-and what the buttons said — the whole of what reading Pascal cannot.
-
-So it is committed rather than rebuilt: one script rendering a named page under a named
-state, and a test that fails on an overlap, on a control off the bottom of the surface,
-or on a caption that does not match the state asked for. The [Code] section is the input
-either way, so the harness compiles the text the installer ships and cannot drift from
-it.
-
 ### §DD146 The report a successful install stopped keeping
 
 A loose end DD130 left behind rather than a defect it introduced. The preflight used to

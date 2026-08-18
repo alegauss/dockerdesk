@@ -782,6 +782,16 @@ end;
 // The page it is read on
 // ---------------------------------------------------------------------------------------------
 
+// >>> page-probe (DD145)
+//
+// Everything between this marker and its closing one is compiled a second time, on its own, by
+// scripts\page-probe.ps1: it wraps this block in a Setup that shows the page, reports every
+// control's rectangle, and closes itself. That is what turns "read the Pascal and hope" into a
+// check — and the two failures below were both found that way rather than by reading.
+//
+// The markers are machine-readable on purpose. The harness used to slice on a section heading,
+// which is prose, and prose is renamed by whoever is tidying up.
+
 // The page a blocked install lands on (DD131).
 //
 // What a blocked machine used to get was a message box naming `wsl.exe --install
@@ -954,7 +964,12 @@ begin
 
   PreflightAgain.Top := Row;
   PreflightLink.Top := Row + ScaleY(4);
-  PreflightLink.Visible := PreflightWsl2;
+
+  // Everything below is a remedy, and a remedy for a machine that no longer blocks is clutter on a
+  // page whose whole message is that there is nothing left to do. Found by the harness (DD145): the
+  // cleared page said "Nothing blocks an install any more" above a command box, a Copy button and a
+  // link to Microsoft's instructions for installing a feature that is already installed.
+  PreflightLink.Visible := PreflightWsl2 and not PreflightClear;
 
   // Offered only where there is a command to run and a row this file is willing to run one for.
   // Every other blocker — a rival engine, a firmware setting — is somebody else's to change, and a
@@ -966,9 +981,9 @@ begin
   else
     PreflightTurnOn.Caption := 'Turn it on for me';
 
-  PreflightCommandBox.Visible := PreflightCommand <> '';
-  PreflightCopy.Visible := PreflightCommand <> '';
-  if PreflightCommand <> '' then
+  PreflightCommandBox.Visible := (PreflightCommand <> '') and not PreflightClear;
+  PreflightCopy.Visible := PreflightCommandBox.Visible;
+  if PreflightCommandBox.Visible then
   begin
     Row := Row - ScaleY(10) - PreflightCopy.Height;
     PreflightCopy.Top := Row;
@@ -1201,6 +1216,8 @@ begin
   PreflightFooter.Height := ScaleY(13);
   PreflightFooter.Caption := '';
 end;
+
+// <<< page-probe (DD145)
 
 // ---------------------------------------------------------------------------------------------
 // The wizard, wired to the two pages above

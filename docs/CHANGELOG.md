@@ -116,6 +116,7 @@
 - ✅ **DD130** **Setup writes every file and only then reads the machine, so a laptop without WSL2 gets an install it cannot use** — Setup reads the machine from a copy in {tmp} on a page before wpReady, so a laptop without WSL2 is stopped with nothing written, and an unattended one exits 7 with the report on disk.
 - ✅ **DD131** **A machine without WSL2 gets a message box naming a command, which assumes the reader knows what WSL2 is** — The blocked install lands on a page that expands the term, numbers the steps, hands over the command with a Copy button and a link to Microsoft, and re-checks in place.
 - ✅ **DD132** **Turning the missing feature on is left to the user, so an install that could finish itself ends in a terminal** — Setup runs the command the row named behind one runas prompt, reads the reboot-pending key for evidence, and leaves a RunOnce so the install reopens after the restart.
+- ✅ **DD145** **A wizard page is checked by reading Pascal, so an overlap is found by somebody running an installer** — A committed harness compiles the page block on its own, renders every state it has and fails on an overlap, a control off the surface or a caption that does not match.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

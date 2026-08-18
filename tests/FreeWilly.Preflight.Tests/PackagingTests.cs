@@ -1130,6 +1130,41 @@ public sealed class PackagingTests
         Assert.Contains("Result := '!' + Name + ',';", script, StringComparison.Ordinal);
     }
 
+    // ---- DD145: the page is measured rather than read -------------------------------------------
+
+    [Fact]
+    public void The_page_harness_is_on_the_ordinary_path_and_has_a_page_to_read()
+    {
+        // DD88's lesson and DD102's, in a third file: the site build was broken for 21 commits
+        // because its workflow was workflow_dispatch only, and the installer script's first reader
+        // was the release. A harness nothing runs is the same failure with better intentions.
+        var check = Workflow("check.yml");
+        Assert.Contains(@"scripts\page-probe.ps1", check, StringComparison.Ordinal);
+
+        // After the compiler is on the PATH, because it compiles and runs a real Setup. Ordered
+        // rather than assumed: moving it above that step would leave it failing for the one reason
+        // that says nothing about the page.
+        var inno = check.IndexOf("./.github/actions/inno-setup", StringComparison.Ordinal);
+        var probe = check.IndexOf(@"scripts\page-probe.ps1", StringComparison.Ordinal);
+        Assert.True(inno > 0 && probe > inno, "the page harness runs before ISCC is available");
+
+        // And it still has something to slice. The markers are machine-readable precisely so this
+        // does not depend on a section heading somebody renames while tidying up.
+        var script = InstallerScript();
+        var open = script.IndexOf("// >>> page-probe", StringComparison.Ordinal);
+        var close = script.IndexOf("// <<< page-probe", StringComparison.Ordinal);
+        Assert.True(
+            open > 0 && close > open,
+            "build/installer.iss no longer marks the block the harness compiles, so it measures "
+            + "nothing while continuing to pass");
+
+        // The harness knows the page by the two procedures it drives. Renaming either without
+        // telling it produces a probe that compiles and reports on a page nobody built.
+        var block = script[open..close];
+        Assert.Contains("procedure BuildPreflightPage;", block, StringComparison.Ordinal);
+        Assert.Contains("procedure ShowTheVerdict;", block, StringComparison.Ordinal);
+    }
+
     // ---- DD141: the docker on PATH is this project's, and says what the failure could not --------
 
     /// <summary>The forwarder's project file, read as text.</summary>

@@ -18,6 +18,8 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
+- 📋 **DD160** (deps: —) **the tray section on the site describes a menu the product no longer has** — DD128 made Quit stop the engine and DD154 added two menu items, and the section states neither. → §DD160
+
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

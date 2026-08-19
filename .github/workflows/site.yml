@@ -77,7 +77,7 @@ jobs:
       # and the output is not wanted anywhere.
       - name: Keep the built site for the deploy
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: site-dist
           path: site/dist
@@ -97,12 +97,12 @@ jobs:
     steps:
       # The bytes the gate already built and tested, rather than a second build: two builds
       # of one commit is two answers about it, and the published one would be the untested.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: site-dist
           path: dist
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

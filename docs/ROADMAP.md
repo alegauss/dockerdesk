@@ -14,6 +14,8 @@
 
 ## Block F — Installer and distribution (free, Apache 2.0)
 
+- 📋 **DD154** (deps: —) **an installed copy never learns a newer version exists** — The installer is downloadable now, so an install goes stale in silence: nothing on the machine looks at the release it came from, and a fix reaches only whoever goes to check. → §DD154
+
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 
 ## Block H — The public surface (the site a reader and an agent both read)

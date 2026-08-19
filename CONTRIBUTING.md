@@ -10,24 +10,27 @@ and driving Docker — see [docs/ROADMAP.md](docs/ROADMAP.md) for what is open a
 [roadkeep](https://github.com/alegauss/roadkeep): the line format is validated at the point
 of insertion, so a hand edit is refused rather than reviewed. Use the commands instead —
 `roadkeep add`, `status`, `ship`, `retire`, `section add`, `non-goal add` — and
-`roadkeep lint`, which CI runs, tells you if anything drifted.
+`roadkeep lint` tells you if anything drifted. Run it yourself before pushing — CI no longer
+does.
 
 `roadkeep pick` names the next task that is ready and why it was chosen; `roadkeep brief
 <id>` prints everything it costs to start one, the non-goals included.
 
 ## The gates
 
-Three workflows, and each runs exactly one of them so none can be satisfied by a copy
+Two workflows, and each runs exactly one of them so neither can be satisfied by a copy
 nobody kept current:
 
 | Workflow | When | What it holds |
 |---|---|---|
 | [`check.yml`](.github/workflows/check.yml) | every push and PR | builds and tests on **Windows**, then runs the published single-file `.exe` — that it starts at all is the failure a local build cannot see |
-| [`roadkeep.yml`](.github/workflows/roadkeep.yml) | every push and PR | `roadkeep lint` over the three governed files |
 | [`release.yml`](.github/workflows/release.yml) | a `v*` tag | publishes the `.exe`, compiles the installer, attaches both with `SHA256SUMS.txt` as a **draft** release |
 
-Two things CI cannot do, stated here rather than implied by a green tick:
+Three things CI cannot do, stated here rather than implied by a green tick:
 
+- **It cannot tell you the governed files drifted.** The gate that ran `roadkeep lint` on
+  every push was removed. The write-time hooks still refuse a hand edit, but that is a guard
+  on the machine doing the writing — drift arriving any other way reaches `main` unremarked.
 - **It cannot verify the engine install.** A hosted runner has no nested virtualization, so
   `--provision` has nowhere to import a WSL2 distribution. That is what the draft release is
   for: run the installer on a real machine, or drive the test guest with

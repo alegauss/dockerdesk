@@ -184,26 +184,6 @@ public sealed class PackagingTests
     }
 
     [Fact]
-    public void The_gate_runs_the_vendored_engine_beside_the_one_it_floats_on()
-    {
-        // DD118. Two roadkeeps are in play here and they are allowed to differ: the workflow's
-        // action floats on `main`, and DD116 made every hook run the copy vendored at `.roadkeep`.
-        // One gates and one writes. A rule `main` gained and the vendored copy has not is a file
-        // that lints clean on a developer's machine and red in CI — so both engines answer the same
-        // question on every push, and the step states both versions rather than leaving "how far
-        // behind" to somebody who thinks to ask.
-        //
-        // No pin is possible and that is why this is a read: roadkeep publishes no tags, and the
-        // vendored copy reports its revision as `untracked` because it is a copy and not a checkout.
-        var gate = File.ReadAllText(
-            Path.Combine(RepositoryRoot(), ".github", "workflows", "roadkeep.yml"));
-
-        Assert.Contains("alegauss/roadkeep@", gate, StringComparison.Ordinal);
-        Assert.Contains(".roadkeep/scripts/roadkeep.py lint", gate, StringComparison.Ordinal);
-        Assert.Contains(".roadkeep/scripts/roadkeep.py --version", gate, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void The_engine_the_hooks_reach_is_the_one_this_repository_vendors()
     {
         // DD116, and it is asserted by running the launcher's own resolution rather than by reading

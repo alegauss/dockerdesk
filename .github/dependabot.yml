@@ -8,10 +8,14 @@
 #   nuget           src/*/*.csproj, tests/*/*.csproj
 #   npm             site/package.json
 #
-# What is deliberately NOT here: `alegauss/roadkeep@main` in roadkeep.yml. Dependabot updates
-# pinned refs, and that one floats on a branch on purpose — roadkeep publishes no tags, and
-# roadkeep.yml already says so at length. There is nothing for this file to bump, and pretending
-# otherwise would be a rule that silently never fires.
+# One group per ecosystem, `patterns: ["*"]` and no update-type filter: three pull requests a week
+# at most, whatever moved. Ungrouped, a quiet week in site/ alone is a dozen — and a dozen PRs each
+# spending a Windows runner on the same solution is a queue nobody reads by Wednesday.
+#
+# The cost is stated rather than hidden: a grouped PR that goes red does not name which bump did
+# it. The answer is not to un-group — it is that the branch is right there, so `git revert` the one
+# manifest line, or close the PR and let the next run reopen it minus whatever was pinned in the
+# meantime. That is a minute of work on the rare red, against a dozen reviews on every green.
 
 version: 2
 
@@ -35,12 +39,9 @@ updates:
       prefix: chore(ci)
     open-pull-requests-limit: 5
     groups:
-      # One PR for the routine bumps, separate PRs for majors. A grouped major is a red build
-      # nobody can bisect without splitting the branch back up by hand; a grouped patch run is
-      # five minutes of Windows CI instead of five separate ones.
+      # One PR a week for every action, majors included — see the note at the top of the file.
       actions:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ── the .NET solution ───────────────────────────────────────────────────────────────────────
   #
@@ -59,19 +60,12 @@ updates:
       prefix-development: chore(deps-dev)
     open-pull-requests-limit: 5
     groups:
-      # The xunit/test stack moves as a set — runner, adapter and framework disagreeing about a
-      # version is a test host that will not start, and reviewing that as three PRs is reviewing
-      # two builds that were never going to be green on their own.
-      test-stack:
-        patterns:
-          - "xunit*"
-          - "Microsoft.NET.Test.Sdk"
-      runtime:
+      # Everything the solution references, in one PR. The xunit stack is the reason this is not
+      # even a close call: runner, adapter and framework disagreeing about a version is a test host
+      # that will not start, so splitting them into three PRs is reviewing two builds that were
+      # never going to be green on their own.
+      nuget:
         patterns: ["*"]
-        exclude-patterns:
-          - "xunit*"
-          - "Microsoft.NET.Test.Sdk"
-        update-types: ["minor", "patch"]
 
   # ── the public site ─────────────────────────────────────────────────────────────────────────
   #
@@ -90,19 +84,8 @@ updates:
       prefix-development: chore(deps-dev)
     open-pull-requests-limit: 5
     groups:
-      # React and its types travel together, majors included: react and react-dom at different
-      # majors is not a state worth opening a PR for.
-      react:
-        patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
-      # Everything the build runs but the site never ships — vite, tailwind, tsc, the image tools.
-      build-tooling:
-        dependency-type: development
+      # One PR, dependencies and devDependencies together. Splitting them here would be a division
+      # the site does not have: react, @types/react and vite's react plugin are one decision, and
+      # only two of the three are runtime.
+      site:
         patterns: ["*"]
-        exclude-patterns:
-          - "@types/react"
-          - "@types/react-dom"
-        update-types: ["minor", "patch"]

@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           # The band, not a patch. The runner image ships whatever .NET it ships, and pinning a
           # patch here is a build that breaks on a day nobody changed anything.

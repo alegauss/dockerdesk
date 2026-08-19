@@ -38,7 +38,7 @@ jobs:
           # of them: the notes come out empty on a repository that has plenty to say.
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
 

@@ -24,7 +24,7 @@ nobody kept current:
 | Workflow | When | What it holds |
 |---|---|---|
 | [`check.yml`](.github/workflows/check.yml) | every push and PR | builds and tests on **Windows**, then runs the published single-file `.exe` — that it starts at all is the failure a local build cannot see |
-| [`release.yml`](.github/workflows/release.yml) | a `v*` tag | publishes the `.exe`, compiles the installer, attaches both with `SHA256SUMS.txt` as a **draft** release |
+| [`release.yml`](.github/workflows/release.yml) | a `v*` tag | publishes the `.exe`, compiles the installer, attaches **the installer alone** with `SHA256SUMS.txt` as a **draft** release |
 
 Three things CI cannot do, stated here rather than implied by a green tick:
 

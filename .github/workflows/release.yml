@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   release:
-    name: build, sign nothing, attach everything
+    name: build, sign nothing, attach the installer
     runs-on: windows-latest
 
     steps:
@@ -76,22 +76,30 @@ jobs:
           }
           "VERSION=$built" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Name the artefacts after the version, and sum them
+      - name: Name the installer after the version, and sum it
         run: |
-          $publish = "src\FreeWilly.Tray\bin\Release\net10.0-windows\win-x64\publish\FreeWilly.exe"
-          Copy-Item $publish "dist\FreeWilly-$env:VERSION.exe"
+          # The installer, and nothing beside it (DD152). The bare published .exe used to be
+          # attached as well, and a release page offering two files makes the reader choose between
+          # them - a choice this project has no reason to hand out. The single-file .exe is not a
+          # second, lighter product: it provisions the engine on first run exactly as the installed
+          # copy does, and it arrives without the uninstall entry, the Run value and the shim on
+          # PATH that the rest of the product assumes. Whoever wants it can still build it, and
+          # build.cmd is the one line that does.
           Move-Item "dist\FreeWilly-Setup.exe" "dist\FreeWilly-Setup-$env:VERSION.exe"
 
           # SHA-256, in the `<hash>  <name>` shape sha256sum -c reads, because a download whose
           # integrity cannot be checked is a download a corporate proxy is right to block - and a
-          # corporate proxy is exactly what this project's audience is behind.
-          $lines = Get-ChildItem dist -Filter *.exe | Sort-Object Name | ForEach-Object {
-            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
-          }
-          if ($lines.Count -ne 2) { throw "expected two artefacts to sum, found $($lines.Count)" }
+          # corporate proxy is exactly what this project's audience is behind. One artefact is still
+          # worth a sums file: it is what a download is checked against, not a manifest of choices.
+          $installer = "dist\FreeWilly-Setup-$env:VERSION.exe"
+          # Get-FileHash throws on a file that is not there, which is the whole guard: the count
+          # check this replaced existed to catch a rename upstream, and naming the file catches it
+          # at the same place for the same reason.
+          $line = "{0}  {1}" -f (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower(),
+                                (Split-Path $installer -Leaf)
           # ASCII with a trailing newline: this file is read by sha256sum on other people's
           # machines, and a UTF-8 BOM makes the first line fail to parse there.
-          $lines | Out-File "dist\SHA256SUMS.txt" -Encoding ascii
+          $line | Out-File "dist\SHA256SUMS.txt" -Encoding ascii
           Get-Content "dist\SHA256SUMS.txt"
 
       - name: Draft the release
@@ -102,7 +110,6 @@ jobs:
           # --verify-tag: refuse to invent a tag if this ever runs from something other than a push.
           $assets = @(
             "dist\FreeWilly-Setup-$env:VERSION.exe",
-            "dist\FreeWilly-$env:VERSION.exe",
             "dist\SHA256SUMS.txt"
           )
           gh release create "$env:GITHUB_REF_NAME" `

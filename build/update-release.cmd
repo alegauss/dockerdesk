@@ -10,7 +10,7 @@ REM      .exe really carries the number that was asked for. That is the same
 REM      check release.yml makes against the tag, made here where it is cheap.
 REM   3) [optional] With "upload" as the 2nd argument: commits the bump, pushes
 REM      it, then creates and pushes the tag vX.Y.Z. The tag is what fires
-REM      .github\workflows\release.yml, which rebuilds, sums the artefacts and
+REM      .github\workflows\release.yml, which rebuilds, sums the installer and
 REM      leaves a DRAFT release. Nothing becomes public here - a person presses
 REM      Publish after the installer has been run on a machine with nested
 REM      virtualization (by hand, or through scripts\vm.ps1).

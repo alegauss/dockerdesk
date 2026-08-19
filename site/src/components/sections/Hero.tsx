@@ -1,4 +1,4 @@
-import { download, hero, heroSession, releasesUrl, repoUrl } from "../../lib/site-content";
+import { download, hero, heroSession, repoUrl } from "../../lib/site-content";
 import { Rich } from "../ui/Rich";
 import { HeroSession } from "../HeroSession";
 import { Waves } from "../ui/Waves";
@@ -21,8 +21,13 @@ export function Hero() {
         </p>
         {/* S5: the call to action is dropped from the Markdown twin by this attribute —
             it converts a reader and costs an agent the same forty words on every page. */}
+        {/* DD158: the hero's button scrolls to the download section rather than leaving for
+            GitHub. The question between a reader and an install is "what does this touch on
+            my machine", the section below answers it in four lines, and sending them straight
+            to a release page skipped the answer. The button inside that section is the one
+            that leaves. */}
         <div className="hero-cta" data-twin="omit">
-          <a className="btn btn-primary" href={releasesUrl}>
+          <a className="btn btn-primary" href="#download">
             {download.cta}
           </a>
           <a className="btn btn-ghost" href={repoUrl}>

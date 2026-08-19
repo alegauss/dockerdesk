@@ -28,15 +28,15 @@ export interface FeatureRecord {
 export const features: FeatureRecord[] = [
   {
     slug: "preflight",
-    title: "Preflight — why Docker will not run here, in four rows",
+    title: "Preflight — why Docker will not run here, in five rows",
     description:
-      "The four common causes of a Docker failure on Windows, each with the command that fixes it, read-only and exit 1 while a blocking row is not green.",
+      "The five common causes of a Docker failure on Windows, each with the command that fixes it, read-only and exit 1 while a blocking row is not green.",
     ogTitle: "FreeWilly — the preflight",
-    ogDescription: "Four checks, four remedies, and the hypervisor-before-firmware order.",
+    ogDescription: "Five checks, five remedies, and the hypervisor-before-firmware order.",
     eyebrow: "Before anything is installed",
     heading: "The preflight",
     lead: [
-      "“It does not work on my machine” has four common causes on Windows, and four different remedies. ",
+      "“It does not work on my machine” has five common causes on Windows, and five different remedies. ",
       { code: "freewilly --preflight" },
       " names the one you have, prints the command that fixes it, changes nothing, and exits ",
       { code: "1" },
@@ -45,12 +45,13 @@ export const features: FeatureRecord[] = [
     figure: "preflightTerminal",
     sections: [
       {
-        heading: "Four rows, each with its remedy",
+        heading: "Five rows, each with its remedy",
         list: [
           ["Windows build — 19041 or later, because below it no configuration gets a WSL2 kernel."],
           ["Hardware virtualization — read the hypervisor bit first, because Windows reports the firmware bit as off once something has claimed it."],
           ["WSL2 — a missing wsl.exe, a kernel-less half-install, and “new distros default to WSL1” are three states with three lines."],
           ["Container engine — anything else owning the docker command or the docker_engine pipe, because two engines on one pipe leaves neither working."],
+          ["Docker context — where your own docker command points, because an engine that is running and a client aimed somewhere else fail with the same sentence."],
         ],
       },
       {
@@ -67,9 +68,9 @@ export const features: FeatureRecord[] = [
     slug: "engine",
     title: "The engine — upstream Moby into a distro it owns",
     description:
-      "Seven unattended steps that stop at the first failure: acquire and verify by digest, inspect the archive, import an owned WSL2 distro, install inside it, and place docker.exe.",
+      "Eleven unattended steps that stop at the first failure: acquire and verify five artefacts by digest, inspect the archive, import an owned WSL2 distro, install inside it, and place the CLI with its Compose and Buildx plugins.",
     ogTitle: "FreeWilly — the engine",
-    ogDescription: "Seven steps, pinned by digest, stopping at the one that broke.",
+    ogDescription: "Eleven steps, pinned by digest, stopping at the one that broke.",
     eyebrow: "Provisioning",
     heading: "The engine",
     lead: [
@@ -77,13 +78,14 @@ export const features: FeatureRecord[] = [
     ],
     sections: [
       {
-        heading: "Seven steps, pinned by digest",
+        heading: "Eleven steps, pinned by digest",
         list: [
-          ["Acquire and verify — the Alpine rootfs, the static Linux engine and the Windows CLI zip, each checked against a digest recorded in this repository, not one served by the same host as the file."],
+          ["Acquire and verify — five artefacts, five steps: the Alpine rootfs, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins. Each checked against a digest recorded in this repository, not one served by the same host as the file."],
           ["Inspect before touching WSL — the tarball's member list is read locally, so a bad archive is caught before a distribution exists."],
           [{ code: "wsl --import freewilly … --version 2" }, " — a fixed name that is this tool's, so your own apt upgrade or unregister cannot take the engine with it."],
           ["Install inside it — one non-interactive sh script under set -e; iptables and socat from apk, the binaries into /usr/local/bin, systemd=false."],
           ["Place the Windows CLI — docker.exe under %LOCALAPPDATA%\\FreeWilly\\bin, for the installer to add to PATH."],
+          ["Place the plugins — Compose and Buildx go where the CLI looks for one, so docker compose and docker buildx work from the install rather than from a second download."],
         ],
       },
       {

@@ -274,9 +274,9 @@ export const why = {
 
 export const preflight = {
   eyebrow: "Before anything is installed",
-  heading: "Why Docker will not run here — in four rows",
+  heading: "Why Docker will not run here — in five rows",
   intro: [
-    "“It does not work on my machine” has four common causes on Windows, and they have four different remedies. ",
+    "“It does not work on my machine” has five common causes on Windows, and they have five different remedies. ",
     { code: "freewilly --preflight" },
     " names the one you have, prints the command that fixes it, changes nothing, and exits ",
     { code: "1" },
@@ -298,6 +298,10 @@ export const preflight = {
       " — anything else that owns the docker command or the docker_engine pipe, because two engines competing for one pipe leaves neither working",
     ],
     [
+      "Docker context",
+      " — where your own docker command points, because an engine that is running and a client aimed at something else fail with the same sentence, and only one of them is fixed by starting anything",
+    ],
+    [
       "Every row carries its remedy",
       " — the command that fixes it, wrapped and marked once, because repeating the arrow per line reads as several actions where there is one",
     ],
@@ -314,7 +318,7 @@ export const preflight = {
 
 export const engine = {
   eyebrow: "Provisioning",
-  heading: "Seven steps, and it stops at the one that broke",
+  heading: "Eleven steps, and it stops at the one that broke",
   intro: [
     "Provisioning runs from an installer, where there is no terminal to answer a prompt in. So every step is unattended, every step is named, and the run stops at the first failure — a report listing six failures where there was one is a report nobody can act on.",
   ] as Rich,
@@ -323,7 +327,7 @@ export const engine = {
       n: "1",
       title: "Acquire, and verify",
       body: [
-        "Three of the seven steps, one per artefact: the Alpine root filesystem, the static Linux engine, and the Windows CLI zip — each downloaded and checked against a ",
+        "Five of the eleven steps, one per artefact: the Alpine root filesystem, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins — each downloaded and checked against a ",
         { b: "digest recorded in this repository" },
         ", not one served by the same host as the file. Already verified on disk means no second download.",
       ] as Rich,
@@ -383,6 +387,19 @@ export const engine = {
       ] as Rich,
     },
     {
+      n: "6",
+      title: "Place Compose and Buildx",
+      body: [
+        "Both plugins go where the CLI looks for one, so ",
+        { code: "docker compose up" },
+        " and ",
+        { code: "docker buildx build" },
+        " work from the install rather than from a second download — pinned by digest like everything else here. Every build the daemon kept is a page in the window, which is also where the ",
+        { code: "docker-desktop://" },
+        " link buildx prints at the end of a build lands.",
+      ] as Rich,
+    },
+    {
       n: "?",
       ask: true,
       title: "Or just look first",
@@ -394,12 +411,17 @@ export const engine = {
       ] as Rich,
     },
   ],
-  helpTitle: "freewilly --help",
+  // Titled as the excerpt it is (DD157). It read `freewilly --help`, which claimed to be the
+  // output while being a hand-picked half of it — the real one also carries --tray, --window,
+  // --quit, --capture-window, --show-menu, --open-build, --preflight and --version. A block
+  // that says which half it is stays true when a verb is added; one that claims to be the
+  // whole thing was already false.
+  helpTitle: "freewilly --help — the engine verbs",
   help: `freewilly — put upstream Moby into a WSL2 distribution this tool owns.
 
   --plan        the pinned versions, digests and paths; reaches nothing
   --acquire     download and verify every artefact, and stop
-  --provision   acquire, import the distribution, install the engine, place docker.exe
+  --provision   acquire, import the distribution, install the engine
 
   --run         start the engine and serve \\\\.\\pipe\\docker_engine until Ctrl+C
   --stop        stop the engine and terminate the distribution
@@ -527,8 +549,11 @@ export const windowSection = {
     { code: "localhost:8080" },
     " is a small daily tax a GUI exists to remove.",
   ] as Rich,
+  // DD158. It read "Dark, because Windows is." — contradicted by its own next clause, and by
+  // the code: ThemeMode="System" on both windows means the window is whatever Windows is.
+  // The claim that survives is the better one to make anyway.
   caption: [
-    { b: "Dark, because Windows is." },
+    { b: "Whatever your Windows is." },
     " The window is WPF on the built-in Fluent theme with ",
     { code: "ThemeMode=\"System\"" },
     " — light and dark follow the OS, with no extra package.",
@@ -565,6 +590,17 @@ export const windowSection = {
       " Only TCP gets a link, because ",
       { code: "http://localhost:x" },
       " is not where a published UDP port is",
+    ] as Rich,
+    // DD157. The window has five destinations and this page described three of them, so the
+    // one page nobody could have guessed at was the one missing: a build is the only thing
+    // here whose record outlives the thing it produced.
+    [
+      { b: "Four destinations, and Builds is one." },
+      " Containers, images, volumes and ",
+      { b: "what has been built here" },
+      " — which is also where the ",
+      { code: "docker-desktop://" },
+      " link buildx prints at the end of every build lands, because the record it names is one the daemon kept and only the address was dead",
     ] as Rich,
   ],
 };
@@ -950,6 +986,10 @@ export const compare = {
       law: "Compatibility",
       rows: [
         { cap: "Standard docker_engine pipe, no DOCKER_HOST", cells: ["✓", "✓", "✓", "✗", "✗"] },
+        // DD158. The row the matrix was missing, and it is the one a hand-rolled WSL2 daemon
+        // loses on work rather than on principle: both plugins are acquired, digest-checked
+        // and placed where the CLI looks, by the same provisioner as the engine.
+        { cap: "Compose and Buildx installed, pinned by digest", cells: ["✓", "✓", "✓", "~", "✗"] },
         { cap: "Cross-platform (macOS, Linux)", cells: ["✗", "✓", "✓", "✓", "✗"] },
       ],
     },

@@ -9,11 +9,11 @@
 > tray, WPF window on the built-in Fluent theme, and an Engine API client with no NuGet
 > dependency).
 
-**Nothing has been published to download yet** — building from source with the .NET 10 SDK
-is currently the only way to run it. The engine (preflight, provisioning, start/stop, the
-pipe, the API client, the event stream, the tray icon), the container window, the per-user
-installer and the workflow that drafts a release from a tag all exist; what has not happened
-is the tag. The line-by-line picture, with the reason each exists, is in
+**There is an installer to download**, from
+[the release page](https://github.com/alegauss/freewilly/releases/latest), with a
+`SHA256SUMS.txt` beside it. It is per-user and asks for no administrator prompt. Building
+from source is still one command and is how a contributor works on this, but it is no longer
+how anybody has to run it. The line-by-line picture, with the reason each exists, is in
 [`docs/ROADMAP.md`](https://github.com/alegauss/freewilly/blob/main/docs/ROADMAP.md) and
 [`docs/CHANGELOG.md`](https://github.com/alegauss/freewilly/blob/main/docs/CHANGELOG.md).
 
@@ -43,20 +43,22 @@ it.
 
 ## Features
 
-- **Preflight (`freewilly --preflight`)**: four rows, each with the action that fixes it —
-  Windows build (19041 or later), hardware virtualization, WSL2, and any rival container
-  engine that owns the `docker` command or the `docker_engine` pipe. It changes nothing,
+- **Preflight (`freewilly --preflight`)**: five rows, each with the action that fixes it —
+  Windows build (19041 or later), hardware virtualization, WSL2, any rival container engine
+  that owns the `docker` command or the `docker_engine` pipe, and where this user's own
+  `docker` context points. It changes nothing,
   prints a person-readable report or `--json` for an installer, and exits 1 while a
   blocking row is not green, so nothing is copied to disk on a machine that cannot host an
   engine. The virtualization row reads the hypervisor bit *before* the firmware bit,
   because Windows reports the firmware bit as false once a hypervisor has claimed it — the
   naive order tells a plainly virtualizing machine to go and enable virtualization in its
   BIOS.
-- **Unattended provisioning (`freewilly --provision`)**: seven named steps, stopping
+- **Unattended provisioning (`freewilly --provision`)**: eleven named steps, stopping
   at the first failure rather than reporting six consequences of one cause. Downloads and
-  verifies Alpine's minirootfs, Docker's static Linux engine binaries and Docker's Windows
-  CLI zip against digests recorded in this repository (not served by the same host as the
-  file); reads the engine tarball's member list locally to check the required binaries are
+  verifies Alpine's minirootfs, Docker's static Linux engine binaries, Docker's Windows
+  CLI zip and the Compose and Buildx plugins against digests recorded in this repository (not
+  served by the same host as the file); reads the engine tarball's member list locally to
+  check the required binaries are
   present before WSL is touched; imports a WSL2 distribution named `freewilly` that this
   tool owns rather than the user's own distro; installs the binaries inside it with one
   non-interactive `sh` script under `set -e` (apk adds `iptables` and `socat`, `wsl.conf`
@@ -102,7 +104,11 @@ it.
   than a link that lands on nothing. Ports published on both address families are folded into
   one cell. WPF on the built-in .NET Fluent theme with `ThemeMode="System"`, so light and dark
   follow the OS with no extra package. Empty is a designed state: "the engine is not running"
-  offers a Start button, "no containers" does not.
+  offers a Start button, "no containers" does not. Four destinations beside About —
+  containers, images, volumes and **builds**, the last being where the `docker-desktop://`
+  link buildx prints at the end of a build lands, since the record it names is one the daemon
+  kept and only the address was dead. Every heading sorts and every list has a filter box,
+  over the rows already in hand rather than a second call to the daemon.
 - **Nothing resident**: no Windows service and no scheduled task. Autostart is a single
   per-user registry value under the `Run` key, off unless the user turns it on, and turning it
   off removes the value rather than setting it to zero. The engine runs for exactly as long as
@@ -143,10 +149,11 @@ it.
 
 - `src/FreeWilly.Core` — the preflight judgement, the engine lifecycle and provisioning, and
   the Engine API client. No UI.
-- `src/FreeWilly.Preflight` — `freewilly --preflight`, the standalone check.
-- `src/FreeWilly.Engine` — `freewilly`, provisioning and the process that holds the
-  engine and the pipe.
-- `src/FreeWilly.Tray` — the WinForms tray icon and the WPF window.
+- `src/FreeWilly.Tray` — the WinForms tray icon, the WPF window, and every verb: one
+  executable is the tray, the window, `--preflight`, `--provision`, `--run` and the
+  `freewilly read`/`do` agent surface. There is no second tool to find.
+- `src/FreeWilly.Shim` — the `docker.exe` forwarder. A separate project because a command a
+  shell waits for has to be a console application, and the tray is a windowed one.
 - `site/` — the public site (Vite + React + Tailwind); its build emits this file, a Markdown
   twin per route and `manifest.json`.
 - `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `docs/IMPROVEMENTS.md` — governed by
@@ -154,8 +161,10 @@ it.
 
 ## Data and network
 
-- The only network traffic is downloading the three pinned artefacts from
-  `dl-cdn.alpinelinux.org` and `download.docker.com`, during a provision the user asked for.
+- The only network traffic is downloading the five pinned artefacts — the Alpine rootfs, the
+  static Linux engine, the Windows CLI, and the Compose and Buildx plugins — from
+  `dl-cdn.alpinelinux.org`, `download.docker.com` and `github.com`, during a provision the
+  user asked for. Each is checked against a digest recorded in the repository.
 - Everything installed lives under `%LOCALAPPDATA%\FreeWilly` (verified downloads, the
   distribution's disk, `bin\docker.exe`).
 - Nothing is uploaded, nothing is measured, and there is no account.

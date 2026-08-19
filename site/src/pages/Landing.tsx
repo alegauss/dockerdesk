@@ -12,16 +12,18 @@ import { FeatureIndex } from "../components/sections/FeatureIndex";
 import { NotResident } from "../components/sections/NotResident";
 import { NonGoals } from "../components/sections/NonGoals";
 import { Download } from "../components/sections/Download";
-import { Build } from "../components/sections/Build";
 
 // The landing page. The section order is the argument, not a feature list (§5): why →
 // preflight → engine → the pipe (the mechanism) → tray → window → nothing resident →
-// non-goals → the download → build from source. DD44/DD45 reshape the opening once the
-// hero session and the two-actor/laws sections land.
+// non-goals → the download. DD44/DD45 reshape the opening once the hero session and the
+// two-actor/laws sections land.
 //
-// The download lands after the non-goals and before the source build (DD153): a reader who
-// has just read what this refuses to be is the one ready to install it, and building from a
-// clone stops being the only way in the moment a release exists.
+// The page ends on the download (DD153), and DD156 is why nothing follows it: the four
+// commands from a clone used to be the last section, because for the whole life of this site
+// they were the only way to run the thing. A release exists now, so a page that closed by
+// asking for the .NET SDK was answering a question the section above it had already settled
+// — and the reader it sent to a git clone was the one who had just decided to install. From
+// source stays documented where a contributor looks for it, in CONTRIBUTING.md.
 export function Landing() {
   return (
     <>
@@ -38,7 +40,6 @@ export function Landing() {
       <NotResident />
       <NonGoals />
       <Download />
-      <Build />
       <Footer />
     </>
   );

@@ -121,15 +121,23 @@ it.
 
 ## Installation
 
-- **No packaged install exists yet.** What is planned: a per-user install
-  into `%LOCALAPPDATA%` with no administrator prompt, an uninstall that respects the user's
-  data, and releases built by CI rather than on one developer's machine.
-- **From source** (needs the .NET 10 SDK and Windows 10 build 19041 or later):
-  1. `git clone https://github.com/alegauss/freewilly && cd dockerdesk`
-  2. `dotnet run --project src/FreeWilly.Preflight` — reads the machine, changes nothing.
-  3. `dotnet run --project src/FreeWilly.Engine -- --provision` — or `-- --plan` first, which
-     downloads nothing at all.
-  4. `dotnet run --project src/FreeWilly.Tray` — then **Start engine** from the tray.
+- **An installer, from the release page**:
+  <https://github.com/alegauss/freewilly/releases/latest>. The asset carries its version in
+  its name (`FreeWilly-Setup-<x.y.z>.exe`), and `SHA256SUMS.txt` beside it is what a
+  download is checked against. Windows 10 build 19041 or later, 64-bit; no prerequisite,
+  because the executable carries its own .NET runtime.
+- **Per-user, no administrator prompt.** It installs into `%LOCALAPPDATA%\FreeWilly`, which
+  is what reaches a managed laptop. The WSL2 feature the engine needs may still want
+  elevation of its own, and the installer runs the preflight and says so rather than failing
+  halfway through a download.
+- **Uninstalling asks about what was created.** The `freewilly` WSL2 distribution holds every
+  image, container and volume, so it is never removed without a question, and an unattended
+  uninstall keeps it.
+- **From source** — `dotnet build`, then `build\build.cmd` for the single-file `.exe`; needs
+  the .NET 10 SDK and Windows, and the installer additionally needs Inno Setup 6. Stated in
+  the repository's own
+  [README](https://github.com/alegauss/freewilly/blob/main/README.md#building). It is how a
+  contributor works on this, and no longer how anybody has to run it.
 
 ## Layout
 

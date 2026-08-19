@@ -47,7 +47,10 @@ export const navLinks = [
   { href: "#window", label: "Window" },
   { href: "/freewilly/claude-code/", label: "Claude Code" },
   { href: "/freewilly/compare/", label: "Compare" },
-  { href: "#download", label: "Download" },
+  // No "Download" link here, and DD155 is why: it sat immediately left of the download
+  // button, so the row carried the same destination twice and paid for it in width — five
+  // labels, two buttons and the theme toggle wrapped "The pipe" and "Claude Code" onto two
+  // lines each. The button is the affordance; a link repeating it is what got dropped.
 ] as const;
 
 export const footer = {

@@ -214,6 +214,28 @@ public sealed class PackagingTests
         // on. Earlier in this project's history that tree was mid-refactor and did not import, and
         // the guard denying hand-edits of the governed files was running a traceback.
         var root = RepositoryRoot();
+
+        // Nothing below can be asked where the engine was never vendored, and that is every CI
+        // runner by construction rather than by accident: `.gitignore` excludes `.roadkeep/` and
+        // `scripts/install_roadkeep.py` says why in its own docstring — reproduced by that script,
+        // never committed. So a checkout has the launcher but not the thing it resolves to, and this
+        // test asserted a claim that cannot hold there. It was red on every push from DD116 until
+        // here, and the release it eventually blocked is what made somebody read it: `dotnet test`
+        // gates release.yml, so an unmakeable assertion held back an installer.
+        //
+        // A skip would say this better and xUnit v2 has no supported way to ask for one — the
+        // reasoning is written out in SingleTrayTests.RequireTheTraySlot, and it lands the other way
+        // there. The difference is what the missing precondition means. A running tray is a machine
+        // state a developer fixes in two seconds, so failing is the remedy; an unvendored engine is
+        // the documented state of every clone before `install-roadkeep.cmd` is run, so failing on it
+        // is a gate that reports the design of the repository as a defect. The claim is therefore
+        // conditional, and the condition is named rather than implied.
+        var vendored = Path.Combine(root, ".roadkeep", "scripts", "roadkeep.py");
+        if (!File.Exists(vendored))
+        {
+            return;
+        }
+
         var launcher = Path.Combine(root, ".claude", "hooks", "roadkeep-launch.py");
         Assert.True(File.Exists(launcher), $"{launcher} is missing, so no hook can reach an engine");
 

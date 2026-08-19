@@ -1,0 +1,108 @@
+# Dependency updates, opened as pull requests so they arrive through the gates rather than beside
+# them. A bump proposed here runs check.yml on Windows — build, test, publish, and the started .exe —
+# which is the same evidence any hand-written change has to produce. That is the whole reason this
+# file exists: the alternative is somebody editing a version by hand and finding out at release.
+#
+# Three ecosystems, because the repository holds three kinds of manifest and no more:
+#   github-actions  .github/workflows/*.yml            (and the composite action beside them)
+#   nuget           src/*/*.csproj, tests/*/*.csproj
+#   npm             site/package.json
+#
+# What is deliberately NOT here: `alegauss/roadkeep@main` in roadkeep.yml. Dependabot updates
+# pinned refs, and that one floats on a branch on purpose — roadkeep publishes no tags, and
+# roadkeep.yml already says so at length. There is nothing for this file to bump, and pretending
+# otherwise would be a rule that silently never fires.
+
+version: 2
+
+updates:
+  # ── the workflows themselves ────────────────────────────────────────────────────────────────
+  #
+  # `/` means .github/workflows for this ecosystem — it is not the repository root in the sense
+  # the other two entries use it. The composite action is named separately because Dependabot does
+  # not reach it from `/`; it holds no `uses:` today, and is listed so that the day it gains one is
+  # not the day this file quietly stops covering everything.
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      - "/.github/actions/inno-setup"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore(ci)
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the routine bumps, separate PRs for majors. A grouped major is a red build
+      # nobody can bisect without splitting the branch back up by hand; a grouped patch run is
+      # five minutes of Windows CI instead of five separate ones.
+      actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── the .NET solution ───────────────────────────────────────────────────────────────────────
+  #
+  # The root, not src/ and tests/ one at a time: the NuGet updater walks down from the directory it
+  # is given, so a project added later is covered without this file being touched. Directory.Build.props
+  # is read on the way past, which is where a central property would land if one is ever added.
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    open-pull-requests-limit: 5
+    groups:
+      # The xunit/test stack moves as a set — runner, adapter and framework disagreeing about a
+      # version is a test host that will not start, and reviewing that as three PRs is reviewing
+      # two builds that were never going to be green on their own.
+      test-stack:
+        patterns:
+          - "xunit*"
+          - "Microsoft.NET.Test.Sdk"
+      runtime:
+        patterns: ["*"]
+        exclude-patterns:
+          - "xunit*"
+          - "Microsoft.NET.Test.Sdk"
+        update-types: ["minor", "patch"]
+
+  # ── the public site ─────────────────────────────────────────────────────────────────────────
+  #
+  # site/ has its own lockfile and its own gate (site.yml runs `npm ci && npm run build && npm test`
+  # on every push), so a bump here is checked by the build that generates the surface, the SSR pass
+  # and the prerender — the same three things DD88 made run on every push rather than on publish.
+  - package-ecosystem: npm
+    directory: "/site"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    open-pull-requests-limit: 5
+    groups:
+      # React and its types travel together, majors included: react and react-dom at different
+      # majors is not a state worth opening a PR for.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Everything the build runs but the site never ships — vite, tailwind, tsc, the image tools.
+      build-tooling:
+        dependency-type: development
+        patterns: ["*"]
+        exclude-patterns:
+          - "@types/react"
+          - "@types/react-dom"
+        update-types: ["minor", "patch"]

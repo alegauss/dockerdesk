@@ -18,6 +18,8 @@
 //   PreflightInspection.cs    the row ids, cross-checked against the calls Run actually makes
 //   CommandLine.cs            the help text, resolved, so an excerpt is a slice of the real
 //                             output rather than a retyping of it
+//   TrayMenu.cs               what each menu item says, which are shown, and in which order
+//                             (DD160 — the count this task could not gate on its first pass)
 //
 // Then the copy states the reason and this states the number (S1, S2). Prose stays unchecked:
 // "the ports are links" is a sentence a reviewer reads. The counts are the part that goes
@@ -43,6 +45,7 @@ const inspectionFile = join(
   "PreflightInspection.cs",
 );
 const commandLineFile = join(repoRoot, "src", "FreeWilly.Tray", "Cli", "CommandLine.cs");
+const trayMenuFile = join(repoRoot, "src", "FreeWilly.Tray", "TrayMenu.cs");
 
 function read(path, what) {
   try {
@@ -227,10 +230,75 @@ const help = helpRaw
   .trim()
   .split("\n");
 
+// --- the tray menu (DD160) ---
+// The fifth reader, and DD159 is why there is one: that task gated every count the copy
+// states and found this one it could not, because the tray section counts the menu's items in
+// a heading and then describes them one bullet each — so the number and the list have to move
+// together, and a generated number over a hand-kept list is half a gate.
+//
+// Three things are read, because "how many items" is not one question: what each item says,
+// which of them the menu shows, and the order a reader sees them in.
+
+const trayMenu = read(trayMenuFile, "the tray menu");
+
+const captions = Object.fromEntries(
+  [...trayMenu.matchAll(/internal const string (\w+Text) = "([^"]+)";/g)].map((m) => [
+    m[1],
+    // The ampersand is the accelerator, not part of what the item says.
+    m[2].replace(/&/g, ""),
+  ]),
+);
+
+// Which constants belong to an item that starts hidden. The install item is the only one, and
+// it is the reason the heading's number is not simply the number of captions: it exists so the
+// strip's shape is fixed and appears only once there is a release to install.
+const hidden = new Set(
+  [
+    ...trayMenu.matchAll(
+      /private readonly ToolStripMenuItem \w+ = new\((\w+Text)\)([^;]*);/g,
+    ),
+  ]
+    .filter((m) => m[2].includes("Visible = false"))
+    .map((m) => m[1]),
+);
+
+const fields = Object.fromEntries(
+  [...trayMenu.matchAll(/private readonly ToolStripMenuItem (\w+) = new\((\w+Text)\)/g)].map(
+    (m) => [m[1], m[2]],
+  ),
+);
+
+// The order the strip is built in, which is the order a photograph shows. Separators are not
+// items and do not match: the pattern takes a field or a caption constant and nothing else.
+const trayItems = [
+  ...trayMenu.matchAll(/Strip\.Items\.Add\((?:new ToolStripMenuItem\((\w+Text)|(_\w+))/g),
+].map((m) => {
+  const constant = m[1] ?? fields[m[2]];
+  if (constant === undefined || captions[constant] === undefined) {
+    throw new Error(
+      `product: TrayMenu adds ${m[1] ?? m[2]}, which no caption constant here explains — ` +
+        `TrayMenu.cs no longer matches the shape this script reads`,
+    );
+  }
+
+  return { caption: captions[constant], hidden: hidden.has(constant) };
+});
+
+if (trayItems.length === 0) {
+  throw new Error(
+    `product: found no items in the tray menu — ${trayMenuFile} no longer matches the shape ` +
+      "this script reads (Strip.Items.Add of a field or a caption constant)",
+  );
+}
+
 const data = {
   provisioning: { steps: steps.length, acquire },
   artefacts: { count: artefactIds.length, versions, hosts },
   preflight: { rows },
+  tray: {
+    items: trayItems,
+    visible: trayItems.filter((item) => !item.hidden).length,
+  },
   help,
 };
 
@@ -250,6 +318,7 @@ writeFileSync(
 
 console.log(
   `product: ${steps.length} provisioning step(s), ${artefactIds.length} artefact(s) over ` +
-    `${hosts.length} host(s), ${rows.length} preflight row(s), ${help.length} help line(s) ` +
+    `${hosts.length} host(s), ${rows.length} preflight row(s), ${data.tray.visible} of ` +
+    `${trayItems.length} menu item(s) shown, ${help.length} help line(s) ` +
     "-> src/lib/product.generated.ts",
 );

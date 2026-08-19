@@ -38,6 +38,39 @@ export const product: ProductData = {
       "docker-context"
     ]
   },
+  "tray": {
+    "items": [
+      {
+        "caption": "Open window",
+        "hidden": false
+      },
+      {
+        "caption": "Start engine",
+        "hidden": false
+      },
+      {
+        "caption": "Stop engine",
+        "hidden": false
+      },
+      {
+        "caption": "Start engine with FreeWilly",
+        "hidden": false
+      },
+      {
+        "caption": "Check for updates",
+        "hidden": false
+      },
+      {
+        "caption": "Install the update",
+        "hidden": true
+      },
+      {
+        "caption": "Quit",
+        "hidden": false
+      }
+    ],
+    "visible": 6
+  },
   "help": [
     "FreeWilly.exe — install and drive Docker on Windows.",
     "",

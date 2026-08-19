@@ -17,6 +17,7 @@ import {
   acquireCount,
   artefactCount,
   helpExcerpt,
+  menuCount,
   product,
   rowCount,
   spelled,
@@ -551,19 +552,43 @@ export const tray = {
     },
   ],
   splitEyebrow: "Deliberately short",
-  splitHeading: "Four items, because a tray menu that grows is a second app",
+  // DD160. The count is TrayMenu's, and one bullet per item is what makes it assertable — the
+  // heading and the list have to move together, and this said four while describing three and
+  // promising a Quit the product reversed in DD128.
+  splitHeading: `${Spelled(menuCount())} items, because a tray menu that grows is a second app`,
   splitList: [
-    [{ b: "Start engine" }, " / ", { b: "Stop engine" }, " — each enabled only when it would do something"] as Rich,
     [
       { b: "Open window" },
-      " — the container list, and the one already open is brought forward rather than duplicated",
+      " — first, and alone above its rule, because it is what a left click on the icon already does. A menu whose opening line is not the thing the click does is a menu hiding it",
+    ] as Rich,
+    [
+      { b: "Start engine" },
+      " — enabled only when there is not one running, and it launches the engine in a process the tray does not own. On a machine with no distribution imported it says so instead of pretending to start",
+    ] as Rich,
+    [
+      { b: "Stop engine" },
+      " — stops serving the pipe, kills the daemon and terminates the distribution. WSL powers the virtual machine down itself once nothing else is using it",
+    ] as Rich,
+    [
+      { b: "Start engine with FreeWilly" },
+      " — what happens when you are not asking. Opening this tool usually means wanting an engine, so it ships on; turning it off restores the old behaviour exactly, or the setting is decoration",
+    ] as Rich,
+    [
+      { b: "Check for updates" },
+      " — the same question about the app rather than the engine, and ",
+      { b: "off unless you turn it on" },
+      ": it is the one thing here that reaches a host the rest of this tool never touches",
     ] as Rich,
     [
       { b: "Quit" },
-      " — and the engine keeps running. The asymmetry is the point: a database another process is using does not die because somebody closed an icon",
+      " — and the engine goes with it. It used to stay up, and the asymmetry was stated as the point; measured against the complaint this project exists over it cost more than it saved, because a running engine holds a WSL2 virtual machine and the only way to get those gigabytes back was remembering a second item first. Somebody who quits has said they are done",
     ] as Rich,
-    [{ b: "The only thing that stops the engine" }, " is the menu item that says so"] as Rich,
   ],
+  // The item that is not on that list, and the reason the heading counts six rather than seven.
+  splitHidden: [
+    { b: "One more appears, and only then" },
+    " — the item that installs an update exists so the menu's shape is fixed, and it is invisible until a release newer than this build has been found. A verb that is usually a no-op is worse than one that is usually absent",
+  ] as Rich,
 };
 
 /* ------------------------------------------------------------------ window */

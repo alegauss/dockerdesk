@@ -52,24 +52,40 @@ export const pipeDiagram = `
   <text x="450" y="232" text-anchor="middle" fill="#7d95a5" font-family="Inter,sans-serif" font-size="11.5">and a port every local process can reach cannot express “only me”.</text>
 </svg>`;
 
+// DD160. The menu, drawn from what TrayMenu actually builds — the window first and alone above
+// its rule, the two engine verbs, the two settings that qualify them, and the way out. It drew
+// three items under a heading claiming four, in the order the menu had before DD140 moved the
+// window to the front, and the section's bullets are held to this same source now.
+//
+// The captions are typed here rather than read from the generated module, and only here: this
+// is markup, not copy, and a text node whose x/y are hand-placed cannot take a string of
+// unknown width. What keeps it honest is product.test.mjs, which asserts every caption the
+// menu shows appears in this drawing — a renamed item fails the build rather than leaving a
+// picture of a menu nobody ships.
+//
+// Start engine is the greyed one: the icon below it is the filled disc, so the engine is
+// running and the item that starts one is exactly what would be disabled.
 export const trayMenuDiagram = `
-<svg viewBox="0 0 420 260" role="img" aria-label="The tray icon showing a filled green disc, with its context menu: Start engine, Stop engine, Open window, Quit">
-  <rect width="420" height="260" rx="12" fill="#0a151d"/>
-  <rect x="70" y="26" width="230" height="150" rx="10" fill="#172c39" stroke="#22404f"/>
-  <text x="90" y="52" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Start engine</text>
-  <text x="90" y="80" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Stop engine</text>
-  <line x1="82" y1="96" x2="288" y2="96" stroke="#22404f"/>
-  <text x="90" y="120" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Open window</text>
-  <line x1="82" y1="136" x2="288" y2="136" stroke="#22404f"/>
-  <text x="90" y="160" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Quit</text>
-  <rect x="0" y="200" width="420" height="60" fill="#101c25"/>
-  <line x1="0" y1="200" x2="420" y2="200" stroke="#22404f"/>
-  <circle cx="176" cy="230" r="9" fill="#2EA043"/>
-  <circle cx="212" cy="230" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
-  <circle cx="248" cy="230" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
-  <text x="300" y="235" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">14:08</text>
-  <rect x="96" y="180" width="160" height="22" rx="4" fill="#1b2f3c" stroke="#2a4655"/>
-  <text x="176" y="195" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">FreeWilly — engine running</text>
+<svg viewBox="0 0 420 300" role="img" aria-label="The tray icon showing a filled green disc, with its context menu: Open window, Start engine (greyed out because the engine is running), Stop engine, Start engine with FreeWilly, Check for updates, Quit">
+  <rect width="420" height="300" rx="12" fill="#0a151d"/>
+  <rect x="52" y="18" width="266" height="204" rx="10" fill="#172c39" stroke="#22404f"/>
+  <text x="72" y="44" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Open window</text>
+  <line x1="64" y1="60" x2="306" y2="60" stroke="#22404f"/>
+  <text x="72" y="84" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Start engine</text>
+  <text x="72" y="110" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Stop engine</text>
+  <path d="M74 130 l4 4 l7 -8" stroke="#67C3F2" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="92" y="135" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Start engine with FreeWilly</text>
+  <text x="92" y="161" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Check for updates</text>
+  <line x1="64" y1="178" x2="306" y2="178" stroke="#22404f"/>
+  <text x="72" y="202" fill="#e9f2f8" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="13">Quit</text>
+  <rect x="0" y="240" width="420" height="60" fill="#101c25"/>
+  <line x1="0" y1="240" x2="420" y2="240" stroke="#22404f"/>
+  <circle cx="176" cy="270" r="9" fill="#2EA043"/>
+  <circle cx="212" cy="270" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
+  <circle cx="248" cy="270" r="8" fill="none" stroke="#3c5666" stroke-width="2.5"/>
+  <text x="300" y="275" fill="#7d95a5" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="12">14:08</text>
+  <rect x="96" y="220" width="160" height="22" rx="4" fill="#1b2f3c" stroke="#2a4655"/>
+  <text x="176" y="235" text-anchor="middle" fill="#c8dbe6" font-family="Segoe UI Variable Text,Segoe UI,Inter,sans-serif" font-size="11">FreeWilly — engine running</text>
 </svg>`;
 
 export const windowDiagram = `

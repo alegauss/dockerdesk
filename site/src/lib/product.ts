@@ -70,6 +70,27 @@ export function rowCount(): number {
 }
 
 /**
+ * How many items a tray menu a user opens actually shows (DD160).
+ *
+ * Not the number of items the menu declares: one of them exists so the strip's shape is fixed
+ * and appears only once there is a release to install, and a heading that counted it would be
+ * counting something most readers will never see.
+ */
+export function menuCount(): number {
+  return product.tray.visible;
+}
+
+/** The items a menu shows, in the order it shows them. */
+export function menuItems(): readonly string[] {
+  return product.tray.items.filter((item) => !item.hidden).map((item) => item.caption);
+}
+
+/** The items that exist but are hidden until something reveals them. */
+export function hiddenMenuItems(): readonly string[] {
+  return product.tray.items.filter((item) => item.hidden).map((item) => item.caption);
+}
+
+/**
  * One artefact's upstream version, keyed by its manifest id: "engine", "cli", "compose", …
  *
  * Throws on an id the manifest does not pin. A pill claiming a version for an artefact that

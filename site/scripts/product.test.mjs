@@ -28,7 +28,18 @@ function loadGenerated(file, exportName) {
 const product = loadGenerated("product.generated.ts", "product");
 const content = readFileSync(join(siteDir, "src", "lib", "site-content.ts"), "utf8");
 const featurePages = readFileSync(join(siteDir, "src", "lib", "features.ts"), "utf8");
+const diagrams = readFileSync(join(siteDir, "src", "lib", "diagrams.ts"), "utf8");
+const llms = readFileSync(join(siteDir, "public", "llms.txt"), "utf8");
 const source = (...parts) => readFileSync(join(repoRoot, ...parts), "utf8");
+
+/** The tray-menu diagram's markup alone, so a caption elsewhere cannot satisfy it. */
+function trayDiagram() {
+  const at = diagrams.indexOf("export const trayMenuDiagram");
+  assert.ok(at >= 0, "diagrams.ts no longer exports trayMenuDiagram");
+  const end = diagrams.indexOf("</svg>`;", at);
+  assert.ok(end > at, "the tray-menu diagram is not a closed svg");
+  return diagrams.slice(at, end);
+}
 
 /** How many top-level entries an array literal named `field:` in the copy module has. */
 function entriesIn(field) {
@@ -109,6 +120,88 @@ test("the page lists exactly as many preflight rows as the product reports", () 
   assert.equal(entriesIn("  rows"), product.preflight.rows.length);
 });
 
+test("the tray menu is what TrayMenu builds, item for item", () => {
+  // Order included, because the strip is built in one place so that what a photograph shows is
+  // what ships — DD140 moved the window to the front and the page's own drawing kept the old
+  // order for two tasks. The hidden item is separated here rather than filtered away: what the
+  // heading must not count is the one thing about this menu a reader cannot verify by opening it.
+  const trayMenu = source("src", "FreeWilly.Tray", "TrayMenu.cs");
+  const captions = Object.fromEntries(
+    [...trayMenu.matchAll(/internal const string (\w+Text) = "([^"]+)";/g)].map((m) => [
+      m[1],
+      m[2].replaceAll("&", ""),
+    ]),
+  );
+
+  assert.ok(Object.keys(captions).length > 0, "no captions parsed out of TrayMenu");
+  assert.equal(product.tray.visible, product.tray.items.filter((i) => !i.hidden).length);
+  assert.ok(product.tray.items.length > product.tray.visible, "no item is hidden any more");
+
+  for (const item of product.tray.items) {
+    assert.ok(
+      Object.values(captions).includes(item.caption),
+      `the generated menu names "${item.caption}", which TrayMenu declares no caption for`,
+    );
+  }
+
+  assert.equal(product.tray.items[0].caption, captions.WindowText);
+  assert.equal(product.tray.items.at(-1).caption, captions.QuitText);
+});
+
+test("the page names every item the menu shows, and does not count the hidden one", () => {
+  // DD160. The heading states the number and the bullets are what a reader counts against it,
+  // so one bullet per item is the shape that makes the two inseparable. This said four while
+  // describing three, which no count on its own would have caught.
+  const shown = product.tray.items.filter((item) => !item.hidden);
+
+  assert.equal(entriesIn("  splitList"), shown.length);
+  for (const item of shown) {
+    assert.ok(
+      content.includes(`"${item.caption}"`),
+      `the tray section does not name "${item.caption}"`,
+    );
+  }
+
+  for (const item of product.tray.items.filter((item) => item.hidden)) {
+    assert.ok(
+      !content.includes(`"${item.caption}"`),
+      `the tray section lists "${item.caption}", which the menu hides until there is one`,
+    );
+  }
+});
+
+test("the drawing of the menu is a drawing of this menu", () => {
+  // The captions in the SVG are hand-placed text nodes and cannot be generated — x and y are
+  // chosen per line. So they are asserted instead: a renamed item fails the build rather than
+  // leaving a picture of a menu nobody ships, which is what this drawing was.
+  const svg = trayDiagram();
+
+  for (const item of product.tray.items.filter((i) => !i.hidden)) {
+    assert.ok(svg.includes(`>${item.caption}<`), `the diagram does not draw "${item.caption}"`);
+  }
+});
+
+test("llms.txt states the menu the tray has and the Quit the product does", () => {
+  // The agent-readable twin of the same claims, and the one a model quotes back. It carried the
+  // pre-DD128 Quit — "the only thing that stops the engine is the menu item that says so" —
+  // under a count that named four of five items.
+  assert.ok(
+    !llms.includes("Quitting the\n  tray leaves the engine running"),
+    "llms.txt still says quitting leaves the engine running, which DD128 reversed",
+  );
+  assert.ok(
+    !/the only thing that stops the engine/i.test(llms),
+    "llms.txt still claims one menu item is the only thing that stops the engine",
+  );
+
+  for (const item of product.tray.items.filter((i) => !i.hidden)) {
+    assert.ok(
+      llms.toLowerCase().includes(item.caption.toLowerCase()),
+      `llms.txt does not name the "${item.caption}" menu item`,
+    );
+  }
+});
+
 test("the depth pages read their counts through the generated module too", () => {
   // features.ts carried its own copy of every number on the landing page — the preflight row
   // count in a title, an og:description and a heading, and the step count in three more. A
@@ -138,6 +231,7 @@ test("no count the generator states is typed in the copy as well", () => {
     "the five pinned artefacts",
     "Five things this project has decided against",
     "Moby 29.7.2",
+    "Four items",
   ];
 
   for (const phrase of typed) {
@@ -196,7 +290,7 @@ test("the copy reads its counts through the generated module", () => {
   // The import is the mechanism, and a page that stopped importing it would go back to typing
   // numbers with nothing to notice — which is the state this task found.
   assert.match(content, /from "\.\/product"/);
-  for (const call of ["rowCount()", "stepCount()", "acquireCount()", "artefactCount()"]) {
+  for (const call of ["rowCount()", "stepCount()", "acquireCount()", "artefactCount()", "menuCount()"]) {
     assert.ok(content.includes(call), `the copy no longer states its count with ${call}`);
   }
 });

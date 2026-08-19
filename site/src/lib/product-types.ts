@@ -24,6 +24,13 @@ export interface ProductData {
     /** The row ids, in report order: "windows-build", "virtualization", … */
     rows: string[];
   };
+  /** What the tray's context menu is, read off TrayMenu (DD160). */
+  tray: {
+    /** Every item in the order the strip is built, separators excluded. */
+    items: { caption: string; hidden: boolean }[];
+    /** How many of them a menu a user opens actually shows. */
+    visible: number;
+  };
   /** CommandLine.HelpText with its verb constants resolved, one entry per line. */
   help: string[];
 }

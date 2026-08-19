@@ -29,8 +29,10 @@ export function Tray() {
           <div className="split-txt">
             <div className="eyebrow">{tray.splitEyebrow}</div>
             <h2>{tray.splitHeading}</h2>
+            {/* One entry per item the menu shows, plus the one it hides — two arrays so the
+                count the heading states is a number a test can hold the list to (DD160). */}
             <ul className="feat-list">
-              {tray.splitList.map((runs, i) => (
+              {[...tray.splitList, tray.splitHidden].map((runs, i) => (
                 <li key={i}>
                   <span className="chk">✓</span>
                   <span>

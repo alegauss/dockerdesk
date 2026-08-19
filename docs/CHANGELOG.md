@@ -123,6 +123,7 @@
 - ✅ **DD151** **the release gate fails on a checkout that has no vendored roadkeep engine** — The test now asserts a conditional claim: where nothing is vendored, there is nothing to resolve and it stands aside instead of failing.
 - ✅ **DD152** **the release page offers a bare .exe beside the installer** — release.yml now attaches the installer and its SHA256SUMS.txt, and nothing else; the bare .exe stays a thing build.cmd produces.
 - ✅ **DD154** **an installed copy never learns a newer version exists** — The tray asks the release API once on launch and every six hours, off unless turned on, and offers an installer only after checking it against the SHA-256 the release publishes.
+- ✅ **DD161** **the release is created by CI on a tag rather than by the script that built it** — build\update-release.cmd upload now creates the release itself, from the installer it built, with the versioned asset and its SHA-256 attached.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

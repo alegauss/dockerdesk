@@ -1,26 +1,40 @@
 # DD15 — a release with checksums, held still before it is public.
 #
-# Fires on a tag, which is the deliberate act: nothing here runs on a push to a branch. What it
-# produces is a **draft** release, and that is the point — site.yml states this repository's rule
-# for publishing ("a deploy on every push is one nobody can hold still while reviewing it"), and a
-# release is the one artefact where a defect reaches people who cannot undo it. So the tag builds
-# and attaches everything, and a person presses Publish after looking.
+# What it produces is a **draft** release, and that is the point — site.yml states this
+# repository's rule for publishing ("a deploy on every push is one nobody can hold still while
+# reviewing it"), and a release is the one artefact where a defect reaches people who cannot undo
+# it. So this builds and attaches everything, and a person presses Publish after looking.
 #
 # That gap is doing real work rather than being ceremony: CI cannot verify the engine install at
 # all. A hosted runner has no nested virtualization, so `--provision` has nowhere to import a WSL2
 # distribution. The draft is where the installer gets run on a machine that does — by hand, or
 # through scripts/vm.ps1 against the test guest — before anybody can download it.
 #
-#   git tag v0.1.0 && git push origin v0.1.0
+# **DD161 took the tag trigger off.** `build\update-release.cmd <version> upload` now creates the
+# release itself, from the installer it just built on a machine that can run it — so this firing on
+# the same tag would race that `gh release create` and fail whichever ran second. The argument above
+# is not withdrawn; the answer to it moved to the maintainer, who has the installer in front of them
+# and can pass -Draft to publish-release.ps1 to get exactly this behaviour back.
+#
+# It stays because it is the clean-room build: one checkout, one toolchain, nothing of the
+# maintainer's machine in it, and the tag checked against what the build produced. Run it by hand
+# against a tag when that is what is wanted — a release the local path could not make, or a second
+# opinion about one it did:
+#
+#   gh workflow run release.yml --ref v0.1.0
 #
 # The tag must match <Version> in Directory.Build.props; the job refuses otherwise rather than
-# publishing an installer whose Add/Remove Programs entry disagrees with its own file name.
+# publishing an installer whose Add/Remove Programs entry disagrees with its own file name. Note
+# that `gh release create` below refuses a tag that already has a release, which is the ordinary
+# state after the local path has run: delete that release first, or take the artefacts from the
+# run's logs.
 
 name: release
 
 on:
-  push:
-    tags: ["v*"]
+  # Dispatch only, since DD161. Choose a tag as the ref — GITHUB_REF_NAME is what the version
+  # check and `gh release create` both read, and on a tag ref that is the tag name.
+  workflow_dispatch:
 
 # gh release create writes to this repository, and nothing here needs anything else.
 permissions:
@@ -76,46 +90,24 @@ jobs:
           }
           "VERSION=$built" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Name the installer after the version, and sum it
-        run: |
-          # The installer, and nothing beside it (DD152). The bare published .exe used to be
-          # attached as well, and a release page offering two files makes the reader choose between
-          # them - a choice this project has no reason to hand out. The single-file .exe is not a
-          # second, lighter product: it provisions the engine on first run exactly as the installed
-          # copy does, and it arrives without the uninstall entry, the Run value and the shim on
-          # PATH that the rest of the product assumes. Whoever wants it can still build it, and
-          # build.cmd is the one line that does.
-          Move-Item "dist\FreeWilly-Setup.exe" "dist\FreeWilly-Setup-$env:VERSION.exe"
-
-          # SHA-256, in the `<hash>  <name>` shape sha256sum -c reads, because a download whose
-          # integrity cannot be checked is a download a corporate proxy is right to block - and a
-          # corporate proxy is exactly what this project's audience is behind. One artefact is still
-          # worth a sums file: it is what a download is checked against, not a manifest of choices.
-          $installer = "dist\FreeWilly-Setup-$env:VERSION.exe"
-          # Get-FileHash throws on a file that is not there, which is the whole guard: the count
-          # check this replaced existed to catch a rename upstream, and naming the file catches it
-          # at the same place for the same reason.
-          $line = "{0}  {1}" -f (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower(),
-                                (Split-Path $installer -Leaf)
-          # ASCII with a trailing newline: this file is read by sha256sum on other people's
-          # machines, and a UTF-8 BOM makes the first line fail to parse there.
-          $line | Out-File "dist\SHA256SUMS.txt" -Encoding ascii
-          Get-Content "dist\SHA256SUMS.txt"
-
-      - name: Draft the release
+      # Name it, sum it, release it — the same script the local path runs (DD161), with -Draft,
+      # which is the one thing this job wants that the local path does not default to.
+      #
+      # One implementation rather than two, and the reason is the class of defect DD157 and DD159
+      # spent two tasks on: these steps and build\publish-release.ps1 would be the same three
+      # decisions written twice, and the copy nobody ran would be the one that drifted. The asset
+      # name is what DD154's release check matches on and the sums file is what it verifies
+      # against, so a drift here is a self-update that silently stops working.
+      #
+      # The installer, and nothing beside it (DD152). The bare published .exe used to be attached
+      # as well, and a release page offering two files makes the reader choose between them — a
+      # choice this project has no reason to hand out. The single-file .exe is not a second,
+      # lighter product: it provisions the engine on first run exactly as the installed copy does,
+      # and it arrives without the uninstall entry, the Run value and the shim on PATH that the
+      # rest of the product assumes. Whoever wants it can still build it, and build.cmd is the one
+      # line that does.
+      - name: Name the installer after the version, sum it, and draft the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # --draft: nothing is downloadable until a person publishes it.
-          # --verify-tag: refuse to invent a tag if this ever runs from something other than a push.
-          $assets = @(
-            "dist\FreeWilly-Setup-$env:VERSION.exe",
-            "dist\SHA256SUMS.txt"
-          )
-          gh release create "$env:GITHUB_REF_NAME" `
-            --draft `
-            --verify-tag `
-            --title "FreeWilly $env:VERSION" `
-            --generate-notes `
-            $assets
+        run: .\build\publish-release.ps1 -Version $env:VERSION -Draft
           Write-Output "drafted. Nothing is public until it is published by hand."

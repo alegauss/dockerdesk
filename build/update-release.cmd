@@ -9,11 +9,20 @@ REM   2) Calls build-installer.cmd (publish + Inno Setup), then checks that the
 REM      .exe really carries the number that was asked for. That is the same
 REM      check release.yml makes against the tag, made here where it is cheap.
 REM   3) [optional] With "upload" as the 2nd argument: commits the bump, pushes
-REM      it, then creates and pushes the tag vX.Y.Z. The tag is what fires
-REM      .github\workflows\release.yml, which rebuilds, sums the installer and
-REM      leaves a DRAFT release. Nothing becomes public here - a person presses
-REM      Publish after the installer has been run on a machine with nested
-REM      virtualization (by hand, or through scripts\vm.ps1).
+REM      it, creates and pushes the tag vX.Y.Z, and then creates the GitHub
+REM      release with the installer it just built and that installer's SHA-256
+REM      attached. The release exists when this returns (DD161).
+REM
+REM      It used to stop at the pushed tag and leave the release to
+REM      .github\workflows\release.yml, which rebuilt from a clean checkout and
+REM      attached that build instead - so `gh release list` showed nothing for the
+REM      two and a half minutes CI took, and the installer nobody had run was the
+REM      one people downloaded. release.yml is still there and still does the
+REM      whole job; it is on workflow_dispatch now, so it is the clean-room build
+REM      a maintainer asks for rather than a second one racing this.
+REM
+REM      Add -Draft to publish-release.ps1 to hold it back for a person to press
+REM      Publish, which is what every release before DD161 did.
 REM
 REM Usage (from any folder):  build\update-release 0.2.0
 REM                           build\update-release 0.2.0 upload
@@ -56,11 +65,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM --- 3) Upload (optional): commit + push + tag ---------------------------
+REM --- 3) Upload (optional): commit + push + tag + release -----------------
 if /i not "%~2"=="upload" goto :end
 
 echo.
-echo === Publishing the tag v%~1 ===
+echo === Publishing v%~1 ===
 echo.
 
 REM Commits the bump. -m is passed explicitly: without it the message is inferred from the diff,
@@ -90,13 +99,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo.
-echo === Tag v%~1 pushed ===
-echo release.yml is now building the draft release. Nothing is downloadable
-echo until somebody runs the installer on a machine that can import the WSL2
-echo distribution, and then presses Publish:
-echo   gh release view "v%~1" --web
-echo.
+REM The release itself, from the installer this run built. After the tag is pushed, because
+REM --generate-notes reads the commits since the previous one and --verify-tag refuses a tag the
+REM remote has never seen.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0publish-release.ps1" -Version "%~1"
+if errorlevel 1 (
+    echo.
+    echo *** ERROR: the release v%~1 was not created. The tag is already pushed, so fix ***
+    echo *** whatever gh reported and re-run only this step:                            ***
+    echo ***   powershell -File build\publish-release.ps1 -Version %~1                  ***
+    exit /b 1
+)
 
 :end
 endlocal

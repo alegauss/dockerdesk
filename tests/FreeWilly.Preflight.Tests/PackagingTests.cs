@@ -111,6 +111,115 @@ public sealed class PackagingTests
     private static string Workflow(string name) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
 
+    /// <summary>The script that names, sums and creates a release, read as text.</summary>
+    private static string PublishScript() =>
+        File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "publish-release.ps1"));
+
+    /// <summary>The one line in <paramref name="text"/> that runs the publish script.</summary>
+    /// <remarks>
+    /// Not the whole file, and not a line that only talks about it. Both callers explain
+    /// <c>-Draft</c> in a comment and one prints the command as a recovery hint, so an assertion
+    /// reading the file whole would be satisfied by the prose while the call did the opposite.
+    /// </remarks>
+    private static string Invocation(string text) =>
+        text.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => !line.StartsWith("echo", StringComparison.OrdinalIgnoreCase)
+                && !line.StartsWith("REM", StringComparison.OrdinalIgnoreCase)
+                && !line.StartsWith('#'))
+            .Single(line =>
+                line.Contains("publish-release.ps1", StringComparison.Ordinal)
+                && line.Contains("-Version", StringComparison.Ordinal));
+
+    [Fact]
+    public void Exactly_one_thing_creates_a_release_and_both_paths_run_it()
+    {
+        // DD161. The release used to be release.yml's, built from a clean checkout on a tag push;
+        // it is now `update-release.cmd <version> upload`'s, built on the machine that can run the
+        // installer. What must not happen is both: a tag push that still fired the workflow would
+        // race the local `gh release create` for the same tag, and whichever lost would be a red
+        // run on every release.
+        var workflow = Workflow("release.yml");
+        var command = File.ReadAllText(Path.Combine(RepositoryRoot(), "build", "update-release.cmd"));
+
+        Assert.DoesNotContain("tags:", workflow, StringComparison.Ordinal);
+        Assert.Contains("workflow_dispatch:", workflow, StringComparison.Ordinal);
+
+        // And one implementation of the three decisions, not two. These would otherwise be the
+        // same rename, the same digest and the same `gh release create` written twice, and the copy
+        // nobody runs is the copy that drifts — which is the defect DD157 and DD159 spent two
+        // tasks on, one release surface away.
+        Assert.Contains("publish-release.ps1", command, StringComparison.Ordinal);
+        Assert.Contains("publish-release.ps1", workflow, StringComparison.Ordinal);
+
+        // The workflow keeps the draft, because that is the thing it is for: a person presses
+        // Publish after the installer has been run somewhere with nested virtualization. The local
+        // path does not, because the maintainer running it has the installer in front of them.
+        //
+        // Asserted on the line that invokes the script rather than on the whole file — both of
+        // these explain the flag in a comment, and a test that read those would pass on the
+        // explanation while the call did the opposite.
+        Assert.Contains("-Draft", Invocation(workflow), StringComparison.Ordinal);
+        Assert.DoesNotContain("-Draft", Invocation(command), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_asset_a_release_publishes_is_the_asset_the_updater_looks_for()
+    {
+        // DD152 named the installer after its version and DD154 made an installed copy find it by
+        // matching that pattern — so the release script and the release check have to agree about
+        // one file name, in PowerShell and in C#, with nothing failing at compile time.
+        //
+        // Asserted through ReleaseCheck's own parser rather than against a regex retyped here: what
+        // matters is not that the names look alike but that the thing which reads a release accepts
+        // the thing which writes one.
+        Assert.Contains(
+            "dist\\FreeWilly-Setup-$Version.exe", PublishScript(), StringComparison.Ordinal);
+
+        var asset = $"FreeWilly-Setup-{BuildVersion.Current}.exe";
+        var release = $$"""
+            {
+              "tag_name": "v{{BuildVersion.Current}}",
+              "assets": [
+                { "name": "{{asset}}", "browser_download_url": "https://example.invalid/i" },
+                { "name": "{{FreeWilly.Core.Releases.ReleaseCheck.SumsAssetName}}",
+                  "browser_download_url": "https://example.invalid/s" }
+              ]
+            }
+            """;
+
+        var found = FreeWilly.Core.Releases.ReleaseCheck.In(release);
+
+        Assert.NotNull(found);
+        Assert.Equal(asset, found.InstallerName);
+    }
+
+    [Fact]
+    public void The_sums_line_a_release_writes_is_one_an_installed_copy_reads()
+    {
+        // The other half of the same join, and the one that fails silently: DD154 fetches
+        // SHA256SUMS.txt before the installer and refuses to run anything it cannot find a digest
+        // for. So a release whose sums file this parser does not understand is not a broken update
+        // — it is an update every installed copy declines, with nobody to tell.
+        var script = PublishScript();
+
+        // Two spaces between the digest and the name, which is what sha256sum -c reads.
+        Assert.Contains("'{0}  {1}' -f", script, StringComparison.Ordinal);
+
+        // ASCII, because a UTF-8 BOM makes the first line fail to parse for sha256sum.
+        Assert.Contains("-Encoding ascii", script, StringComparison.Ordinal);
+
+        // And the shape itself, through the parser that has to read it. Written the way the script
+        // writes it — Out-File on Windows PowerShell ends the line with CRLF — because the carriage
+        // return is exactly the character a naive split would leave on the file name.
+        var digest = new string('4', 64);
+        var asset = $"FreeWilly-Setup-{BuildVersion.Current}.exe";
+
+        Assert.Equal(
+            digest,
+            FreeWilly.Core.Releases.ReleaseSums.DigestFor($"{digest}  {asset}\r\n", asset));
+    }
+
     [Fact]
     public void A_self_update_relaunches_and_an_unattended_install_still_does_not()
     {

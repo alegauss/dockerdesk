@@ -32,7 +32,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # --generate-notes reads the commits since the previous tag, and a shallow clone has none
           # of them: the notes come out empty on a repository that has plenty to say.

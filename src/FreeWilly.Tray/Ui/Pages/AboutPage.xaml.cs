@@ -3,6 +3,7 @@ using System.Windows.Media.Imaging;
 using FreeWilly.Core.Api;
 using FreeWilly.Core.Engine;
 using FreeWilly.Core.Licensing;
+using FreeWilly.Core.Releases;
 
 namespace FreeWilly.Tray.Ui.Pages;
 
@@ -50,6 +51,7 @@ internal sealed partial class AboutPage : System.Windows.Controls.UserControl
         Mark.Source = frames.OrderByDescending(frame => frame.PixelWidth).First();
 
         BuildLine.Text = $"Build {BuildVersion.Current}";
+        Reaches.Text = WhatItReaches();
         Terms.Text = Attribution.Scope;
         Copyright.Text =
             $"{Attribution.Licence} · Copyright {Attribution.Holder}. "
@@ -110,6 +112,37 @@ internal sealed partial class AboutPage : System.Windows.Controls.UserControl
         rows.Add(new Component("Distribution", EnginePaths.CurrentDistribution));
         Components.ItemsSource = rows;
     }
+
+    /// <summary>Every host this build reaches, and what it asks each for (DD154).</summary>
+    /// <remarks>
+    /// <b>Counted, not typed.</b> "The five pinned artefacts" was a number in prose until DD157 found
+    /// what that costs, so the count comes off the manifest whose rows are directly above this line —
+    /// a sixth artefact changes both together or neither.
+    ///
+    /// <para><b>And the release check is named as a switch rather than as a state.</b> A page that
+    /// said "on" or "off" would be a fourth place the setting is stated, and the tray menu is where it
+    /// is changed. What a reader needs here is that there is a second host at all, that reaching it is
+    /// their choice, and that nothing about them is in the request.</para>
+    /// </remarks>
+    private static string WhatItReaches()
+    {
+        var artefacts = EngineManifest.Current.Artefacts.Count();
+        return $"Nothing is uploaded, there is no account and nothing is measured. This build "
+            + $"downloads {artefacts} pinned artefacts, by digest, during a provision you asked for. "
+            + $"With \"{ReleaseCheckItem}\" ticked in the tray menu it also asks "
+            + $"{ReleaseCheck.Host} four times a day for the latest release tag — which sends nothing "
+            + "about you, and is off until you turn it on.";
+    }
+
+    /// <summary>
+    /// The menu item this page points at, without the accelerator's ampersand.
+    /// </summary>
+    /// <remarks>
+    /// Quoted off the menu rather than typed, so renaming the item renames the sentence that sends a
+    /// reader to it. The window and the tray are one assembly, which is what makes that reachable.
+    /// </remarks>
+    private static string ReleaseCheckItem =>
+        TrayMenu.ReleaseCheckText.Replace("&", string.Empty, StringComparison.Ordinal);
 
     /// <summary>The manifest's own id, spelled the way a reader would say it.</summary>
     private static string Named(string id) => id switch

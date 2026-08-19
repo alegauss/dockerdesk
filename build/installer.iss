@@ -246,10 +246,22 @@ Root: HKCU; Subkey: "Software\Classes\docker-desktop\shell\open\command"; ValueT
 [Run]
 ; postinstall and checked by default: what the user just installed is an icon, and not starting it
 ; leaves them looking at nothing. skipifsilent, because an unattended install pushed to a machine
-; must not make a tray icon appear in somebody's session — there is no self-update here that would
-; need to relaunch itself silently, which is the one reason to leave that flag off.
+; must not make a tray icon appear in somebody's session.
 Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName} now"; \
     Flags: nowait postinstall skipifsilent
+
+; DD154 is the self-update this file used to say did not exist, and it is the one silent install that
+; has to relaunch: the tray closed itself so it could be replaced, and a user who pressed Install and
+; got no icon back would read that as an update that broke the product.
+;
+; So the flag stays off above and the exception is asked for explicitly, by the switch the updater
+; passes and nobody else does. A silent install with no /RELAUNCH is still silent all the way through
+; — which is what keeps an unattended deployment from putting an icon in somebody's session.
+;
+; runasoriginaluser because the whole install is per-user under LOCALAPPDATA: an elevated Setup
+; relaunching this would leave the tray, its named pipe and its window owned by the wrong account.
+; A test holds this switch equal to ReleaseUpdate.SilentArguments.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait runasoriginaluser; Check: RelaunchAsked
 
 [Code]
 const
@@ -315,6 +327,18 @@ var
   // whether the row that blocked is the one most readers will not recognise the name of.
   PreflightCommand: string;
   PreflightWsl2: Boolean;
+
+/// Whether the thing that started Setup asked for the app to be launched again (DD154).
+function RelaunchAsked: Boolean;
+begin
+  // Silent only. An interactive install already offers "Start FreeWilly now" as a checkbox, and a
+  // run that answered both would start two trays — the second raises the first one's window and
+  // exits (DD81), so it is harmless and still not what either entry means.
+  //
+  // CompareText rather than =: the switch is typed by a program, but a maintainer reproducing a
+  // self-update by hand should not be defeated by /relaunch=YES.
+  Result := WizardSilent and (CompareText(ExpandConstant('{param:RELAUNCH|no}'), 'yes') = 0);
+end;
 
 // ---------------------------------------------------------------------------------------------
 // The tasks page, drawn rather than asked for (DD123)

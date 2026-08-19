@@ -627,6 +627,15 @@ export const notResident = {
       { code: "github.com" },
       ", during a provision you asked for.",
     ] as Rich,
+    [
+      "One thing can be added to that list, and only by you. ",
+      { b: "Check for updates" },
+      " in the tray menu is ",
+      { b: "off unless you turn it on" },
+      "; ticked, it asks ",
+      { code: "api.github.com" },
+      " four times a day what the latest release tag is. That request carries this product's name and version and nothing about you — there is no id, no token and no account to attach one to — and the installer it offers is checked against the SHA-256 published beside it before anything runs. Left alone, it makes no request at all.",
+    ] as Rich,
   ],
 };
 

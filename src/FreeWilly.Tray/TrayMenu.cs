@@ -1,4 +1,6 @@
 using FreeWilly.Core.Engine;
+using FreeWilly.Core.Releases;
+using FreeWilly.Core.Settings;
 
 namespace FreeWilly.Tray;
 
@@ -27,6 +29,12 @@ namespace FreeWilly.Tray;
 /// reasoning that a tray menu is about the engine. A left click on the icon now carries that ordinary
 /// case, so what is left of this menu's job is to name what the click does — first, where a reader
 /// looks — and then the engine, which the click says nothing about.</para>
+///
+/// <para><b>DD154 spent the budget's other item, and one that is usually invisible.</b> The release
+/// check joins the group that is already "how it behaves when you are not asking", which is what it
+/// is; the install item beside it is hidden until there is something to install, so the menu a
+/// photograph shows is one line longer than before and not two. It is here rather than in the window
+/// because an update that could only be applied from a page is one a user has to go and find.</para>
 /// </remarks>
 internal sealed class TrayMenu
 {
@@ -40,6 +48,20 @@ internal sealed class TrayMenu
     internal const string OnLaunchText = "Start engine &with FreeWilly";
 
     /// <inheritdoc cref="StartText"/>
+    internal const string ReleaseCheckText = "Chec&k for updates";
+
+    /// <summary>What the hidden install item says before a release has named itself (DD154).</summary>
+    /// <remarks>
+    /// It is never read by a user — the item is invisible until <see cref="Offer"/> replaces this with
+    /// the version — but it is what a test asserts the resting menu holds, and an empty caption would
+    /// make the hidden item indistinguishable from a separator in a dump of the strip.
+    /// </remarks>
+    internal const string InstallText = "&Install the update";
+
+    /// <summary>How the install item names a release once there is one.</summary>
+    internal const string InstallFormat = "&Install FreeWilly {0}";
+
+    /// <inheritdoc cref="StartText"/>
     internal const string WindowText = "&Open window";
 
     /// <inheritdoc cref="StartText"/>
@@ -48,6 +70,8 @@ internal sealed class TrayMenu
     private readonly ToolStripMenuItem _start = new(StartText);
     private readonly ToolStripMenuItem _stop = new(StopText);
     private readonly ToolStripMenuItem _onLaunch = new(OnLaunchText) { CheckOnClick = true };
+    private readonly ToolStripMenuItem _releaseCheck = new(ReleaseCheckText) { CheckOnClick = true };
+    private readonly ToolStripMenuItem _install = new(InstallText) { Visible = false };
     private readonly ToolStripMenuItem _window = new(WindowText);
 
     /// <summary>Build the menu.</summary>
@@ -55,18 +79,33 @@ internal sealed class TrayMenu
     /// <param name="stopEngine">What the third does.</param>
     /// <param name="openWindow">What the first does.</param>
     /// <param name="quit">What the last does.</param>
-    /// <param name="setOnLaunch">
-    /// What the fourth does, given the box's new state — or <see langword="null"/> where nothing is
-    /// behind it, which is how <c>--show-menu</c> photographs a menu with no tray under it (DD135).
+    /// <param name="settings">
+    /// What the boxes open showing, defaulting to what an install nobody has changed anything on has.
     /// </param>
-    /// <param name="onLaunch">Whether the box starts ticked.</param>
+    /// <param name="save">
+    /// What a tick does, given every setting as it now stands — or <see langword="null"/> where
+    /// nothing is behind it, which is how <c>--show-menu</c> photographs a menu with no tray under it
+    /// (DD135).
+    /// </param>
+    /// <param name="installUpdate">
+    /// What the hidden item does once <see cref="Offer"/> has revealed it, or <see langword="null"/>
+    /// for the same reason <paramref name="save"/> takes one.
+    /// </param>
+    /// <remarks>
+    /// The settings arrive as the record rather than as a flag each, and the tick hands the whole
+    /// record back. Two settings could have been two parameters and two callbacks; the third would
+    /// have been the point at which this constructor stopped being readable, and the file the tray
+    /// writes holds all of them at once anyway — so a saver that was given one flag would have to go
+    /// and read the others back before it could write.
+    /// </remarks>
     internal TrayMenu(
         Action startEngine,
         Action stopEngine,
         Action openWindow,
         Action quit,
-        Action<bool>? setOnLaunch = null,
-        bool onLaunch = EngineOnLaunch.ShipsOn)
+        TraySettings? settings = null,
+        Action<TraySettings>? save = null,
+        Action? installUpdate = null)
     {
         ArgumentNullException.ThrowIfNull(startEngine);
         ArgumentNullException.ThrowIfNull(stopEngine);
@@ -76,12 +115,23 @@ internal sealed class TrayMenu
         _start.Click += (_, _) => startEngine();
         _stop.Click += (_, _) => stopEngine();
         _window.Click += (_, _) => openWindow();
+        _install.Click += (_, _) => installUpdate?.Invoke();
 
-        // CheckOnClick flips the tick before this runs, so the item's own state is the new answer
-        // and nothing here has to negate anything. A setting written from what the user is looking
-        // at cannot disagree with it.
-        _onLaunch.Checked = onLaunch;
-        _onLaunch.CheckedChanged += (_, _) => setOnLaunch?.Invoke(_onLaunch.Checked);
+        // CheckOnClick flips the tick before this runs, so the items' own state is the new answer and
+        // nothing here has to negate anything. Settings written from what the user is looking at
+        // cannot disagree with it.
+        var opened = settings ?? new TraySettings();
+        _onLaunch.Checked = opened.StartWithTheTray;
+        _releaseCheck.Checked = opened.CheckForReleases;
+
+        void Ticked() => save?.Invoke(new TraySettings
+        {
+            StartWithTheTray = _onLaunch.Checked,
+            CheckForReleases = _releaseCheck.Checked,
+        });
+
+        _onLaunch.CheckedChanged += (_, _) => Ticked();
+        _releaseCheck.CheckedChanged += (_, _) => Ticked();
 
         Strip = new ContextMenuStrip();
 
@@ -96,12 +146,36 @@ internal sealed class TrayMenu
         // With the two verbs it qualifies rather than off with the window, because it is a third
         // thing to say about the engine and not a third place to go.
         Strip.Items.Add(_onLaunch);
+
+        // Beside it because it answers the same question about a different subject: what this tool
+        // does when nobody is asking it to do anything. The install item follows it rather than
+        // leading it, so a release that arrives does not move the setting a user is reaching for.
+        Strip.Items.Add(_releaseCheck);
+        Strip.Items.Add(_install);
         Strip.Items.Add(new ToolStripSeparator());
         Strip.Items.Add(new ToolStripMenuItem(QuitText, null, (_, _) => quit()));
     }
 
     /// <summary>The menu itself, for whatever is going to show it.</summary>
     internal ContextMenuStrip Strip { get; }
+
+    /// <summary>Reveal the install item, naming the release it would install (DD154).</summary>
+    /// <param name="release">What was found.</param>
+    /// <remarks>
+    /// The version in the caption and not just "an update is available", because the one thing a user
+    /// deciding whether to interrupt what they are doing needs is which version they would be moving
+    /// to — and it is the same string the balloon says, so the two cannot disagree about what is on
+    /// offer.
+    /// </remarks>
+    internal void Offer(AvailableRelease release)
+    {
+        ArgumentNullException.ThrowIfNull(release);
+        _install.Text = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            InstallFormat,
+            release.Version.ToString(3));
+        _install.Visible = true;
+    }
 
     /// <summary>Say what the engine is doing, by what can be asked of it.</summary>
     /// <param name="state">What the engine is doing.</param>

@@ -1,4 +1,6 @@
 using FreeWilly.Core.Engine;
+using FreeWilly.Core.Releases;
+using FreeWilly.Core.Settings;
 using FreeWilly.Tray;
 using Xunit;
 
@@ -45,12 +47,20 @@ public sealed class TrayMenuTests
 
     private static TrayMenu Menu() => new(Nothing, Nothing, Nothing, Nothing);
 
+    /// <summary>Where each item sits, so a renumbering is one edit rather than thirty.</summary>
+    private const int Window = 0;
+    private const int Start = 2;
+    private const int Stop = 3;
+    private const int OnLaunch = 4;
+    private const int ReleaseCheck = 5;
+    private const int Install = 6;
+
     private static void Nothing()
     {
     }
 
     [Fact]
-    public void The_menu_is_five_items_and_two_rules_in_the_order_a_photograph_shows_them() =>
+    public void The_menu_is_six_items_and_two_rules_in_the_order_a_photograph_shows_them() =>
         OnUiThread(() =>
         {
             // Short on purpose, and asserted so it stays short: a context menu that grows into a
@@ -59,62 +69,110 @@ public sealed class TrayMenuTests
             //
             // DD135 spent one item here, and it is placed with the two engine verbs rather than off
             // with the window because it qualifies them: what the engine does when nobody is asking.
+            // DD154 spent the next one beside it, on the same question about a different subject —
+            // and the install item after it is hidden, so a photograph is one line longer and not two.
             //
             // The window is first since DD140, alone above its rule: the icon's own click opens it,
             // so the menu's first line names what the click does and the engine follows.
             using var menu = Menu().Strip;
 
-            Assert.Equal(7, menu.Items.Count);
-            Assert.Equal(TrayMenu.WindowText, menu.Items[0].Text);
+            Assert.Equal(9, menu.Items.Count);
+            Assert.Equal(TrayMenu.WindowText, menu.Items[Window].Text);
             Assert.IsType<ToolStripSeparator>(menu.Items[1]);
-            Assert.Equal(TrayMenu.StartText, menu.Items[2].Text);
-            Assert.Equal(TrayMenu.StopText, menu.Items[3].Text);
-            Assert.Equal(TrayMenu.OnLaunchText, menu.Items[4].Text);
-            Assert.IsType<ToolStripSeparator>(menu.Items[5]);
-            Assert.Equal(TrayMenu.QuitText, menu.Items[6].Text);
+            Assert.Equal(TrayMenu.StartText, menu.Items[Start].Text);
+            Assert.Equal(TrayMenu.StopText, menu.Items[Stop].Text);
+            Assert.Equal(TrayMenu.OnLaunchText, menu.Items[OnLaunch].Text);
+            Assert.Equal(TrayMenu.ReleaseCheckText, menu.Items[ReleaseCheck].Text);
+            Assert.Equal(TrayMenu.InstallText, menu.Items[Install].Text);
+            Assert.IsType<ToolStripSeparator>(menu.Items[7]);
+            Assert.Equal(TrayMenu.QuitText, menu.Items[8].Text);
         });
 
     [Fact]
-    public void The_setting_opens_showing_what_is_actually_true() =>
+    public void Nothing_offers_to_install_anything_until_something_has_been_found() =>
         OnUiThread(() =>
         {
-            // A box that always opened ticked would be a picture of the default rather than of the
-            // user's answer, and the one thing this setting has to do is survive being turned off.
-            using var off = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, false).Strip;
-            using var on = new TrayMenu(Nothing, Nothing, Nothing, Nothing, _ => { }, true).Strip;
+            // The item exists so the strip's shape is fixed, and it is invisible so the menu a user
+            // opens is the menu they had before (DD154). An install item that was always there would
+            // be a verb that usually does nothing.
+            using var strip = Menu().Strip;
 
-            Assert.False(((ToolStripMenuItem)off.Items[4]).Checked);
-            Assert.True(((ToolStripMenuItem)on.Items[4]).Checked);
+            Assert.False(strip.Items[Install].Available);
         });
 
     [Fact]
-    public void Ticking_the_setting_reports_the_state_the_user_is_looking_at() =>
+    public void A_release_that_was_found_is_named_on_the_item_that_installs_it() =>
+        OnUiThread(() =>
+        {
+            // The version and not "an update is available": what a user deciding whether to interrupt
+            // themselves needs is which version they would be moving to.
+            var menu = Menu();
+            using var strip = menu.Strip;
+
+            menu.Offer(new AvailableRelease(
+                new Version(9, 8, 7), "v9.8.7", "FreeWilly-Setup-9.8.7.exe", "https://x/i", "https://x/s"));
+
+            Assert.True(strip.Items[Install].Available);
+            Assert.Contains("9.8.7", strip.Items[Install].Text, StringComparison.Ordinal);
+        });
+
+    [Fact]
+    public void The_settings_open_showing_what_is_actually_true() =>
+        OnUiThread(() =>
+        {
+            // Boxes that always opened at the default would be a picture of the default rather than
+            // of the user's answer, and the one thing a setting has to do is survive being changed.
+            using var flipped = new TrayMenu(
+                Nothing, Nothing, Nothing, Nothing,
+                new TraySettings { StartWithTheTray = false, CheckForReleases = true }).Strip;
+            using var shipped = new TrayMenu(Nothing, Nothing, Nothing, Nothing).Strip;
+
+            Assert.False(((ToolStripMenuItem)flipped.Items[OnLaunch]).Checked);
+            Assert.True(((ToolStripMenuItem)flipped.Items[ReleaseCheck]).Checked);
+
+            Assert.Equal(
+                TraySettings.EngineShipsOn, ((ToolStripMenuItem)shipped.Items[OnLaunch]).Checked);
+            Assert.Equal(
+                TraySettings.ReleaseCheckShipsOn,
+                ((ToolStripMenuItem)shipped.Items[ReleaseCheck]).Checked);
+        });
+
+    [Fact]
+    public void Ticking_a_setting_reports_every_setting_as_the_user_is_looking_at_them() =>
         OnUiThread(() =>
         {
             // CheckOnClick flips the tick before the handler runs, so what is reported is the new
-            // answer and nothing has to negate anything — a setting written from what is on screen
+            // answer and nothing has to negate anything — settings written from what is on screen
             // cannot disagree with what is on screen.
-            var told = new List<bool>();
-            var menu = new TrayMenu(Nothing, Nothing, Nothing, Nothing, told.Add, true);
+            //
+            // The whole record and not the one flag that moved, because the file holds both: a saver
+            // handed one would have to read the other back before it could write (DD154).
+            var told = new List<TraySettings>();
+            var menu = new TrayMenu(Nothing, Nothing, Nothing, Nothing, new TraySettings(), told.Add);
             using var strip = menu.Strip;
 
-            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
-            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[ReleaseCheck]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[OnLaunch]).PerformClick();
 
-            Assert.Equal([false, true], told);
+            Assert.Equal(2, told.Count);
+            Assert.Equal(new TraySettings { StartWithTheTray = true, CheckForReleases = true }, told[0]);
+            Assert.Equal(new TraySettings { StartWithTheTray = false, CheckForReleases = true }, told[1]);
         });
 
     [Fact]
-    public void The_setting_ticks_with_nothing_behind_it_so_the_camera_still_reaches_the_menu() =>
+    public void The_settings_tick_with_nothing_behind_them_so_the_camera_still_reaches_the_menu() =>
         OnUiThread(() =>
         {
             // L6 again. `--show-menu` builds this with no tray under it, and an item that needed a
             // live setting to exist would be an item no capture could photograph.
             using var strip = Menu().Strip;
 
-            ((ToolStripMenuItem)strip.Items[4]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[OnLaunch]).PerformClick();
+            ((ToolStripMenuItem)strip.Items[ReleaseCheck]).PerformClick();
+            strip.Items[Install].PerformClick();
 
-            Assert.False(((ToolStripMenuItem)strip.Items[4]).Checked);
+            Assert.False(((ToolStripMenuItem)strip.Items[OnLaunch]).Checked);
+            Assert.True(((ToolStripMenuItem)strip.Items[ReleaseCheck]).Checked);
         });
 
     [Theory]

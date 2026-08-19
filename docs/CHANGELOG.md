@@ -122,6 +122,7 @@
 - ✅ **DD150** **check.yml compiles the installer without publishing everything it packages, so every push fails on a missing file** — check.yml publishes the forwarder as well as the tray, and the publish directories are read out of the script so a third binary is under the rule too.
 - ✅ **DD151** **the release gate fails on a checkout that has no vendored roadkeep engine** — The test now asserts a conditional claim: where nothing is vendored, there is nothing to resolve and it stands aside instead of failing.
 - ✅ **DD152** **the release page offers a bare .exe beside the installer** — release.yml now attaches the installer and its SHA256SUMS.txt, and nothing else; the bare .exe stays a thing build.cmd produces.
+- ✅ **DD154** **an installed copy never learns a newer version exists** — The tray asks the release API once on launch and every six hours, off unless turned on, and offers an installer only after checking it against the SHA-256 the release publishes.
 
 ## Block G — The agent surface (an agent operates this, and pays in tokens)
 

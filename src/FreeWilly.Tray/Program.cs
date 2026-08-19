@@ -1,5 +1,7 @@
 using FreeWilly.Core.Api;
 using FreeWilly.Core.Engine;
+using FreeWilly.Core.Releases;
+using FreeWilly.Core.Settings;
 using FreeWilly.Tray.Ui;
 
 namespace FreeWilly.Tray;
@@ -17,12 +19,15 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly SynchronizationContext _ui;
     private readonly TrayScale _scale;
     private readonly EnginePaths _paths = new();
+    private readonly ReleaseWatch _releases;
     private Icon? _worn;
-    private EngineOnLaunch _onLaunch;
+    private TraySettings _settings;
     private bool _startRequested;
     private bool _engineToldToStop;
     private CancellationTokenSource? _landing;
     private EngineState _shown = EngineState.Stopped;
+    private AvailableRelease? _available;
+    private bool _installing;
 
     /// <summary>Construct the tray.</summary>
     /// <param name="openWindow">
@@ -34,15 +39,22 @@ internal sealed class TrayApplication : ApplicationContext
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         _holder = new EngineHolder(EngineHolder.ThisProcess(), new DetachedLauncher());
 
-        // Read before the menu is built, because the box has to open showing what is true (DD135).
-        _onLaunch = EngineOnLaunch.Read(_paths.Settings);
+        // Read before the menu is built, because the boxes have to open showing what is true (DD135).
+        _settings = TraySettings.Read(_paths.Settings);
 
         // Built by TrayMenu rather than here, so the menu `--show-menu` photographs is this one and
         // not a second one built for the camera (DD67).
         _menu = new TrayMenu(
-            StartEngine, StopEngine, OpenWindow, Quit, SetStartWithTheTray,
-            _onLaunch.StartWithTheTray);
+            StartEngine, StopEngine, OpenWindow, Quit, _settings, Save, InstallTheUpdate);
         _icon.ContextMenuStrip = _menu.Strip;
+
+        // Constructed whatever the setting says and started only where it is on, because the setting
+        // can be turned on later in the same session and the watch is what has to notice (DD154). The
+        // callback is posted: it reveals a menu item and may show a balloon, and both are the UI
+        // thread's — the timer's is not.
+        _releases = new ReleaseWatch(
+            () => _settings.CheckForReleases,
+            (release, first) => _ui.Post(_ => Offer(release, first), null));
 
         // The primary button, which the icon answered with nothing at all until DD140. NotifyIcon
         // raises the context menu on the secondary button by itself and does nothing whatsoever on
@@ -128,23 +140,143 @@ internal sealed class TrayApplication : ApplicationContext
         // Through the same method the menu item uses rather than a quiet second path. A start that
         // cannot land — no distribution registered — then says so here exactly as it would if the
         // user had pressed it, which is the one case where starting unasked must not fail silently.
-        if (_onLaunch.StartWithTheTray)
+        if (_settings.StartWithTheTray)
         {
             StartEngine();
         }
+
+        // After the engine, and the watch's own delay is on top of that: a release check is the least
+        // urgent thing this process does, and the first twenty seconds of a launch may be provisioning
+        // a distribution.
+        if (_settings.CheckForReleases)
+        {
+            _releases.Start();
+        }
     }
 
-    /// <summary>Turn "start the engine with the tray" on or off, and remember it (DD135).</summary>
-    /// <param name="wanted">What the box now says.</param>
+    /// <summary>Remember what the menu's boxes now say (DD135, DD154).</summary>
+    /// <param name="wanted">Every setting, as the menu has it.</param>
     /// <remarks>
-    /// Deliberately does not start or stop anything. The setting is about the next launch, and a
-    /// tick that also started an engine would make the box a verb — there are already two of those
-    /// directly above it, and a user who wanted the engine now would have pressed one.
+    /// Deliberately does not start or stop the engine. That setting is about the next launch, and a
+    /// tick that also started one would make the box a verb — there are already two of those directly
+    /// above it, and a user who wanted the engine now would have pressed one.
+    ///
+    /// <para>It does arm the release watch, and that is not the same thing: turning the check on is a
+    /// request to be told about releases, and one that took effect only after a restart would be a
+    /// box that appears to do nothing. Turning it off needs no counterpart — the watch asks this
+    /// setting at every tick, so off is a timer that makes no request.</para>
     /// </remarks>
-    private void SetStartWithTheTray(bool wanted)
+    private void Save(TraySettings wanted)
     {
-        _onLaunch = _onLaunch with { StartWithTheTray = wanted };
-        _onLaunch.Write(_paths.Settings);
+        _settings = wanted;
+        _settings.Write(_paths.Settings);
+
+        if (_settings.CheckForReleases)
+        {
+            _releases.Start();
+        }
+    }
+
+    /// <summary>Say a release exists, and offer it (DD154).</summary>
+    /// <param name="release">What the watch found.</param>
+    /// <param name="announce">
+    /// Whether this is the first tick to name this version, which is what separates the balloon from
+    /// the menu item: the item stays for as long as the release is newer, and the balloon is said once.
+    /// </param>
+    private void Offer(AvailableRelease release, bool announce)
+    {
+        _available = release;
+        _menu.Offer(release);
+
+        if (announce)
+        {
+            Balloon(
+                $"FreeWilly {release.Version.ToString(3)} has been released. "
+                + $"{TrayMenu.ReleaseCheckText.Replace("&", string.Empty, StringComparison.Ordinal)}"
+                + " in the tray menu now offers to install it.");
+        }
+    }
+
+    /// <summary>Download the offered release, check it, and hand over to its installer (DD154).</summary>
+    /// <remarks>
+    /// <b>It asks first, and the dialog is the point.</b> Applying an update stops a tray that may be
+    /// serving the pipe with containers on it, so this is the one place in the product where a modal
+    /// is right: the user pressed the item, and what they are consenting to is not "restart the app"
+    /// but "stop the engine". The balloon this class otherwise uses cannot ask a question.
+    ///
+    /// <para><b>And it never restarts the engine on their behalf.</b> The install goes through
+    /// <see cref="Quit"/>, which since DD128 takes the engine down with the tray; what comes back is
+    /// whatever "Start engine with FreeWilly" says, which is the user's own standing answer and not a
+    /// decision taken here. The dialog says so rather than leaving it to be discovered.</para>
+    /// </remarks>
+    private void InstallTheUpdate()
+    {
+        if (_available is not { } release || _installing)
+        {
+            return;
+        }
+
+        var answer = MessageBox.Show(
+            $"FreeWilly {release.Version.ToString(3)} will be downloaded from the release page and "
+            + "checked against the SHA-256 that release publishes for it. Nothing is run unless the "
+            + "digest matches.\n\n"
+            + "FreeWilly then closes so it can be replaced, and the engine stops with it — every "
+            + "running container stops too. The engine is not started again on your behalf: it comes "
+            + $"back with the tray only if \"{TrayMenu.OnLaunchText.Replace("&", string.Empty, StringComparison.Ordinal)}\" is ticked.\n\n"
+            + "Install it now?",
+            "FreeWilly",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question,
+            MessageBoxDefaultButton.Button2);
+
+        if (answer is not DialogResult.Yes)
+        {
+            return;
+        }
+
+        _installing = true;
+        _ = ApplyAsync(release);
+    }
+
+    private async Task ApplyAsync(AvailableRelease release)
+    {
+        FetchedRelease fetched;
+        using (var fetcher = new HttpArtefactFetcher())
+        {
+            fetched = await new ReleaseUpdate(fetcher, ReleaseUpdate.DefaultDirectory)
+                .FetchAsync(release)
+                .ConfigureAwait(true);
+        }
+
+        if (!fetched.Verified || fetched.Path is not { } installer)
+        {
+            // Said rather than swallowed, and this is the one release-check failure that is worth
+            // saying: the user asked for this one, so silence would look like a menu item that does
+            // nothing. A digest that did not match is also the most important thing this can find.
+            _installing = false;
+            Balloon($"The update was not installed. {fetched.Failure}");
+            return;
+        }
+
+        try
+        {
+            ReleaseUpdate.Run(installer);
+        }
+        catch (Exception failure) when (failure is System.ComponentModel.Win32Exception
+            or InvalidOperationException or System.IO.IOException)
+        {
+            // Before the quit and not after it, which is the whole reason this is ordered this way: a
+            // tray that had already closed itself and then failed to launch Setup would look like an
+            // update that shut the product down for nothing.
+            _installing = false;
+            Balloon($"The update was not installed. {installer} would not start: {failure.Message}");
+            return;
+        }
+
+        // The engine goes with it, which is what Quit has done since DD128 and what the dialog said
+        // would happen. Nothing here brings it back — the installer relaunches the tray, and whether
+        // that starts an engine is the user's own standing answer.
+        Quit();
     }
 
     private Ui.MainWindow? _open;
@@ -326,8 +458,21 @@ internal sealed class TrayApplication : ApplicationContext
         _startRequested = false;
         StopWatchingTheStart();
         Show(_shown);
+        Balloon(failure);
+    }
+
+    /// <summary>Say something from the corner, without claiming anything went wrong.</summary>
+    /// <param name="text">What to say.</param>
+    /// <remarks>
+    /// <see cref="Complain"/>'s balloon, lifted out when DD154 needed the same surface for news that
+    /// is not a failure: a release exists, or the update the user asked for did not verify. What
+    /// Complain adds around this is the state repair — a start that failed is no longer pending — and
+    /// that is exactly what an announcement must not do.
+    /// </remarks>
+    private void Balloon(string text)
+    {
         _icon.BalloonTipTitle = "FreeWilly";
-        _icon.BalloonTipText = failure;
+        _icon.BalloonTipText = text;
         _icon.ShowBalloonTip(8000);
     }
 
@@ -449,6 +594,7 @@ internal sealed class TrayApplication : ApplicationContext
         if (disposing)
         {
             StopWatchingTheStart();
+            _releases.Dispose();
             _events.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
             // SystemEvents is static and holds its subscribers alive, so leaving these attached is a

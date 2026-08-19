@@ -111,6 +111,49 @@ public sealed class PackagingTests
     private static string Workflow(string name) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", name));
 
+    [Fact]
+    public void A_self_update_relaunches_and_an_unattended_install_still_does_not()
+    {
+        // DD154. Two files that have to agree about one switch and cannot fail at compile time: the
+        // tray runs the installer with ReleaseUpdate.SilentArguments, and installer.iss decides
+        // whether to start the app again by reading a parameter out of that string.
+        //
+        // What breaks if they drift is invisible until somebody presses Install: the tray closes to
+        // be replaced and never comes back, which reads as an update that broke the product. And the
+        // flag it is an exception to matters as much — the interactive entry stays skipifsilent so an
+        // install pushed to a machine does not put a tray icon in somebody's session.
+        var script = InstallerScript();
+        var directives = InstallerDirectives().ToList();
+
+        var switchName = FreeWilly.Core.Releases.ReleaseUpdate.SilentArguments
+            .Split(' ')
+            .Single(argument => argument.StartsWith("/RELAUNCH", StringComparison.Ordinal))
+            .Split('=');
+
+        Assert.Equal("/RELAUNCH", switchName[0]);
+        Assert.Contains(
+            $"{{param:{switchName[0].TrimStart('/')}|no}}", script, StringComparison.Ordinal);
+        Assert.Contains($"'{switchName[1]}'", script, StringComparison.Ordinal);
+
+        // Silent only, so the two [Run] entries cannot both fire and start two trays.
+        Assert.Contains("WizardSilent", script, StringComparison.Ordinal);
+
+        var run = directives
+            .Where(line => line.StartsWith("Filename: \"{app}\\{#MyAppExeName}\"", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal(2, run.Count);
+        Assert.Contains(run, line => line.Contains("skipifsilent", StringComparison.Ordinal));
+        Assert.Contains(run, line => line.Contains("Check: RelaunchAsked", StringComparison.Ordinal));
+
+        // The relaunch is per-user, because the whole install is: an elevated Setup starting the tray
+        // would leave it, its pipe and its window owned by the wrong account.
+        Assert.Contains(
+            "runasoriginaluser",
+            run.Single(line => line.Contains("RelaunchAsked", StringComparison.Ordinal)),
+            StringComparison.Ordinal);
+    }
+
     /// <summary>The committed agent configuration, parsed.</summary>
     private static System.Text.Json.JsonElement Settings() =>
         System.Text.Json.JsonDocument

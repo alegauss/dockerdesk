@@ -54,6 +54,15 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
+      <!-- What this build reaches, stated where the versions it reaches for are (DD154). The site
+           says the only traffic is the pinned artefacts during a provision you asked for, and DD154
+           added a second host to that sentence — so the sentence is restated here, beside the list of
+           artefacts it is about, rather than only on a page a user has already left. -->
+      <TextBlock Text="Network" FontSize="12" FontWeight="SemiBold" Margin="0,20,0,8"
+                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+      <TextBlock x:Name="Reaches" FontSize="13" TextWrapping="Wrap"
+                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
       <!-- The terms, where the choice is made. A visitor who cannot establish them in the first ten
            seconds assumes the same trap they came here to escape. -->
       <TextBlock Text="Licence" FontSize="12" FontWeight="SemiBold" Margin="0,20,0,8"

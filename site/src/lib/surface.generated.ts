@@ -24,7 +24,7 @@ export const surface: SurfaceData = {
     "read ps": 320,
     "do engine": 40,
     "read context": 200,
-    "read doctor": 280,
+    "read doctor": 305,
     "read logs": 400,
     "read changes": 115,
     "do reclaim": 170,

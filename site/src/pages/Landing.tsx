@@ -11,12 +11,17 @@ import { WindowSection } from "../components/sections/WindowSection";
 import { FeatureIndex } from "../components/sections/FeatureIndex";
 import { NotResident } from "../components/sections/NotResident";
 import { NonGoals } from "../components/sections/NonGoals";
+import { Download } from "../components/sections/Download";
 import { Build } from "../components/sections/Build";
 
 // The landing page. The section order is the argument, not a feature list (§5): why →
 // preflight → engine → the pipe (the mechanism) → tray → window → nothing resident →
-// non-goals → the honest status → build from source. DD44/DD45 reshape the opening once
-// the hero session and the two-actor/laws sections land.
+// non-goals → the download → build from source. DD44/DD45 reshape the opening once the
+// hero session and the two-actor/laws sections land.
+//
+// The download lands after the non-goals and before the source build (DD153): a reader who
+// has just read what this refuses to be is the one ready to install it, and building from a
+// clone stops being the only way in the moment a release exists.
 export function Landing() {
   return (
     <>
@@ -32,6 +37,7 @@ export function Landing() {
       <FeatureIndex />
       <NotResident />
       <NonGoals />
+      <Download />
       <Build />
       <Footer />
     </>

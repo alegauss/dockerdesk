@@ -1,4 +1,4 @@
-import { navLinks, parentUrl, repoUrl } from "../lib/site-content";
+import { download, navLinks, parentUrl, releasesUrl, repoUrl } from "../lib/site-content";
 import { ThemeToggle } from "./ui/ThemeToggle";
 
 export function Nav() {
@@ -25,7 +25,14 @@ export function Nav() {
               {link.label}
             </a>
           ))}
-          <a className="btn btn-primary" href={repoUrl}>
+          {/* DD153: the primary button is the download now that there is one. GitHub keeps
+              its place as the ghost beside it — the repository is what a reader checks
+              before installing anything, and demoting it to a footer link would be the
+              wrong half of this trade. */}
+          <a className="btn btn-primary" href={releasesUrl}>
+            {download.ctaShort}
+          </a>
+          <a className="btn btn-ghost" href={repoUrl}>
             ★ View on GitHub
           </a>
           <ThemeToggle />

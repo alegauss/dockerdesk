@@ -33,6 +33,12 @@ export const meta = {
 export const repoUrl = "https://github.com/alegauss/freewilly";
 export const parentUrl = "https://alegauss.github.io/";
 
+// The release page rather than a file: the installer carries its version in its name, so
+// there is no version-independent URL for the asset itself, and a hard-coded
+// `FreeWilly-Setup-1.0.0.exe` would 404 on the day 1.0.1 ships. `releases/latest` is the
+// one link that cannot go stale, and it is also where the checksum lives.
+export const releasesUrl = `${repoUrl}/releases/latest`;
+
 // Section anchors (#x) act on the landing page; the page links are base-absolute so they
 // resolve the same from every route. The brand and footer link home the same way.
 export const navLinks = [
@@ -41,6 +47,7 @@ export const navLinks = [
   { href: "#window", label: "Window" },
   { href: "/freewilly/claude-code/", label: "Claude Code" },
   { href: "/freewilly/compare/", label: "Compare" },
+  { href: "#download", label: "Download" },
 ] as const;
 
 export const footer = {
@@ -48,6 +55,7 @@ export const footer = {
     { href: "/freewilly/claude-code/", label: "Claude Code" },
     { href: "/freewilly/compare/", label: "Compare" },
       { href: repoUrl, label: "GitHub" },
+    { href: releasesUrl, label: "Releases" },
     { href: `${repoUrl}/blob/main/docs/ROADMAP.md`, label: "Roadmap" },
     { href: `${repoUrl}/blob/main/CONTRIBUTING.md`, label: "Contributing" },
   ],
@@ -970,10 +978,48 @@ export const compare = {
   ] as Rich,
 };
 
+/* ------------------------------------------------------------------ download */
+// DD153. Until v1.0.0 there was nothing to link to, and the constitution names a site that
+// implied otherwise as the worst defect available to this page — so the fix is a section
+// that states what the installer actually is, not a badge.
+//
+// No version number is typed here, and that is S1/S2 rather than laziness: a version is a
+// figure this page cannot generate, and one typed in prose is wrong from the next release
+// onwards while still reading as current. `releases/latest` resolves to whatever shipped,
+// and the checksum a reader wants is on the page it opens.
+export const download = {
+  eyebrow: "Take the installer",
+  heading: "One file, and it asks for no administrator",
+  intro: [
+    "The release page carries the installer and the ",
+    { code: "SHA256SUMS.txt" },
+    " to check it against, and nothing else to choose between. It installs into ",
+    { code: "%LOCALAPPDATA%\\FreeWilly" },
+    " for your account alone — which is what reaches a managed corporate laptop, the machine this project exists for. The WSL2 feature the engine needs may still want elevation of its own; the installer runs the preflight and says so rather than failing halfway through a download.",
+  ] as Rich,
+  facts: [
+    "🪟 Windows 10 build 19041 or later, 64-bit",
+    "📦 No prerequisite — the .exe carries its own .NET runtime",
+    "🔒 SHA-256 published beside the file",
+  ],
+  cta: "⬇ Download for Windows",
+  ctaShort: "⬇ Download",
+  secondary: "Release notes and checksum",
+  // The uninstall belongs on the download section because it is the question a reader asks
+  // before installing, not after: what happens to the containers.
+  note: [
+    "Uninstalling removes what was installed and ",
+    { b: "asks about what was created" },
+    ". The ",
+    { code: "freewilly" },
+    " distribution holds every image, container and volume you have, so it is never deleted without a question — and an unattended uninstall keeps it.",
+  ] as Rich,
+};
+
 /* ------------------------------------------------------------------ build */
 
 export const build = {
-  eyebrow: "Try it today",
+  eyebrow: "Or build it yourself",
   heading: "Four commands, from a clone",
   intro: [
     "You need the ",
@@ -1015,7 +1061,7 @@ export const build = {
     },
   ],
   commands: [
-    { id: "clone", label: "Copy the clone command", text: "git clone https://github.com/alegauss/freewilly && cd dockerdesk" },
+    { id: "clone", label: "Copy the clone command", text: "git clone https://github.com/alegauss/freewilly && cd freewilly" },
     { id: "preflight", label: "Copy the preflight command", text: "dotnet run --project src/FreeWilly.Preflight" },
     { id: "provision", label: "Copy the provision command", text: "dotnet run --project src/FreeWilly.Engine -- --provision" },
     { id: "tray", label: "Copy the tray command", text: "dotnet run --project src/FreeWilly.Tray" },

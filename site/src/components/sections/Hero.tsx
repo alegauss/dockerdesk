@@ -1,4 +1,4 @@
-import { hero, heroSession, repoUrl } from "../../lib/site-content";
+import { download, hero, heroSession, releasesUrl, repoUrl } from "../../lib/site-content";
 import { Rich } from "../ui/Rich";
 import { HeroSession } from "../HeroSession";
 import { Waves } from "../ui/Waves";
@@ -22,7 +22,10 @@ export function Hero() {
         {/* S5: the call to action is dropped from the Markdown twin by this attribute —
             it converts a reader and costs an agent the same forty words on every page. */}
         <div className="hero-cta" data-twin="omit">
-          <a className="btn btn-primary" href={repoUrl}>
+          <a className="btn btn-primary" href={releasesUrl}>
+            {download.cta}
+          </a>
+          <a className="btn btn-ghost" href={repoUrl}>
             ★ View on GitHub
           </a>
         </div>

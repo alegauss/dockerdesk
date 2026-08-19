@@ -15,7 +15,7 @@ jobs:
     name: roadkeep lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: alegauss/roadkeep@main
 
       # DD118. The action above floats on `main`; the engine that actually writes here is the copy

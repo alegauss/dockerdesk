@@ -1,9 +1,14 @@
 import type { Rich } from "./site-content";
+import { Spelled, acquireCount, artefactCount, rowCount, spelled, stepCount } from "./product";
 
 // §DD48 — the five depth pages, one record each. The route, the title and the description
 // are all read off the same record (in routes.tsx), so a new pillar cannot ship
 // half-declared or untitled: add a record here and its route, its <head> and its page all
 // appear together, or none of them do.
+//
+// DD159. The counts in these records are the same counts the landing page states, so they come
+// from the same generated module: a depth page is where a reader goes to check the summary, and
+// the two disagreeing is worse than either being stale alone.
 
 export interface FeatureSection {
   heading: string;
@@ -28,15 +33,15 @@ export interface FeatureRecord {
 export const features: FeatureRecord[] = [
   {
     slug: "preflight",
-    title: "Preflight — why Docker will not run here, in five rows",
+    title: `Preflight — why Docker will not run here, in ${spelled(rowCount())} rows`,
     description:
-      "The five common causes of a Docker failure on Windows, each with the command that fixes it, read-only and exit 1 while a blocking row is not green.",
+      `The ${spelled(rowCount())} common causes of a Docker failure on Windows, each with the command that fixes it, read-only and exit 1 while a blocking row is not green.`,
     ogTitle: "FreeWilly — the preflight",
-    ogDescription: "Five checks, five remedies, and the hypervisor-before-firmware order.",
+    ogDescription: `${Spelled(rowCount())} checks, ${spelled(rowCount())} remedies, and the hypervisor-before-firmware order.`,
     eyebrow: "Before anything is installed",
     heading: "The preflight",
     lead: [
-      "“It does not work on my machine” has five common causes on Windows, and five different remedies. ",
+      `“It does not work on my machine” has ${spelled(rowCount())} common causes on Windows, and ${spelled(rowCount())} different remedies. `,
       { code: "freewilly --preflight" },
       " names the one you have, prints the command that fixes it, changes nothing, and exits ",
       { code: "1" },
@@ -45,7 +50,7 @@ export const features: FeatureRecord[] = [
     figure: "preflightTerminal",
     sections: [
       {
-        heading: "Five rows, each with its remedy",
+        heading: `${Spelled(rowCount())} rows, each with its remedy`,
         list: [
           ["Windows build — 19041 or later, because below it no configuration gets a WSL2 kernel."],
           ["Hardware virtualization — read the hypervisor bit first, because Windows reports the firmware bit as off once something has claimed it."],
@@ -68,9 +73,9 @@ export const features: FeatureRecord[] = [
     slug: "engine",
     title: "The engine — upstream Moby into a distro it owns",
     description:
-      "Eleven unattended steps that stop at the first failure: acquire and verify five artefacts by digest, inspect the archive, import an owned WSL2 distro, install inside it, and place the CLI with its Compose and Buildx plugins.",
+      `${Spelled(stepCount())} unattended steps that stop at the first failure: acquire and verify ${spelled(artefactCount())} artefacts by digest, inspect the archive, import an owned WSL2 distro, install inside it, and place the CLI with its Compose and Buildx plugins.`,
     ogTitle: "FreeWilly — the engine",
-    ogDescription: "Eleven steps, pinned by digest, stopping at the one that broke.",
+    ogDescription: `${Spelled(stepCount())} steps, pinned by digest, stopping at the one that broke.`,
     eyebrow: "Provisioning",
     heading: "The engine",
     lead: [
@@ -78,9 +83,9 @@ export const features: FeatureRecord[] = [
     ],
     sections: [
       {
-        heading: "Eleven steps, pinned by digest",
+        heading: `${Spelled(stepCount())} steps, pinned by digest`,
         list: [
-          ["Acquire and verify — five artefacts, five steps: the Alpine rootfs, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins. Each checked against a digest recorded in this repository, not one served by the same host as the file."],
+          [`Acquire and verify — ${spelled(artefactCount())} artefacts, ${spelled(acquireCount())} steps: the Alpine rootfs, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins. Each checked against a digest recorded in this repository, not one served by the same host as the file.`],
           ["Inspect before touching WSL — the tarball's member list is read locally, so a bad archive is caught before a distribution exists."],
           [{ code: "wsl --import freewilly … --version 2" }, " — a fixed name that is this tool's, so your own apt upgrade or unregister cannot take the engine with it."],
           ["Install inside it — one non-interactive sh script under set -e; iptables and socat from apk, the binaries into /usr/local/bin, systemd=false."],

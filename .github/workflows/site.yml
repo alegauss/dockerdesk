@@ -59,8 +59,11 @@ jobs:
           cache: npm
           cache-dependency-path: site/package-lock.json
 
-      # No roadkeep step: DD91 removed the generated status, so the only thing the build
-      # generates is the verb surface, which it reads out of this repository's own source.
+      # No roadkeep step: DD91 removed the generated status. What the build does generate it
+      # reads out of this repository's own source — the verb surface, and since DD159 every
+      # count the copy states. Generation runs before the tests below on purpose: they assert
+      # the copy against the generated module, so a source file changed without regenerating
+      # fails here rather than publishing a page that is confidently stale.
       - name: Build
         working-directory: site
         run: |

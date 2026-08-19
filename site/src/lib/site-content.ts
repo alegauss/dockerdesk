@@ -8,6 +8,22 @@
 // (`Rich`) rather than raw HTML, so a section renders them without dangerouslySetInnerHTML
 // and the twin generator in DD42 has a structure to convert rather than markup to parse.
 
+// DD159. Every count in the prose below comes from here, and none of it is typed. The copy
+// states the reason and the generator states the number: five of the eight drifts DD157
+// corrected were counts nobody could have kept, each true when it was typed and none with a
+// gate behind it. Prose is still prose — "the ports are links" is a sentence a reviewer reads.
+import {
+  Spelled,
+  acquireCount,
+  artefactCount,
+  helpExcerpt,
+  product,
+  rowCount,
+  spelled,
+  stepCount,
+  version,
+} from "./product";
+
 export type Run =
   | string
   | { code: string }
@@ -15,6 +31,20 @@ export type Run =
   | { i: string };
 
 export type Rich = Run[];
+
+/**
+ * A list of hosts as prose: `a`, `b` and `c`, each marked as code (DD159).
+ *
+ * The hosts come off the manifest, so their number is not fixed — and a sentence built by
+ * joining them with commas would read "a, b, github.com" the day a fourth appears. The
+ * conjunction is the part a generated list cannot supply for itself.
+ */
+function hostRuns(hosts: readonly string[]): Rich {
+  return hosts.flatMap((host, i) => {
+    const separator = i === 0 ? [] : [i === hosts.length - 1 ? " and " : ", "];
+    return [...separator, { code: host }];
+  });
+}
 
 /* ------------------------------------------------------------------ meta + chrome */
 
@@ -89,7 +119,7 @@ export const hero = {
   ],
   pills: [
     [{ b: ".NET 10" }, " · WinForms tray + WPF window"] as Rich,
-    ["Upstream ", { b: "Moby 29.7.2" }, ", pinned by digest"] as Rich,
+    ["Upstream ", { b: `Moby ${version("engine")}` }, ", pinned by digest"] as Rich,
     ["One owned ", { b: "WSL2" }, " distro"] as Rich,
     ["Zero NuGet ", { b: "Engine API client" }] as Rich,
   ],
@@ -274,16 +304,22 @@ export const why = {
 
 export const preflight = {
   eyebrow: "Before anything is installed",
-  heading: "Why Docker will not run here — in five rows",
+  // DD159. The count is PreflightInspection.Rows', not a number typed here: DD157 found this
+  // saying four where the product reported five, which is the one class of claim a page cannot
+  // notice about itself.
+  heading: `Why Docker will not run here — in ${spelled(rowCount())} rows`,
   intro: [
-    "“It does not work on my machine” has five common causes on Windows, and they have five different remedies. ",
+    `“It does not work on my machine” has ${spelled(rowCount())} common causes on Windows, and they have ${spelled(rowCount())} different remedies. `,
     { code: "freewilly --preflight" },
     " names the one you have, prints the command that fixes it, changes nothing, and exits ",
     { code: "1" },
     " so an installer can stop rather than fail halfway.",
   ] as Rich,
   terminalTitle: "freewilly --preflight",
-  checks: [
+  // Split from the notes below it so the row count is assertable (DD159): a list mixing the
+  // rows with what is true of every row cannot be held to the number the heading states, and
+  // holding it to that number is the whole of why the heading no longer types one.
+  rows: [
     ["Windows build", " — 19041 or later, because below it no amount of configuration gets a WSL2 kernel"],
     [
       "Hardware virtualization",
@@ -301,6 +337,10 @@ export const preflight = {
       "Docker context",
       " — where your own docker command points, because an engine that is running and a client aimed at something else fail with the same sentence, and only one of them is fixed by starting anything",
     ],
+  ] as [string, string][],
+  // What is true of every row, rather than a row. Rendered in the same list, and deliberately
+  // not counted by the heading.
+  notes: [
     [
       "Every row carries its remedy",
       " — the command that fixes it, wrapped and marked once, because repeating the arrow per line reads as several actions where there is one",
@@ -318,7 +358,9 @@ export const preflight = {
 
 export const engine = {
   eyebrow: "Provisioning",
-  heading: "Eleven steps, and it stops at the one that broke",
+  // DD159. Both counts are ProvisioningStep's own, and installer.iss draws a progress bar
+  // against the same enum — so three files agree about the number instead of two.
+  heading: `${Spelled(stepCount())} steps, and it stops at the one that broke`,
   intro: [
     "Provisioning runs from an installer, where there is no terminal to answer a prompt in. So every step is unattended, every step is named, and the run stops at the first failure — a report listing six failures where there was one is a report nobody can act on.",
   ] as Rich,
@@ -327,7 +369,7 @@ export const engine = {
       n: "1",
       title: "Acquire, and verify",
       body: [
-        "Five of the eleven steps, one per artefact: the Alpine root filesystem, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins — each downloaded and checked against a ",
+        `${Spelled(acquireCount())} of the ${spelled(stepCount())} steps, one per artefact: the Alpine root filesystem, the static Linux engine, the Windows CLI zip, and the Compose and Buildx plugins — each downloaded and checked against a `,
         { b: "digest recorded in this repository" },
         ", not one served by the same host as the file. Already verified on disk means no second download.",
       ] as Rich,
@@ -411,26 +453,13 @@ export const engine = {
       ] as Rich,
     },
   ],
-  // Titled as the excerpt it is (DD157). It read `freewilly --help`, which claimed to be the
-  // output while being a hand-picked half of it — the real one also carries --tray, --window,
-  // --quit, --capture-window, --show-menu, --open-build, --preflight and --version. A block
-  // that says which half it is stays true when a verb is added; one that claims to be the
-  // whole thing was already false.
+  // Titled as the excerpt it is (DD157), and since DD159 it is one: the lines are sliced out
+  // of CommandLine.HelpText rather than retyped, so a verb renamed or a description reworded
+  // travels here by itself. What was typed here had already drifted from the real output in
+  // two places — it named a pipe the help text does not print, and it opened with a summary
+  // line the command has never said.
   helpTitle: "freewilly --help — the engine verbs",
-  help: `freewilly — put upstream Moby into a WSL2 distribution this tool owns.
-
-  --plan        the pinned versions, digests and paths; reaches nothing
-  --acquire     download and verify every artefact, and stop
-  --provision   acquire, import the distribution, install the engine
-
-  --run         start the engine and serve \\\\.\\pipe\\docker_engine until Ctrl+C
-  --stop        stop the engine and terminate the distribution
-  --status      what the engine is doing, by asking it
-  --api         version and containers, read through the Engine API
-  --watch       print /events as they happen, until Ctrl+C
-  --autostart   on | off | status  - off unless you turn it on
-
-  --help        this`,
+  help: helpExcerpt("--plan", "--autostart"),
   helpNote:
     "Exit code 0 means the mode finished; 1 names the step it stopped at. For --status, 1 means the engine is not answering.",
 };
@@ -618,13 +647,12 @@ export const notResident = {
       { b: "removes" },
       " the value rather than setting it to zero.",
     ] as Rich,
+    // DD159. The count and the hosts are engine-manifest.json's — this is the claim DD157
+    // found stating three artefacts against five, and it is the one on the page where being
+    // wrong is a privacy claim rather than a detail.
     [
-      "Nothing is uploaded, there is no account, and there is nothing to log into. The only network traffic this project makes is downloading the five pinned artefacts, from ",
-      { code: "dl-cdn.alpinelinux.org" },
-      ", ",
-      { code: "download.docker.com" },
-      " and ",
-      { code: "github.com" },
+      `Nothing is uploaded, there is no account, and there is nothing to log into. The only network traffic this project makes is downloading the ${spelled(artefactCount())} pinned artefacts, from `,
+      ...hostRuns(product.artefacts.hosts),
       ", during a provision you asked for.",
     ] as Rich,
     [
@@ -641,14 +669,11 @@ export const notResident = {
 
 /* ------------------------------------------------------------------ non-goals */
 
-export const nonGoals = {
-  eyebrow: "Scope",
-  heading: "What it is not",
-  intro: [
-    "Five things this project has decided against, written down where they can be pointed at. A tool with no stated non-goals is a tool that will eventually be asked for all of them.",
-  ] as Rich,
-  items: [
-    {
+// Hoisted so the sentence above can count them (DD159). It is the same defect class as the
+// provisioning steps, one source away: the number was typed beside the list it describes, and
+// nothing would have noticed a sixth non-goal being added under a paragraph saying five.
+const nonGoalItems = [
+  {
       title: "Feature parity with Docker Desktop",
       body: "Kubernetes, extensions, a dashboard for everything. The list a user actually opens the app for is short, and stopping there is what keeps this small enough to trust.",
     },
@@ -664,11 +689,19 @@ export const nonGoals = {
       title: "Telemetry, accounts or a sign-in",
       body: "Nothing is measured, nothing is sent, and there is nothing to register. There is no build of this with an opt-out.",
     },
-    {
-      title: "A resident background service",
-      body: "The complaint that sends people looking for an alternative is an engine holding gigabytes from every boot. Not being that is the product, not a preference.",
-    },
-  ],
+  {
+    title: "A resident background service",
+    body: "The complaint that sends people looking for an alternative is an engine holding gigabytes from every boot. Not being that is the product, not a preference.",
+  },
+];
+
+export const nonGoals = {
+  eyebrow: "Scope",
+  heading: "What it is not",
+  intro: [
+    `${Spelled(nonGoalItems.length)} things this project has decided against, written down where they can be pointed at. A tool with no stated non-goals is a tool that will eventually be asked for all of them.`,
+  ] as Rich,
+  items: nonGoalItems,
 };
 
 /* ------------------------------------------------------------------ /claude-code page */

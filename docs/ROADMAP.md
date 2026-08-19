@@ -18,8 +18,6 @@
 
 ## Block H — The public surface (the site a reader and an agent both read)
 
-- 📋 **DD159** (deps: —) **the counts on the site are typed where the source could state them** — Every drift DD157 fixed was a number with no gate behind it, while the generated verb list had nothing wrong in it. → §DD159
-
 ## Non-goals
 
 - **Feature parity with Docker Desktop** Kubernetes, the extensions marketplace and Dev

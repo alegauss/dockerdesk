@@ -28,7 +28,9 @@ export function Preflight() {
           </div>
         </div>
         <ul className="feat-list two reveal" style={{ marginTop: "34px" }}>
-          {preflight.checks.map(([lead, rest]) => (
+          {/* The rows and the notes about them render as one list and are two arrays, so the
+              row count the heading states is a number a test can hold the page to (DD159). */}
+          {[...preflight.rows, ...preflight.notes].map(([lead, rest]) => (
             <li key={lead}>
               <span className="chk">✓</span>
               <span>

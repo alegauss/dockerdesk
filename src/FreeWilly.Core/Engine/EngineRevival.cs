@@ -116,6 +116,31 @@ public sealed class EngineRevival
         }
     }
 
+    /// <summary>
+    /// The words a restart is recorded with, spelled once (DD165).
+    /// </summary>
+    /// <remarks>
+    /// The host writes this line and the window counts it, and before this task the two were the
+    /// same sentence typed in two files. That is the shape of coupling that rots quietly: nothing
+    /// fails to compile when one of them is reworded, the page simply reports no restarts on a
+    /// machine that had four, and the number a reader is trusting is wrong rather than absent.
+    /// </remarks>
+    public const string RestartMark = "brought the engine back";
+
+    /// <summary>What to say about a restart that worked.</summary>
+    /// <param name="back">The state it came back in.</param>
+    /// <returns>The line.</returns>
+    /// <remarks>
+    /// Every restart it attempted, kept — which is the half of DD137 the console could never give
+    /// anybody: a host that got the engine back four times overnight and one that never lost it look
+    /// identical the morning after.
+    /// </remarks>
+    public string BroughtItBack(EngineStatus back)
+    {
+        ArgumentNullException.ThrowIfNull(back);
+        return $"{back.State,-8}  {RestartMark} (restart {Revivals})";
+    }
+
     /// <summary>Record that the engine came back.</summary>
     public void Revived()
     {

@@ -8,8 +8,6 @@
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD165** (deps: DD164 ✅) **The engine journal is a file nobody finds, so a user who watched the engine go offline has nothing to read** — An Engine page follows the host journal live beside the container lists, carrying the state, the restarts and Copy all the way a container log already does. → §DD165
-
 ## Block D — Container operations (what a user came to do)
 
 ## Block E — Images, volumes and networks

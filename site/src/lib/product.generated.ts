@@ -71,6 +71,17 @@ export const product: ProductData = {
     ],
     "visible": 6
   },
+  "window": {
+    "destinations": [
+      "Containers",
+      "Images",
+      "Volumes",
+      "Builds",
+      "Engine",
+      "About"
+    ],
+    "machine": 5
+  },
   "help": [
     "FreeWilly.exe — install and drive Docker on Windows.",
     "",

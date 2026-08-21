@@ -16,6 +16,7 @@ import {
   Spelled,
   acquireCount,
   artefactCount,
+  destinationCount,
   helpExcerpt,
   menuCount,
   product,
@@ -645,16 +646,28 @@ export const windowSection = {
       { code: "http://localhost:x" },
       " is not where a published UDP port is",
     ] as Rich,
-    // DD157. The window has five destinations and this page described three of them, so the
+    // DD157. The window has six destinations and this page described three of them, so the
     // one page nobody could have guessed at was the one missing: a build is the only thing
     // here whose record outlives the thing it produced.
+    //
+    // DD165 added the sixth and the count moved with it, which is the whole of what DD160 was
+    // about: a number on this page that nobody updates is a number that goes quietly wrong.
     [
-      { b: "Four destinations, and Builds is one." },
+      { b: `${Spelled(destinationCount())} destinations, and Builds is one.` },
       " Containers, images, volumes and ",
       { b: "what has been built here" },
       " — which is also where the ",
       { code: "docker-desktop://" },
       " link buildx prints at the end of every build lands, because the record it names is one the daemon kept and only the address was dead",
+    ] as Rich,
+    // DD165. No ordinal in this one, deliberately: "the fifth" is a count typed into prose, and
+    // this whole file exists because those go stale in silence. What the page is does not need a
+    // number — it is the destination the others send you to when they are all empty.
+    [
+      { b: "Engine is where an empty window explains itself." },
+      " The host's own journal, followed while you watch it: every time the engine was brought back, what ",
+      { code: "wsl.exe" },
+      " said the last time it would not start, and the suspend it did not survive — a file that outlives the run it describes, on the same footing as a container's log",
     ] as Rich,
   ],
 };

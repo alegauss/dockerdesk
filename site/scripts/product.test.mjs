@@ -148,6 +148,36 @@ test("the tray menu is what TrayMenu builds, item for item", () => {
   assert.equal(product.tray.items.at(-1).caption, captions.QuitText);
 });
 
+test("the window's destinations are the ones the nav strip carries", () => {
+  // DD165. The same join the tray menu has, one section along: the window section opens with a
+  // count and then names the destinations one by one, so a page added to the strip and not to
+  // the sentence leaves the site counting to four on a window that shows five. That is exactly
+  // the drift DD160 corrected, and it happened again the moment a destination was added.
+  const strip = source("src", "FreeWilly.Tray", "Ui", "MainWindow.xaml");
+  const carried = [...strip.matchAll(/<RadioButton[^>]*?Content="([^"]+)"/gs)].map((m) => m[1]);
+
+  assert.ok(carried.length > 0, "no destinations parsed out of MainWindow.xaml");
+  assert.deepEqual(product.window.destinations, carried);
+
+  // About is a destination and is deliberately not one of the machine's views, so the two
+  // numbers must differ by exactly the About the strip carries.
+  assert.ok(carried.includes("About"), "the strip no longer carries About");
+  assert.equal(product.window.machine, carried.length - 1);
+});
+
+// There is deliberately no test that the window section NAMES each destination it counts, and
+// the omission is worth more written down than left to be rediscovered. The tray section has
+// one because its captions are distinctive strings — "Start engine" appears in the copy for
+// exactly one reason. A destination is a single common word: "engine" is this product's central
+// noun and appears in the window section's own first bullet, "images" and "volumes" are used
+// throughout the agent surface. A substring assertion over those passes whether the sentence is
+// right or wrong — measured, by deleting the Engine sentence and watching it stay green — and a
+// gate that cannot fail is worse than no gate, because it is read as coverage.
+//
+// What is gated instead is the number, which is the half that goes wrong in silence: the count
+// above comes from the strip, and "no count the generator states is typed in the copy as well"
+// keeps it from being typed back in.
+
 test("the page names every item the menu shows, and does not count the hidden one", () => {
   // DD160. The heading states the number and the bullets are what a reader counts against it,
   // so one bullet per item is the shape that makes the two inseparable. This said four while

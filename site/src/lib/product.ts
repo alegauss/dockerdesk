@@ -91,6 +91,24 @@ export function hiddenMenuItems(): readonly string[] {
 }
 
 /**
+ * How many destinations of the window are views of the machine (DD165).
+ *
+ * Not the number of destinations the strip carries: About is one and is not a view of
+ * anything on the machine, and the sentence this number sits in names the others one by one.
+ * A sixth page therefore rewrites the sentence that counts it, which is the whole of DD159 —
+ * and it is DD160's failure exactly, one section along, since this count was typed until the
+ * Engine page made it wrong.
+ */
+export function destinationCount(): number {
+  return product.window.machine;
+}
+
+/** The destinations, in the order the strip shows them. */
+export function destinations(): readonly string[] {
+  return product.window.destinations;
+}
+
+/**
  * One artefact's upstream version, keyed by its manifest id: "engine", "cli", "compose", …
  *
  * Throws on an id the manifest does not pin. A pill claiming a version for an artefact that

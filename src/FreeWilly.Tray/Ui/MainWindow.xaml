@@ -137,6 +137,14 @@
                 <RadioButton x:Name="NavBuilds" Style="{StaticResource NavDest}"
                              GroupName="Destination" Content="Builds"
                              Tag="Builds" Checked="Destination_Checked" />
+                <!-- What the engine did, and what this machine saw it do (DD165). Beside the lists
+                     rather than behind the tray menu, because it answers the question those lists
+                     cannot when they are empty: the dot above says the engine is down, and this
+                     says since when, how many times it has been put back, and what wsl.exe said
+                     the last time it would not start. -->
+                <RadioButton x:Name="NavEngine" Style="{StaticResource NavDest}"
+                             GroupName="Destination" Content="Engine"
+                             Tag="Engine" Checked="Destination_Checked" />
                 <!-- The terms and the versions, where a bug report starts. A destination rather
                      than the dialog it used to be (DD83, L2): a modal that has to be dismissed is
                      the wrong shape for a page somebody reads while typing somewhere else. -->

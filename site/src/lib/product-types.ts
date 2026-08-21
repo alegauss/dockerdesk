@@ -31,6 +31,19 @@ export interface ProductData {
     /** How many of them a menu a user opens actually shows. */
     visible: number;
   };
+  /** What the window's nav strip is, read off MainWindow.xaml (DD165). */
+  window: {
+    /** Every destination, in the order the strip shows them. */
+    destinations: string[];
+    /**
+     * How many of them are views of the machine — every destination but About.
+     *
+     * The number the window section states. About is a destination and is not one of these:
+     * the sentence is about what the tool shows you of your machine, and the terms page is not
+     * that.
+     */
+    machine: number;
+  };
   /** CommandLine.HelpText with its verb constants resolved, one entry per line. */
   help: string[];
 }

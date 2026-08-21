@@ -86,6 +86,11 @@ internal static class WindowCapture
         FreeWilly.Core.Builds.IBuildHistory? builds =
             fixture ? new FreeWilly.Core.Fixtures.SampleBuilds() : null;
 
+        // And the engine page reads a file, which is the same problem once more (DD165, L6): the
+        // live journal is whatever this machine's engine did that afternoon, under a path naming
+        // the account it was taken on. Null is the file beside the install.
+        IEngineJournal? journal = fixture ? new FreeWilly.Core.Fixtures.SampleJournal() : null;
+
         // Before the window exists, because the water starts drifting the moment it is told the
         // engine is up and this verb's fixture says exactly that (DD69, DD70). A picture that caught a
         // random phase would make every capture differ from the last, which is the one property
@@ -93,7 +98,8 @@ internal static class WindowCapture
         Ui.Motion.Still = true;
 
         var window = new Ui.MainWindow(
-            api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { }, builds)
+            api, () => fixture ? EngineState.Running : EngineState.Stopped, () => { },
+            builds, journal)
         {
             WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
             // Off the desktop entirely. Not merely unfocused: there is no screen region for anything

@@ -46,6 +46,7 @@ const inspectionFile = join(
 );
 const commandLineFile = join(repoRoot, "src", "FreeWilly.Tray", "Cli", "CommandLine.cs");
 const trayMenuFile = join(repoRoot, "src", "FreeWilly.Tray", "TrayMenu.cs");
+const mainWindowFile = join(repoRoot, "src", "FreeWilly.Tray", "Ui", "MainWindow.xaml");
 
 function read(path, what) {
   try {
@@ -291,6 +292,34 @@ if (trayItems.length === 0) {
   );
 }
 
+// --- the window's destinations (DD165) ---
+// The sixth reader, and it is here for the reason the fifth was: the window section opens
+// "Four destinations, and Builds is one" and then names them, so the number and the list move
+// together — and DD165 adding the Engine page is exactly the edit that leaves a page on the
+// site confidently counting to four. The same failure DD160 corrected, one section along.
+//
+// Off the nav strip's markup rather than the code-behind's switch: the strip is what a reader
+// of the window sees, and MainWindow already treats it as the list — TabNames is read off it
+// so a page is capturable without a second edit.
+
+const mainWindow = read(mainWindowFile, "the window's nav strip");
+
+const destinations = [
+  ...mainWindow.matchAll(/<RadioButton[^>]*?Content="([^"]+)"[^>]*?Tag="([^"]+)"/gs),
+].map((m) => m[1]);
+
+if (destinations.length === 0) {
+  throw new Error(
+    `product: found no destinations in the nav strip — ${mainWindowFile} no longer matches ` +
+      "the shape this script reads (a RadioButton carrying Content and Tag)",
+  );
+}
+
+// About is a destination and is deliberately not counted with the others: the sentence this
+// number is in is about the views of the machine, and the terms page is not one of them. Named
+// rather than dropped by position, so reordering the strip cannot silently change the number.
+const machineDestinations = destinations.filter((name) => name !== "About");
+
 const data = {
   provisioning: { steps: steps.length, acquire },
   artefacts: { count: artefactIds.length, versions, hosts },
@@ -299,6 +328,7 @@ const data = {
     items: trayItems,
     visible: trayItems.filter((item) => !item.hidden).length,
   },
+  window: { destinations, machine: machineDestinations.length },
   help,
 };
 
@@ -319,6 +349,7 @@ writeFileSync(
 console.log(
   `product: ${steps.length} provisioning step(s), ${artefactIds.length} artefact(s) over ` +
     `${hosts.length} host(s), ${rows.length} preflight row(s), ${data.tray.visible} of ` +
-    `${trayItems.length} menu item(s) shown, ${help.length} help line(s) ` +
+    `${trayItems.length} menu item(s) shown, ${machineDestinations.length} of ` +
+    `${destinations.length} destination(s), ${help.length} help line(s) ` +
     "-> src/lib/product.generated.ts",
 );

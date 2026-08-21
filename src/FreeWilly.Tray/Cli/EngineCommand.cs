@@ -351,12 +351,9 @@ internal static class EngineCommand
             {
                 revival.Revived();
 
-                // Every restart it attempted, kept — which is the half of DD137 the console could
-                // never give anybody: a host that got the engine back four times overnight and one
-                // that never lost it look identical the morning after.
-                Note(
-                    journal,
-                    $"  {back.State,-8}  brought the engine back (restart {revival.Revivals})");
+                // Spelled by EngineRevival since DD165, because the window counts these lines and
+                // the sentence was previously typed here and matched there.
+                Note(journal, $"  {revival.BroughtItBack(back)}");
                 return true;
             }
 

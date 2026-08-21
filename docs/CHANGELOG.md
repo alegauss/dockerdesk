@@ -38,6 +38,7 @@
 - ✅ **DD143** **do compose up reads only docker-compose.yml, so the agent verb brings up a different stack than the project defines** — The verb names the override compose would apply as well as the base, and prints every file that went into the project it brought up.
 - ✅ **DD149** **The relay's accept loop waits on the thread pool, so work elsewhere in the process stalls every docker client at once** — The accept loop blocks on a background thread of its own, and a dispose ends the wait by closing the handle underneath it.
 - ✅ **DD162** **A start that fails inside wsl.exe blames the daemon log, and that log is empty because the daemon never ran** — A refused launch now reads wsl.exe exited -1 with the message it wrote, decoded from the UTF-16LE it writes on stdout, and the daemon log is only named where a daemon actually ran.
+- ✅ **DD163** **The journal records the engine and nothing around it, so a suspend, a logoff and a killed host read as one silence** — The journal now carries the host coming up and going down, a suspend, a resume, the session ending, and the tray's own view of the engine and of every click - one timeline, not half.
 
 ## Block B — The daemon client (talk to the engine)
 

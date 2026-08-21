@@ -2,27 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD163 The events either side of the engine
-
-DD137 was deliberate about writing nothing while the engine is quiet, and that rule is
-right: a line every two seconds is a file that says nothing at great length. What the
-run of 21 August shows is that the rule was applied one step too widely. The journal
-holds the engine's own states and nothing about the machine underneath, so the reader
-has to guess at everything the engine was reacting to.
-
-Three gaps, each observed. The host learns from Windows that the machine resumed and
-acts on it — Serve subscribes to PowerModeChanged — and writes nothing down, so a
-suspend that cost the virtual machine reads exactly like a daemon that died at a desk
-nobody left. The host never announces that it started or that it is ending, so a file
-whose last line is a status cannot be told from a file whose writer was killed
-mid-sentence. And the tray, the one process that knows the event stream went quiet at
-14:35 and that a human clicked Start engine at 15:45, writes to the journal not at all.
-
-None of that is a poll. Every line named here is something that happened, which is the
-test DD137 set and the reason the file is worth opening. What it buys is that a gap in
-the file has a cause beside it: the reader stops arguing from Event Viewer and a
-sixty-second hole, and reads instead.
-
 ### §DD164 Giving up is not the same as stopping
 
 DD136 bounded the retries, and its reason was sound: an engine that cannot come up is a

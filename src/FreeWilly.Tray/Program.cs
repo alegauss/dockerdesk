@@ -20,6 +20,22 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly TrayScale _scale;
     private readonly EnginePaths _paths = new();
     private readonly ReleaseWatch _releases;
+
+    /// <summary>
+    /// The engine's journal, which this process writes to as well since DD163.
+    /// </summary>
+    /// <remarks>
+    /// The tray is the only thing on the machine that knows two facts the host cannot: that the
+    /// event stream went quiet, and that a human then pressed something. On 21 August 2026 those
+    /// were the first and last events of the failure — the engine stopped answering at 14:35 and
+    /// somebody clicked Start at 15:45 — and neither reached the file, so an hour of a machine
+    /// doing nothing looked from the journal like a host that had simply finished.
+    ///
+    /// <para>The same file and not a second one. See <see cref="EngineHostLog"/>: two writers is
+    /// what the pen in there is for, and one timeline is the whole point of writing any of this
+    /// down.</para>
+    /// </remarks>
+    private readonly EngineHostLog _journal = EngineHostLog.BesideTheInstall();
     private Icon? _worn;
     private TraySettings _settings;
     private bool _startRequested;
@@ -376,16 +392,22 @@ internal sealed class TrayApplication : ApplicationContext
             _paths.DistributionRegistered, _paths.DistributionName);
         if (refusal is not null)
         {
+            // In the journal as well as the balloon (DD163). A balloon is gone in eight seconds and
+            // a refusal that was never written down is the shape of failure this whole file exists
+            // to remove — somebody reads the log a day later and finds a start that never happened.
+            _journal.Say($"{"tray",-8}  a start was asked for and refused — {refusal}");
             Complain(refusal);
             return;
         }
 
+        _journal.Say($"{"tray",-8}  a start was asked for");
         _startRequested = true;
         Show(EngineState.Starting);
 
         var failure = _holder.Start();
         if (failure is not null)
         {
+            _journal.Say($"{"tray",-8}  the host would not launch — {failure}");
             Complain(failure);
             return;
         }
@@ -436,7 +458,9 @@ internal sealed class TrayApplication : ApplicationContext
             return;
         }
 
-        Complain(TrayState.StartDidNotLand(TrayState.StartBudget, _paths.DistributionName));
+        var gaveUp = TrayState.StartDidNotLand(TrayState.StartBudget, _paths.DistributionName);
+        _journal.Say($"{"tray",-8}  {gaveUp}");
+        Complain(gaveUp);
     }
 
     /// <summary>
@@ -478,6 +502,7 @@ internal sealed class TrayApplication : ApplicationContext
 
     private void StopEngine()
     {
+        _journal.Say($"{"tray",-8}  a stop was asked for");
         _startRequested = false;
         StopWatchingTheStart();
         Show(EngineState.Stopped);
@@ -497,7 +522,13 @@ internal sealed class TrayApplication : ApplicationContext
         }
 
         var changed = _shown != state;
+        var was = _shown;
         _shown = state;
+
+        if (changed)
+        {
+            NoteTheEngineMoved(was, state);
+        }
 
         // Asked here rather than inside Icon, so what the watch compares against is the size that
         // actually reached the shell and not a size something intended to use (DD99).
@@ -516,6 +547,43 @@ internal sealed class TrayApplication : ApplicationContext
         if (changed)
         {
             _ = _open?.RefreshAsync();
+        }
+    }
+
+    /// <summary>
+    /// Write down that the engine came or went, as this process saw it (DD163).
+    /// </summary>
+    /// <param name="was">What was being shown.</param>
+    /// <param name="now">What is being shown instead.</param>
+    /// <remarks>
+    /// <b>Transitions only, and only the two that are facts.</b> Running and Stopped are the event
+    /// stream's own connection state — connected exactly when the engine is answering, which is the
+    /// definition the whole tray is built on — so a move between them is something that happened to
+    /// the engine. Starting is not: it means this tray asked for a start and has no evidence yet,
+    /// which is already written by the line that asked, and recording it here would put a second
+    /// entry in the file for one event.
+    ///
+    /// <para>This is deliberately a second opinion rather than a report. The host writes what its
+    /// own polls found; this writes what a client connected to the pipe found, and the two
+    /// disagreeing is itself worth reading — an engine the host believes is up while nothing on the
+    /// machine can reach it is DD142's failure, and it has no other witness.</para>
+    /// </remarks>
+    private void NoteTheEngineMoved(EngineState was, EngineState now)
+    {
+        var line = now switch
+        {
+            EngineState.Running => "the engine is answering",
+            EngineState.Stopped when was is EngineState.Running => "the engine stopped answering",
+
+            // Stopped arriving from Starting is a start that did not land, and it is left to the
+            // budget in WatchTheStart to report — that line carries how long it waited, which is
+            // the part a reader needs and this branch does not know.
+            _ => null,
+        };
+
+        if (line is not null)
+        {
+            _journal.Say($"{"tray",-8}  {line}");
         }
     }
 
@@ -549,6 +617,7 @@ internal sealed class TrayApplication : ApplicationContext
     /// </remarks>
     private void Quit()
     {
+        _journal.Say($"{"tray",-8}  quitting, and the engine goes with it");
         StopTheEngine();
         _icon.Visible = false;
         ExitThread();
@@ -567,8 +636,15 @@ internal sealed class TrayApplication : ApplicationContext
     /// <para>The icon and the message loop are left alone. Windows is already taking them, and
     /// touching UI from this callback would be doing it from the wrong thread on the way out.</para>
     /// </remarks>
-    private void OnSessionEnding(object sender, Microsoft.Win32.SessionEndingEventArgs ending) =>
+    private void OnSessionEnding(object sender, Microsoft.Win32.SessionEndingEventArgs ending)
+    {
+        // Named before the stop, and the reason is the same one the ending line in the host has
+        // (DD163): this is the ordinary way a machine's engine disappears overnight, and until now
+        // it left a journal identical to a crash. The reason Windows gave is in the line because a
+        // logoff and a shutdown are different things to be reading about the next morning.
+        _journal.Say($"{"session",-8}  Windows is ending the session ({ending?.Reason})");
         StopTheEngine();
+    }
 
     /// <summary>Ask the engine to stop, at most once over this tray's life (DD129).</summary>
     /// <remarks>

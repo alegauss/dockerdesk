@@ -116,6 +116,23 @@ internal static class EngineCommand
     /// </param>
     private static int Serve(SingleEngine only)
     {
+        // DD137. Everything below is written to a console this process does not have: the host is
+        // launched detached and hidden, so the account of what it saw has been going nowhere. From
+        // here down every line goes to both, and the journal is what is left once the window is.
+        //
+        // First in the method since DD163, because the events either side of the engine start
+        // before the engine does — a suspend arriving during the first sixty seconds is exactly the
+        // kind of thing this file was missing.
+        var journal = EngineHostLog.BesideTheInstall();
+
+        // Who this is, so a reader can tell one run from the next. Without it the file is a
+        // continuous stream in which two hosts a day apart are indistinguishable, and a restart of
+        // the tool reads as a gap in a single long run.
+        Note(
+            journal,
+            $"  {"host",-8}  serving as pid {Environment.ProcessId} "
+            + $"(FreeWilly {Core.Licensing.BuildVersion.Current})");
+
         using var stopping = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
@@ -138,18 +155,28 @@ internal static class EngineCommand
         var resumed = new ManualResetEventSlim(false);
         void OnPower(object? _, Microsoft.Win32.PowerModeChangedEventArgs e)
         {
-            if (e.Mode is Microsoft.Win32.PowerModes.Resume)
+            // Written down since DD163, and both ends of it. The host has always acted on a resume
+            // and never recorded one, which left the reader unable to tell the failure this whole
+            // mechanism exists for — a virtual machine lost to a suspend — from a daemon that died
+            // at a desk nobody had left. The two look identical in the file and have different
+            // causes, and Windows already says which one it is.
+            switch (e.Mode)
             {
-                resumed.Set();
+                case Microsoft.Win32.PowerModes.Suspend:
+                    Note(journal, $"  {"power",-8}  the machine is suspending");
+                    break;
+                case Microsoft.Win32.PowerModes.Resume:
+                    Note(journal, $"  {"power",-8}  the machine came back");
+                    resumed.Set();
+                    break;
+                default:
+                    // StatusChange: a battery, a charger, a power plan. Nothing the engine cares
+                    // about, and a line every time one moves is the poll this file refuses to be.
+                    break;
             }
         }
 
         Microsoft.Win32.SystemEvents.PowerModeChanged += OnPower;
-
-        // DD137. Everything below is written to a console this process does not have: the host is
-        // launched detached and hidden, so the account of what it saw has been going nowhere. From
-        // here down every line goes to both, and the journal is what is left once the window is.
-        var journal = EngineHostLog.BesideTheInstall();
 
         var lifecycle = NewLifecycle();
         try
@@ -178,6 +205,14 @@ internal static class EngineCommand
             resumed.Dispose();
             asked.Dispose();
             lifecycle.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+            // The last line, and it is here for what its absence means (DD163). Every ending this
+            // host reaches on its own passes through this finally, so a file whose final line is
+            // anything else describes a host that did not end — it was killed, or the machine went
+            // down under it. Before this, a journal that simply stopped was the same shape whether
+            // the host had walked away deliberately or been shot, and telling those apart was the
+            // question DD134 had to answer from Hyper-V events.
+            Note(journal, $"  {"host",-8}  this host is done");
         }
     }
 

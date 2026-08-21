@@ -4,9 +4,15 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
+- 📋 **DD162** (deps: —) **A start that fails inside wsl.exe blames the daemon log, and that log is empty because the daemon never ran** — The launcher stdout, stderr and exit code reach the host journal, so a WSL that would not boot the distribution names itself instead of pointing at an empty dockerd.log. → §DD162
+- 📋 **DD163** (deps: —) **The journal records the engine and nothing around it, so a suspend, a logoff and a killed host read as one silence** — The host and the tray write the events either side of a failure - a resume, a session ending, the stream going quiet - so a gap in the file has a cause beside it. → §DD163
+- 📋 **DD164** (deps: —) **The host gives up after five attempts, so an engine that could not come back stays down until somebody clicks Start** — Once the quick attempts are spent the host falls back to a long interval instead of exiting, so a machine that recovers an hour later serves again without a click. → §DD164
+
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
+
+- 📋 **DD165** (deps: DD164) **The engine journal is a file nobody finds, so a user who watched the engine go offline has nothing to read** — An Engine page follows the host journal live beside the container lists, carrying the state, the restarts and Copy all the way a container log already does. → §DD165
 
 ## Block D — Container operations (what a user came to do)
 

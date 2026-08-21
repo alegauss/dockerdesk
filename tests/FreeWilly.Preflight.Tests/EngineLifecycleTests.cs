@@ -165,6 +165,9 @@ internal sealed class FakeDaemon(bool aliveWhenLaunched = true) : IDaemonProcess
 
     public bool Alive { get; private set; }
 
+    /// <summary>What the launcher is to be found saying, if anything (DD162).</summary>
+    public string? LastWords { get; set; }
+
     public void Launch()
     {
         Launches++;
@@ -340,6 +343,101 @@ public sealed class EngineLifecycleTests
 
         Assert.Equal(EngineState.Stopped, status.State);
         Assert.Contains(EngineLifecycle.LogPath, status.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The half of that failure the daemon's log cannot hold, since DD162.
+    /// </summary>
+    /// <remarks>
+    /// Measured on 21 August 2026: five restarts in a row reported the daemon exiting and named
+    /// <c>/var/log/dockerd.log</c>, and that file held nothing between the failure and the manual
+    /// start an hour later — the launch never reached a daemon, so nothing was there to write. The
+    /// assertion that the log is <em>not</em> named is the point rather than an extra: a reader who
+    /// is handed a cause and a file goes and opens the file.
+    /// </remarks>
+    [Fact]
+    public async Task A_launcher_that_died_is_quoted_instead_of_the_daemon_log()
+    {
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
+        var daemon = new FakeDaemon(aliveWhenLaunched: false)
+        {
+            LastWords = "wsl.exe exited 1: The Windows Subsystem for Linux instance has terminated.",
+        };
+
+        await using var engine = new EngineLifecycle(
+            wsl, daemon, new FakeBackend(null), Pipe(), Owned);
+
+        var status = await engine.StartAsync(TimeSpan.FromSeconds(20));
+
+        Assert.Equal(EngineState.Stopped, status.State);
+        Assert.Contains("instance has terminated", status.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(EngineLifecycle.LogPath, status.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The bytes a real refused launch produced, decoded and flattened into one line (DD162).
+    /// </summary>
+    /// <remarks>
+    /// Captured rather than invented: <c>wsl.exe -d &lt;missing&gt; -u root --exec …</c> on Windows 11
+    /// exits -1 and writes 190 bytes to <b>standard output</b> — not standard error — as UTF-16LE
+    /// with no byte-order mark. Every part of that is a way this could have been written wrong:
+    /// draining only stderr collects nothing, and decoding as UTF-8 yields a NUL after every
+    /// character, which is the wart <see cref="ConsoleTool.Decode"/> exists for.
+    /// </remarks>
+    [Fact]
+    public void A_refused_launch_is_decoded_from_the_encoding_wsl_actually_used()
+    {
+        var wire = Encoding.Unicode.GetBytes(
+            "Não há distribuição com o nome fornecido.\r\n"
+            + "Código de erro: Wsl/Service/WSL_E_DISTRO_NOT_FOUND\r\n");
+
+        var said = WslDaemonProcess.Sentence(-1, wire);
+
+        Assert.Equal(
+            "wsl.exe exited -1: Não há distribuição com o nome fornecido. "
+            + "Código de erro: Wsl/Service/WSL_E_DISTRO_NOT_FOUND",
+            said);
+        Assert.DoesNotContain('\n', said);
+    }
+
+    /// <summary>
+    /// A launcher that exited saying nothing still names the exit code (DD162).
+    /// </summary>
+    /// <remarks>
+    /// The sentence exists for this case as much as for the loud one. Without it the caller falls
+    /// back to naming the daemon's log, and the reader is told a daemon died when what died was the
+    /// process that was going to start one.
+    /// </remarks>
+    [Fact]
+    public void A_silent_launcher_is_still_reported_by_its_exit_code()
+    {
+        var said = WslDaemonProcess.Sentence(1, []);
+
+        Assert.Equal("wsl.exe exited 1 without a word", said);
+    }
+
+    /// <summary>A launcher that went quietly leaves the pointer exactly as it was (DD162).</summary>
+    [Fact]
+    public async Task A_daemon_that_died_after_answering_says_so_with_what_the_launcher_said()
+    {
+        var wsl = new FakeWsl();
+        wsl.Default = new WslResult(0, "freewilly\r\n", null);
+        var daemon = new FakeDaemon(aliveWhenLaunched: false)
+        {
+            LastWords = "wsl.exe exited 4294967295 without a word",
+        };
+
+        await using var engine = new EngineLifecycle(
+            wsl, daemon, new FakeBackend(null), Pipe(), Owned);
+
+        // Launched, so the status reads the handle this lifecycle owns rather than the machine.
+        _ = await engine.StartAsync(TimeSpan.FromSeconds(2));
+        var status = await engine.StatusAsync();
+
+        Assert.Equal(EngineState.Stopped, status.State);
+        Assert.True(status.Conclusive);
+        Assert.Contains("the daemon exited — wsl.exe exited", status.Detail, StringComparison.Ordinal);
     }
 
     [Fact]

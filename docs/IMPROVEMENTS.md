@@ -2,30 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD162 The launcher's own words
-
-DD137 gave the host a journal and it works: the run of 21 August names the minute the
-engine stopped answering, the five attempts, and the moment it gave up. What it cannot
-name is why any attempt failed. Each says the daemon exited while starting and sends the
-reader to /var/log/dockerd.log — and measured, that file holds nothing between the
-failure and the manual start an hour later. The daemon never ran, so the only pointer
-the journal offers leads somewhere empty.
-
-The cause is one line. WslDaemonProcess.Launch starts wsl.exe with CreateNoWindow and no
-redirection, and it is the only process this project starts that way. Its stderr goes to
-the console of a host launched detached and hidden — which is the console DD137 exists
-because nobody can read. The exit code is discarded too: Alive asks HasExited, and
-nothing asks what it exited with.
-
-So a failure below the daemon is invisible by construction. A distribution WSL will not
-boot, a virtual machine Hyper-V refused, an interop layer that came back from a suspend
-broken: each has a sentence wsl.exe already prints, and each is thrown away.
-
-The change is small. The launcher keeps both streams and the exit code, and a status
-reporting a daemon that exited carries what wsl.exe said rather than a pointer that may
-lead nowhere. The daemon log stays named where it is still the right answer — a daemon
-that started and then died did write its reason there.
-
 ### §DD163 The events either side of the engine
 
 DD137 was deliberate about writing nothing while the engine is quiet, and that rule is

@@ -8,6 +8,19 @@ public interface IDaemonProcess : IDisposable
     /// <summary>Whether it is running right now.</summary>
     bool Alive { get; }
 
+    /// <summary>
+    /// What the launcher said on its way out, or <see langword="null"/> while it is still up or
+    /// where its ending was asked for (DD162).
+    /// </summary>
+    /// <remarks>
+    /// The daemon runs inside a distribution and a Windows process launches it, so there are two
+    /// ways a launch dies and only one of them has ever been readable. A daemon that started and
+    /// then failed wrote its reason to its own log; a launch that never got that far — a
+    /// distribution WSL would not boot, a virtual machine Hyper-V refused — failed in the launcher,
+    /// which is the half this carries.
+    /// </remarks>
+    string? LastWords { get; }
+
     /// <summary>Start it. Returns once launched, which is long before the socket exists.</summary>
     void Launch();
 
@@ -133,7 +146,7 @@ public sealed class EngineLifecycle : IAsyncDisposable
         {
             return _daemon.Alive
                 ? new EngineStatus(EngineState.Starting, $"the daemon is running and {ping.Detail}")
-                : new EngineStatus(EngineState.Stopped, "the daemon exited")
+                : new EngineStatus(EngineState.Stopped, WhatTookTheDaemon())
                 {
                     Conclusive = true,
                 };
@@ -204,9 +217,8 @@ public sealed class EngineLifecycle : IAsyncDisposable
 
             if (!_daemon.Alive)
             {
-                return new EngineStatus(EngineState.Stopped,
-                    $"the daemon exited while starting — read {LogPath} inside "
-                    + Distribution);
+                return new EngineStatus(
+                    EngineState.Stopped, $"the daemon exited while starting — {WhyItDied()}");
             }
 
             var ping = await EnginePing.AskAsync(
@@ -262,6 +274,38 @@ public sealed class EngineLifecycle : IAsyncDisposable
             done.Count == 0 ? "nothing was running" : string.Join(", ", done));
     }
 
+    /// <summary>
+    /// Why a daemon that was launched is no longer there, said as well as it can be (DD162).
+    /// </summary>
+    /// <returns>The clause that follows "the daemon exited while starting —".</returns>
+    /// <remarks>
+    /// This used to be one sentence with no branch in it: read the daemon's log inside the
+    /// distribution. That is the right answer for a daemon that started and then died, and the
+    /// wrong one for every launch that never reached a daemon at all — measured on 21 August 2026,
+    /// five attempts in a row reported it and the log they named held nothing whatsoever between
+    /// the failure and the manual start an hour later, because dockerd had never run to write in
+    /// it.
+    ///
+    /// <para>So the launcher is asked first. Where it exited with something to say, that is the
+    /// answer and the daemon's log is not mentioned — sending a reader to a second file when the
+    /// first one already named the cause is how the previous sentence wasted an hour. Where it went
+    /// quietly, the pointer stands exactly as it did, because then the daemon really is the thing
+    /// that died.</para>
+    /// </remarks>
+    private string WhyItDied() =>
+        _daemon.LastWords ?? $"read {LogPath} inside {Distribution}";
+
+    /// <summary>The same question, for a daemon that was up and is not (DD162).</summary>
+    /// <returns>The detail.</returns>
+    /// <remarks>
+    /// Separate from <see cref="WhyItDied"/> because the daemon's log is not offered here. This
+    /// reading is reached by a poll long after the start succeeded, so the engine ran and whatever
+    /// it wrote is about a working daemon until the last line — a reader sent there finds the log
+    /// of the engine they already know they had.
+    /// </remarks>
+    private string WhatTookTheDaemon() =>
+        _daemon.LastWords is { } said ? $"the daemon exited — {said}" : "the daemon exited";
+
     private EnginePipeRelay StartRelay()
     {
         var relay = new EnginePipeRelay(_backend, _pipeName);
@@ -292,8 +336,32 @@ public sealed class EngineLifecycle : IAsyncDisposable
 /// </remarks>
 public sealed class WslDaemonProcess : IDaemonProcess
 {
+    /// <summary>
+    /// How much of what the launcher wrote is kept.
+    /// </summary>
+    /// <remarks>
+    /// A few lines is the whole of what this ever carries — <c>wsl.exe</c>'s own refusals are one
+    /// sentence — and the cap is here for the case that is not that: a launcher looping on an error
+    /// against a process nobody is reading. Everything past it is read and dropped rather than left
+    /// in the pipe, because a full pipe is a child blocked on a write.
+    /// </remarks>
+    public const int KeptBytes = 4 * 1024;
+
+    /// <summary>How long <see cref="LastWords"/> waits for the streams to finish closing.</summary>
+    /// <remarks>
+    /// The process exiting and its pipes reaching end-of-stream are two events, in that order, and
+    /// the gap between them is where a launcher's last line still is. Short, because the caller is
+    /// a supervisor poll that has an engine to get back and the alternative to waiting is a
+    /// sentence missing its cause.
+    /// </remarks>
+    private static readonly TimeSpan LastWordsWait = TimeSpan.FromMilliseconds(500);
+
     private readonly string _distribution;
+    private readonly List<byte> _said = [];
+    private readonly object _pen = new();
     private Process? _process;
+    private Task[] _draining = [];
+    private bool _asked;
 
     /// <summary>Construct a daemon launcher.</summary>
     /// <param name="distribution">
@@ -311,10 +379,91 @@ public sealed class WslDaemonProcess : IDaemonProcess
     public bool Alive => _process is { HasExited: false };
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Silent about an ending this process asked for, which is what <c>_asked</c> is for. A killed
+    /// launcher exits with a code Windows chose and says nothing, and reporting "wsl.exe exited
+    /// -1" every time the engine is stopped normally would put a line that reads like a failure
+    /// into the ordinary path — the file DD137 keeps is worth opening because everything in it
+    /// happened to somebody.
+    /// </remarks>
+    public string? LastWords
+    {
+        get
+        {
+            if (_process is not { HasExited: true } exited || _asked)
+            {
+                return null;
+            }
+
+            // The exit and the end of the pipes are not the same instant, and the last line is
+            // usually written just before the first. Bounded, and the timeout is not an error: what
+            // has arrived by then is still better than the pointer this replaced.
+            try
+            {
+                _ = Task.WaitAll(_draining, LastWordsWait);
+            }
+            catch (AggregateException)
+            {
+                // A drain that faulted read less than all of it. Say what did arrive.
+            }
+
+            byte[] said;
+            lock (_pen)
+            {
+                said = [.. _said];
+            }
+
+            return Sentence(exited.ExitCode, said);
+        }
+    }
+
+    /// <summary>
+    /// What a launcher that exited is quoted as saying (DD162).
+    /// </summary>
+    /// <param name="exitCode">What it exited with.</param>
+    /// <param name="said">The raw bytes of everything it wrote, in the encoding it chose.</param>
+    /// <returns>The one line a status detail carries.</returns>
+    /// <remarks>
+    /// Separate from the property, and internal, because the property cannot be reached without a
+    /// real <c>wsl.exe</c> and this is the whole of what there is to get wrong: the decoding, the
+    /// flattening, and the sentence for a launcher that said nothing. The bytes the suite hands
+    /// this were captured from a real failed launch.
+    ///
+    /// <para>The exit code is in the sentence even where there is no text, and that is not padding.
+    /// It is the one thing that distinguishes a launcher that died from a daemon that did — which
+    /// is the distinction the reader was previously left to guess at.</para>
+    /// </remarks>
+    internal static string Sentence(int exitCode, byte[] said)
+    {
+        // Decoded by what is in the bytes rather than by what wsl.exe documents. Measured: a
+        // missing distribution answers on stdout, in UTF-16LE with no BOM, and reading that as
+        // UTF-8 gives a NUL after every character — a message no reader can use.
+        var text = Preflight.Windows.ConsoleTool.Decode(said).Trim();
+
+        // Flattened, because the journal is read as a column of stamped lines and wsl.exe puts its
+        // error code on a second line. A detail carrying its own newline breaks the shape of every
+        // line after it.
+        var line = string.Join(
+            " ",
+            text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries
+                | StringSplitOptions.TrimEntries));
+
+        return line.Length == 0
+            ? $"wsl.exe exited {exitCode} without a word"
+            : $"wsl.exe exited {exitCode}: {line}";
+    }
+
+    /// <inheritdoc/>
     public void Launch()
     {
         var startInfo = new ProcessStartInfo(Wsl.LauncherPath)
         {
+            // Redirected since DD162, and this was the one process in the project that was not.
+            // What the launcher says goes nowhere otherwise: the engine host is started detached
+            // and hidden, so its console — the destination of an un-redirected stderr — is the same
+            // console DD137 exists because nobody can read.
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
@@ -329,8 +478,63 @@ public sealed class WslDaemonProcess : IDaemonProcess
             startInfo.ArgumentList.Add(argument);
         }
 
+        lock (_pen)
+        {
+            _said.Clear();
+        }
+
+        _asked = false;
         _process = Process.Start(startInfo)
             ?? throw new IOException($"{Wsl.LauncherPath} could not be started");
+
+        // Both, and started at once. The daemon's own output never comes this way — the shell above
+        // redirects it into the distribution's own log — so what these carry is wsl.exe's, which is
+        // a sentence or nothing.
+        _draining =
+        [
+            DrainAsync(_process.StandardOutput.BaseStream),
+            DrainAsync(_process.StandardError.BaseStream),
+        ];
+    }
+
+    /// <summary>Read one of the launcher's streams to its end, keeping the first of it.</summary>
+    /// <param name="from">The stream.</param>
+    /// <returns>The task that completes when the stream does.</returns>
+    /// <remarks>
+    /// Bytes and not lines, for the reason <see cref="Preflight.Windows.ConsoleTool"/> reads bytes:
+    /// <c>wsl.exe</c> writes UTF-16LE, and a <see cref="StreamReader"/> decoding that as UTF-8
+    /// yields a NUL after every character — which is not a message anybody can read and is the
+    /// decoding wart this project has already been bitten by.
+    ///
+    /// <para>It reads past the cap rather than stopping at it. Stopping would leave a pipe nobody
+    /// is draining, and the child blocks on the write that fills it — which for this child means an
+    /// engine that will not come up because its log was too long.</para>
+    /// </remarks>
+    private async Task DrainAsync(Stream from)
+    {
+        var buffer = new byte[1024];
+        try
+        {
+            int read;
+            while ((read = await from.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+            {
+                lock (_pen)
+                {
+                    var room = KeptBytes - _said.Count;
+                    if (room > 0)
+                    {
+                        _said.AddRange(buffer.AsSpan(0, Math.Min(read, room)));
+                    }
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException
+            or OperationCanceledException)
+        {
+            // The process was killed or disposed under the read. Whatever arrived first still
+            // stands, and a launcher whose output could not be read must not take the engine with
+            // it — this whole class exists to make a failure legible, not to become one.
+        }
     }
 
     /// <inheritdoc/>
@@ -340,6 +544,11 @@ public sealed class WslDaemonProcess : IDaemonProcess
         {
             return;
         }
+
+        // Set before the kill and never after it. The kill is what makes the launcher exit, so a
+        // flag written afterwards leaves a window in which LastWords reports the ending this
+        // process just asked for as though something had gone wrong.
+        _asked = true;
 
         try
         {

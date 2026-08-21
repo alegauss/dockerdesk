@@ -44,39 +44,109 @@ public sealed class EngineRevivalTests
         }
     }
 
+    /// <summary>
+    /// The doubling is capped, so a fixed machine is not left waiting minutes (DD136).
+    /// </summary>
+    /// <remarks>
+    /// The back-off exists to stop hammering a busy machine, not to punish a slow one: a user who
+    /// repaired whatever was wrong should not sit in front of a working machine watching nothing.
+    ///
+    /// <para>Bounded to the quick attempts since DD164, which is where the doubling now lives.
+    /// Past them the interval is <see cref="EngineRevival.PatientWait"/> by construction and this
+    /// cap has nothing to say about it — a machine that has failed five times in a minute is no
+    /// longer one somebody is standing in front of.</para>
+    /// </remarks>
     [Fact]
     public void The_wait_is_capped_so_a_fixed_machine_is_not_left_waiting_minutes()
     {
-        // The back-off exists to stop hammering a busy machine, not to punish a slow one: a user who
-        // repaired whatever was wrong should not sit in front of a working machine watching nothing.
         var revival = new EngineRevival();
 
-        for (var i = 0; i < 40; i++)
+        while (revival.WorthAnotherTry)
         {
-            revival.Failed();
             Assert.True(
                 revival.Wait <= EngineRevival.LongestWait,
                 $"the wait reached {revival.Wait}, past the {EngineRevival.LongestWait} cap");
+            revival.Failed();
         }
 
         Assert.True(revival.Wait > TimeSpan.Zero, "the wait overflowed into nothing");
     }
 
+    /// <summary>
+    /// Running out of the quick attempts slows this down rather than ending it (DD164).
+    /// </summary>
+    /// <remarks>
+    /// DD136 read this the other way and ended the host here, on the reasoning that an engine which
+    /// cannot come up is a fact the user needs. Measured on 21 August 2026, what that bought was a
+    /// machine offline for an hour and a sentence in a file nobody had been told to open — the fact
+    /// reached nobody, and the silence the bound existed to prevent is what happened.
+    /// </remarks>
     [Fact]
-    public void Running_out_of_attempts_ends_it_rather_than_retrying_forever()
+    public void Running_out_of_quick_attempts_slows_down_rather_than_stopping()
     {
-        // An engine that cannot come up — a corrupted distribution, a full disk, a pipe another
-        // daemon has taken — is a fact the user needs. A loop that hides it behind another retry
-        // turns that fact into a machine quietly doing nothing.
         var revival = new EngineRevival();
 
         for (var i = 0; i < EngineRevival.Attempts; i++)
         {
-            Assert.True(revival.WorthAnotherTry, $"gave up early, at attempt {i}");
+            Assert.True(revival.WorthAnotherTry, $"slowed down early, at attempt {i}");
+            Assert.False(revival.Patient, $"was patient early, at attempt {i}");
             revival.Failed();
         }
 
         Assert.False(revival.WorthAnotherTry);
+        Assert.True(revival.Patient);
+        Assert.Equal(EngineRevival.PatientWait, revival.Wait);
+    }
+
+    /// <summary>
+    /// The wait stays at the long interval however many times it goes on failing (DD164).
+    /// </summary>
+    /// <remarks>
+    /// A laptop left broken overnight reaches this a couple of hundred times. The interval must not
+    /// grow with the count — the doubling exists to stop hammering a busy machine, and past the
+    /// quick attempts that job belongs to <see cref="EngineRevival.PatientWait"/> alone — and it
+    /// must not overflow, which is what the unclamped doubling would do at these counts.
+    /// </remarks>
+    [Fact]
+    public void A_host_that_has_failed_all_night_still_asks_every_five_minutes()
+    {
+        var revival = new EngineRevival();
+        while (revival.WorthAnotherTry)
+        {
+            revival.Failed();
+        }
+
+        for (var i = 0; i < 500; i++)
+        {
+            Assert.Equal(EngineRevival.PatientWait, revival.Wait);
+            revival.Failed();
+        }
+    }
+
+    /// <summary>
+    /// The crossing into the long wait is announceable exactly once (DD164).
+    /// </summary>
+    /// <remarks>
+    /// The host says it when this is true, so a flag that stayed true would put the same sentence in
+    /// the journal every five minutes for as long as the machine stayed broken — and that file is
+    /// worth opening because everything in it is something that happened.
+    /// </remarks>
+    [Fact]
+    public void The_slowdown_is_worth_saying_once_and_not_every_five_minutes()
+    {
+        var revival = new EngineRevival();
+        var crossings = 0;
+
+        for (var i = 0; i < 50; i++)
+        {
+            revival.Failed();
+            if (revival.JustRanOutOfQuickAttempts)
+            {
+                crossings++;
+            }
+        }
+
+        Assert.Equal(1, crossings);
     }
 
     [Fact]
@@ -98,21 +168,31 @@ public sealed class EngineRevivalTests
         Assert.Equal(1, revival.Revivals);
     }
 
+    /// <summary>
+    /// Slowing down says how many times it tried and what it will do next (DD136, DD164).
+    /// </summary>
+    /// <remarks>
+    /// The count, because a host that has tried five times and one that has not tried at all are
+    /// different machines to be sitting in front of. The interval, because this sentence used to be
+    /// the last line in the file: a reader who found it an hour later could not tell whether
+    /// anything was still watching, and now it says so.
+    /// </remarks>
     [Fact]
-    public void Giving_up_says_how_many_times_it_tried()
+    public void Slowing_down_says_how_many_times_it_tried_and_that_it_has_not_stopped()
     {
-        // A host that came down after five attempts and one that came down without trying at all are
-        // different machines to be sitting in front of, and the detail alone does not tell them apart.
         var revival = new EngineRevival();
         while (revival.WorthAnotherTry)
         {
             revival.Failed();
         }
 
-        var said = revival.WhyItGaveUp(Gone());
+        var said = revival.WhyItIsSlowingDown(Gone());
 
         Assert.Contains($"{EngineRevival.Attempts} attempts", said, StringComparison.Ordinal);
         Assert.Contains("the daemon exited", said, StringComparison.Ordinal);
+        Assert.Contains("still trying", said, StringComparison.Ordinal);
+        Assert.Contains(
+            $"{EngineRevival.PatientWait.TotalMinutes:0} minutes", said, StringComparison.Ordinal);
     }
 
     [Fact]

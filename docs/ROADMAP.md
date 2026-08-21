@@ -4,13 +4,11 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-- 📋 **DD164** (deps: —) **The host gives up after five attempts, so an engine that could not come back stays down until somebody clicks Start** — Once the quick attempts are spent the host falls back to a long interval instead of exiting, so a machine that recovers an hour later serves again without a click. → §DD164
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)
 
-- 📋 **DD165** (deps: DD164) **The engine journal is a file nobody finds, so a user who watched the engine go offline has nothing to read** — An Engine page follows the host journal live beside the container lists, carrying the state, the restarts and Copy all the way a container log already does. → §DD165
+- 📋 **DD165** (deps: DD164 ✅) **The engine journal is a file nobody finds, so a user who watched the engine go offline has nothing to read** — An Engine page follows the host journal live beside the container lists, carrying the state, the restarts and Copy all the way a container log already does. → §DD165
 
 ## Block D — Container operations (what a user came to do)
 

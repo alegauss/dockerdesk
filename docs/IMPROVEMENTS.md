@@ -2,27 +2,6 @@
 
 ## Block A — The Windows engine (Docker without Docker Desktop)
 
-### §DD164 Giving up is not the same as stopping
-
-DD136 bounded the retries, and its reason was sound: an engine that cannot come up is a
-fact the user needs, and a loop that retries forever turns that fact into a machine
-quietly doing nothing. The bound it chose was five attempts, about a minute of waiting.
-On 21 August that minute was seven, because an attempt spends up to sixty seconds
-waiting for a pipe. At 14:42 the host said it had given up, stopped serving, and exited.
-The machine then sat offline for an hour, and what ended that was a human clicking Start
-engine.
-
-So the fact reached nobody. The sentence DD136 wanted the user to have was written to a
-file nobody had been told to open, by a process that then stopped existing — and from
-where the user sits the outcome is the silence the bound was meant to prevent.
-
-What was wrong is that giving up and exiting were one act. They need not be. The five
-quick attempts stay as they are and running out of them still says so; what changes is
-that the host then falls back to a long interval instead of ending, and keeps trying
-until the engine is back or somebody asks it to stop. The failure is still announced —
-once, out loud, where the user is looking — and the machine now recovers by itself when
-whatever was wrong is fixed.
-
 ## Block B — The daemon client (talk to the engine)
 
 ## Block C — The window (claude-tray's elements)

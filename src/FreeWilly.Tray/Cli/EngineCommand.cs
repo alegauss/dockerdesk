@@ -294,7 +294,9 @@ internal static class EngineCommand
                 Note(journal, $"  {watch.WhyItStopped(now)}");
                 if (!Revive(lifecycle, revival, ending.Token, journal))
                 {
-                    Note(journal, $"  {revival.WhyItGaveUp(now)}");
+                    // Reachable only by cancellation since DD164 — Revive no longer runs out of
+                    // patience, so the one way it comes back empty-handed is somebody asking this
+                    // host to stop. The ending is reported below, the way every other one is.
                     break;
                 }
 
@@ -312,17 +314,26 @@ internal static class EngineCommand
         return Ok;
     }
 
-    /// <summary>Try to get the engine back, backing off between attempts (DD136).</summary>
+    /// <summary>
+    /// Get the engine back, backing off between attempts and then waiting (DD136, DD164).
+    /// </summary>
     /// <param name="lifecycle">The engine.</param>
-    /// <param name="revival">How many attempts are left and how long to wait.</param>
+    /// <param name="revival">How long to wait, and whether the quick attempts are spent.</param>
     /// <param name="ending">Cancelled by Ctrl+C or an announced stop.</param>
     /// <param name="journal">Where every attempt is kept (DD137).</param>
-    /// <returns><see langword="true"/> where it came back.</returns>
+    /// <returns><see langword="true"/> where it came back, <see langword="false"/> on cancellation.</returns>
     /// <remarks>
     /// The stop before the start is not tidiness. Whatever is left of the previous engine is holding
     /// the pipe name and a <c>wsl.exe</c> child that may still be alive, and a relay serving a
     /// socket inside a virtual machine that no longer exists is exactly the state being recovered
     /// from — starting on top of it would leave two of them.
+    ///
+    /// <para><b>The loop is on the cancellation and not on the count since DD164.</b> It used to end
+    /// when <see cref="EngineRevival.WorthAnotherTry"/> went false, which took the host down with
+    /// it; the count still decides the <em>wait</em>, and after five failures that wait becomes
+    /// <see cref="EngineRevival.PatientWait"/>. So the two endings a user asked for are still the
+    /// only endings, and an engine nobody can start costs a <c>wsl</c> call every five minutes
+    /// instead of a machine that quietly stopped trying.</para>
     /// </remarks>
     private static bool Revive(
         EngineLifecycle lifecycle,
@@ -330,7 +341,7 @@ internal static class EngineCommand
         CancellationToken ending,
         EngineHostLog journal)
     {
-        while (revival.WorthAnotherTry)
+        while (!ending.IsCancellationRequested)
         {
             Task.Delay(revival.Wait, ending).GetAwaiter().GetResult();
 
@@ -351,6 +362,13 @@ internal static class EngineCommand
 
             revival.Failed();
             Note(journal, $"  {back.State,-8}  {back.Detail}");
+
+            // Once, at the crossing. This is the sentence DD136 wanted the user to have, and it is
+            // now a statement about what the host is doing rather than the last thing it said.
+            if (revival.JustRanOutOfQuickAttempts)
+            {
+                Note(journal, $"  {revival.WhyItIsSlowingDown(back)}");
+            }
         }
 
         return false;

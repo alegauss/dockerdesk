@@ -40,6 +40,17 @@ internal sealed class TrayApplication : ApplicationContext
     private TraySettings _settings;
     private bool _startRequested;
     private bool _engineToldToStop;
+
+    /// <summary>
+    /// Whether the engine going away is something somebody asked for (DD164).
+    /// </summary>
+    /// <remarks>
+    /// The one thing separating an engine that failed from an engine that was stopped, and the tray
+    /// is the only place that knows it — from the event stream the two are the same disconnection.
+    /// It exists so the balloon that announces a failure is not also shown to somebody who has just
+    /// pressed Stop engine, which would be the tool reporting its own obedience as a fault.
+    /// </remarks>
+    private bool _stopAsked;
     private CancellationTokenSource? _landing;
     private EngineState _shown = EngineState.Stopped;
     private AvailableRelease? _available;
@@ -401,6 +412,7 @@ internal sealed class TrayApplication : ApplicationContext
         }
 
         _journal.Say($"{"tray",-8}  a start was asked for");
+        _stopAsked = false;
         _startRequested = true;
         Show(EngineState.Starting);
 
@@ -503,6 +515,7 @@ internal sealed class TrayApplication : ApplicationContext
     private void StopEngine()
     {
         _journal.Say($"{"tray",-8}  a stop was asked for");
+        _stopAsked = true;
         _startRequested = false;
         StopWatchingTheStart();
         Show(EngineState.Stopped);
@@ -585,6 +598,18 @@ internal sealed class TrayApplication : ApplicationContext
         {
             _journal.Say($"{"tray",-8}  {line}");
         }
+
+        // Said out loud, once, and only for an engine that went away on its own (DD164). The host
+        // now keeps trying rather than exiting, which is the behaviour the user wanted and also the
+        // one that could be mistaken for nothing happening — a tray that silently sits on Stopped
+        // while a hidden process works is how somebody ends up clicking Start on an engine that was
+        // already being restarted.
+        if (now is EngineState.Stopped && was is EngineState.Running && !_stopAsked)
+        {
+            Balloon(
+                "The engine stopped answering. FreeWilly is trying to bring it back, and keeps "
+                + "trying until it does — there is nothing to click.");
+        }
     }
 
     /// <summary>
@@ -661,6 +686,10 @@ internal sealed class TrayApplication : ApplicationContext
             return;
         }
 
+        // Both exits that run this — the menu's Quit and Windows ending the session — are somebody
+        // asking, so the balloon that announces an engine going away on its own must not fire on
+        // the way out (DD164).
+        _stopAsked = true;
         _engineToldToStop = true;
         _ = _holder.Stop();
     }
